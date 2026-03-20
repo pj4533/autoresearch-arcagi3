@@ -1,0 +1,48 @@
+## Current Game State
+
+Action count: {{ action_count }} / {{ max_actions }}
+Score: {{ current_score }}
+Phase: {{ phase }}
+
+{% if action_effects %}
+## Known Action Effects
+{% for action, effect in action_effects.items() %}
+- {{ action }}: {{ effect }}
+{% endfor %}
+{% endif %}
+
+{% if hypotheses %}
+## Current Hypotheses
+{{ hypotheses }}
+{% endif %}
+
+{% if memory %}
+## Memory
+{{ memory }}
+{% endif %}
+
+## Available Actions
+{{ available_actions }}
+
+## Instructions
+
+Analyze the current frame and all accumulated knowledge. Then decide your next action.
+
+Think step by step:
+1. What do you observe in the current frame?
+2. What changed from the previous frame (if any)?
+3. What does this tell you about the game rules?
+4. What should you do next to make progress?
+
+Respond with this exact JSON format:
+```json
+{
+    "observation": "What you see in the current frame",
+    "analysis": "What you learned from the last action's effect",
+    "hypothesis": "Your current best guess about the game goal/rules",
+    "action": "The human-readable action to take (e.g., Move Up, Move Down, etc.)",
+    "reasoning": "Why this action is the best choice right now"
+}
+```
+
+Only respond with the JSON, nothing else.

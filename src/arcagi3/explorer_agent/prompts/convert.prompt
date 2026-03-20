@@ -1,0 +1,15 @@
+Given the desired action above, select the matching game action from this list:
+{{ action_list }}
+
+The "action" field MUST be one of: {{ valid_actions }}
+
+Respond with this exact JSON format:
+```json
+{
+    "action": "ACTION1",
+    "x": 0,
+    "y": 0
+}
+```
+Only provide x and y if the action is ACTION6 (click). Otherwise omit them or set to 0.
+Respond with the JSON, nothing else.
