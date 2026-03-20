@@ -5,6 +5,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 import arc_agi
+from arc_agi import OperationMode
 from arcengine import GameAction as EngineAction, GameState
 
 from arcagi3.cli.backends.base import GameBackend, GameFrame
@@ -39,14 +40,14 @@ class LocalBackend(GameBackend):
     """Backend using local arcengine for 2000+ FPS execution."""
 
     def __init__(self):
-        # Arcade() logs to stdout during init; suppress it for clean CLI output
+        # OFFLINE mode: no API calls, uses pre-cached games in environment_files/
         _old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
-            self.arcade = arc_agi.Arcade()
+            self.arcade = arc_agi.Arcade(operation_mode=OperationMode.OFFLINE)
         finally:
             sys.stdout = _old_stdout
-        # Also suppress future arc_agi logs
+        # Suppress future arc_agi logs
         _arc_logger = logging.getLogger("arc_agi.base")
         _arc_logger.setLevel(logging.WARNING)
         for h in _arc_logger.handlers:

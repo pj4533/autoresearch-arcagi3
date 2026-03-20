@@ -51,8 +51,7 @@ env/
 # ARC CLI session state
 .arc_session/
 
-# Local game environment files (downloaded by arc-agi)
-environment_files/
+# Local game recordings (generated per-run)
 recordings/
 
 # Results and outputs (generated per-run)
