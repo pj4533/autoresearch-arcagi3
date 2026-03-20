@@ -85,6 +85,20 @@ arc end
 
 Session state persists in `.arc_session/session.json`. For local backend, game state is restored by replaying actions (instant at 2000+ FPS). Only one session can be active at a time.
 
+### Local Backend Details
+- Uses `OperationMode.OFFLINE` — no API key needed, never contacts ARC server
+- Game files are committed in `environment_files/` (ls20, ft09, vc33)
+- Use `arc state --image` then read `.arc_session/frame.png` to visually inspect the game
+- Each action moves/changes the game by 1 step; games are 64x64 pixel grids
+- Click coordinates are in game space (0-63 for both x and y)
+- Available actions vary per game — check the `Available:` line in output
+- Not all games use all actions (e.g., ls20 only uses directional moves)
+
+### Game-Specific Notes
+- **ft09** — Pattern completion puzzle. Click blocks in the answer grid to toggle colors (9↔8), then `perform` to submit. Multiple levels per game.
+- **ls20** — Navigation/exploration with latent state. Directional moves shift elements on the grid. Has hidden state mechanics.
+- **vc33** — Visual/logical reasoning.
+
 ### CLI File Structure
 ```
 src/arcagi3/cli/
