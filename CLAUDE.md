@@ -48,6 +48,56 @@ uv run python -m arcagi3.runner --list-checkpoints
 uv run python -m arcagi3.runner --checkpoint <card_id>
 ```
 
+## ARC CLI (for Claude Code)
+
+The `arc` CLI lets Claude Code play ARC-AGI-3 games directly via Bash. Two backends: local (default, 2000+ FPS, no API key needed for games) and API (official scoring via `three.arcprize.org`).
+
+```bash
+# List available games
+arc list-games
+arc list-games --backend api
+
+# Start a game session (local backend, default)
+arc start ls20 --max-actions 40
+
+# Start with API backend (needs ARC_API_KEY)
+arc start ls20-cb3b57cc --backend api --max-actions 40
+
+# Take actions
+arc action move_up
+arc action move_down
+arc action move_left
+arc action move_right
+arc action perform
+arc action click --x 32 --y 16
+arc action undo
+
+# View current state (--image saves PNG to .arc_session/frame.png)
+arc state
+arc state --image
+
+# Show session metadata
+arc info
+
+# End session (prints summary, cleans up)
+arc end
+```
+
+Session state persists in `.arc_session/session.json`. For local backend, game state is restored by replaying actions (instant at 2000+ FPS). Only one session can be active at a time.
+
+### CLI File Structure
+```
+src/arcagi3/cli/
+├── main.py              # Entry point (argparse)
+├── commands.py          # Command implementations
+├── session.py           # Session state load/save
+├── frame_renderer.py    # Frame → text + optional PNG
+└── backends/
+    ├── base.py          # GameBackend ABC + GameFrame dataclass
+    ├── api_backend.py   # Wraps GameClient
+    └── local_backend.py # Wraps arc-agi Arcade + arcengine
+```
+
 ## Architecture
 
 Built on `arc-agi-3-benchmarking` harness (copied in, not a submodule — we freely modify agent code).
