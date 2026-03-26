@@ -61,6 +61,7 @@ metrics_output/
 
 # Experiment data (gitignored, but keep the directory)
 experiments/*.jsonl
+experiments/*.db
 
 # Testing
 .pytest_cache/

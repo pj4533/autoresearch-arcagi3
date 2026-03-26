@@ -40,6 +40,10 @@ def _lazy_import_adapter(adapter_name: str):
         from arcagi3.adapters.xai import XAIAdapter
 
         return XAIAdapter
+    elif adapter_name == "mlx":
+        from arcagi3.adapters.mlx_adapter import MlxAdapter
+
+        return MlxAdapter
     else:
         raise ValueError(f"Unknown adapter: {adapter_name}")
 

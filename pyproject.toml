@@ -25,6 +25,14 @@ dependencies = [
 arc = "arcagi3.cli.main:main"
 
 [project.optional-dependencies]
+mlx = [
+    "mlx-lm>=0.24.0",
+]
+dashboard = [
+    "dash>=2.14.0",
+    "dash-bootstrap-components>=1.5.0",
+    "plotly>=5.18.0",
+]
 dev = [
     "pytest>=7.4.0",
     "black>=23.0.0",
