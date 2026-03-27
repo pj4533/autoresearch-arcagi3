@@ -227,6 +227,60 @@ Analyzed action traces from exp_001 (baseline) and exp_095 (latest):
 - Confidently asserts incorrect hypotheses — need explicit uncertainty permission
 - No vision via MLX (text-only, is_multimodal: false)
 
+### Game Mechanics Deep Dive (2026-03-27)
+
+**Baseline Actions Per Level (from metadata.json):**
+
+| Game | Levels | Baseline per level | Total | Easiest level |
+|------|--------|--------------------|-------|---------------|
+| VC33 | 7 | [6, 13, 31, 59, 92, 24, 82] | 307 | Level 1: 6 clicks |
+| FT09 | 6 | [15, 7, 15, 16, 21, 17] | 91 | Level 2: 7 actions |
+| LS20 | 7 | [29, 41, 172, 49, 53, 62, 82] | 488 | Level 1: 29 moves |
+
+**Scoring with 40 Max Actions:**
+- Score = max(0, 1 - agent_actions / (3 * baseline))
+- VC33 level 1: Human solves in 6 clicks. Agent gets score > 0 if solved in < 18 clicks.
+  - If solved in 6 clicks: score = 0.667
+  - If solved in 12 clicks: score = 0.333
+- FT09 level 2: Human solves in 7 actions. Agent can use up to 21 actions.
+- LS20 level 1: Human uses 29 moves. Agent can use up to 87.
+
+**Key Insight**: Solving even ONE level would be a breakthrough. VC33 level 1 is the easiest target (6 baseline clicks). With 40 total actions budget, agent could solve levels 1+2 of VC33 (19 baseline, 57 allowed).
+
+**VC33 Game Mechanics (from source code):**
+- ONLY handles ACTION6 (click) — `action.id.value == 6`
+- Click converts display coordinates to grid coordinates via camera
+- Two clickable sprite types:
+  - Sprites tagged "ZGd" → interactive click handler
+  - Sprites tagged "zHk" → conditional check + animation
+- Level completes when `gug()` returns True → `next_level()`
+- Loss condition exists (limited clicks via `vrr.olv`)
+- Sprites are colored blocks on the grid — agent must identify which blocks to click
+
+**FT09 Known Mechanics:**
+- Click toggles cell colors (9→8)
+- Perform (ACTION5) submits the pattern
+- Multiple levels with increasing complexity
+- Available actions: ACTION5 (perform) + ACTION6 (click)
+
+**LS20 Known Mechanics:**
+- Navigation with hidden state — directional moves shift elements
+- Available actions: ACTION1-5 (movement + perform)
+- Has hidden state mechanics that aren't visible in the grid
+- 172 baseline actions for level 3 indicates very complex navigation
+
+**Strategy Implications:**
+1. **VC33 is the quickest win** — level 1 needs only 6 clicks. If the agent can identify what to click, it scores immediately.
+2. **FT09 level 2 is also quick** — 7 actions baseline.
+3. **LS20 is hardest** — level 1 needs 29 moves minimum, and the agent can't even navigate without getting stuck.
+4. **Priority order for getting first score**: VC33 > FT09 > LS20.
+
+**MLX Adapter Notes (from code review):**
+- `call_with_tracking` accepts `step_name` but doesn't pass generation params per step
+- To implement per-step temperature/max_tokens, executor would need to modify the adapter
+- `apply_chat_template` called with default args — no `enable_thinking=False` option
+- `_strip_thinking_tags` removes `<think>` blocks AFTER generation (wasted tokens)
+
 ## Dead Ends
 
 (patterns that don't work)
