@@ -102,6 +102,44 @@ All 7 categories covered. Balanced distribution.
 - Preprocessing: #7, #16, #19, #22 (4 ideas)
 - Action Sequencing: #9, #21 (2 ideas)
 
+### ADCR Agent Analysis (2026-03-27)
+
+Studied the reference ADCR agent to identify proven patterns the Explorer agent should adopt.
+
+**Patterns ADCR Uses That Explorer Lacks:**
+
+1. **`---` Divider Pattern**: ADCR gets analysis AND memory update in ONE LLM call by using a `---` separator. The model writes analysis above the divider and memory scratchpad below it. Explorer currently doesn't combine outputs — this is a free efficiency win.
+
+2. **Multi-Turn Message History**: ADCR includes the previous prompt and the model's previous response as conversation history. This gives the model continuity between steps. Explorer sends fresh single-message prompts each time with no conversation context.
+
+3. **"NEW LEVEL!!!!" Positive Reinforcement**: ADCR detects score increases and tells the model "Whatever you did must have been good!" Explorer provides no feedback when score changes. This is important for the model to learn what works.
+
+4. **image_diff() Visual Highlighting**: ADCR sends a diff-highlighted image showing what changed between frames. Explorer only counts changed cells as text. The `image_diff()` utility already exists in the codebase.
+
+5. **JSON Retry Mechanism**: ADCR retries JSON parsing twice before falling back. Explorer immediately falls back to ACTION1 on first failure, wasting the action.
+
+6. **Dynamic Action Examples in Prompts**: ADCR builds example actions from available_actions list. Explorer's prompts are more static.
+
+7. **Movement-First Guidance**: ADCR explicitly instructs "favor moves before clicking." Explorer has no such guidance.
+
+8. **Word-Limited Memory**: ADCR enforces memory_word_limit properly. Explorer truncates by line count (15 lines) which is crude.
+
+**Utility Code Findings:**
+
+- **FrameGrid**: `List[List[int]]`, values 0-15, typically 64x64
+- **Click coordinates**: 0-127 range (divided by 2 internally → maps to 64x64 grid)
+- **grid_to_text_matrix**: Just `json.dumps(grid)` — very compact but no spatial structure
+- **extract_json_from_response**: Robust — tries fenced blocks, brace matching, control char cleanup
+- **image_diff(img_a, img_b)**: Highlights changed pixels — available but Explorer doesn't use it
+- **16-color palette**: 0=white, 5=black, 8=red, 9=blue, 11=yellow, etc.
+- **get_human_inputs_text()**: Utility function for formatting action descriptions — exists but unused by Explorer
+
+**New Ideas Generated from ADCR Analysis:**
+- Added #23: Adopt `---` divider for combined analysis+memory
+- Added #24: Score change feedback ("NEW LEVEL" reinforcement)
+- Added #25: Multi-turn conversation context
+- Added #26: Use image_diff() for visual change highlighting
+
 ## Dead Ends
 
 (patterns that don't work)

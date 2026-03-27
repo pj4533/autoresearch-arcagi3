@@ -136,6 +136,30 @@
 - **Changes**: Add `_detect_symmetry` method checking horizontal/vertical/rotational symmetry. Report in explore prompt.
 - **Expected impact**: Potentially useful for ft09/vc33 pattern puzzles.
 
+### 23. [Prompt Engineering] Adopt ADCR's `---` divider for combined analysis + memory update
+- **Hypothesis**: ADCR gets analysis AND memory update in one LLM call by using a `---` separator. The model writes analysis above the divider and the updated memory scratchpad below. This is proven to work in the reference agent and saves prompt/response overhead.
+- **Files to modify**: `src/arcagi3/explorer_agent/prompts/explore.prompt`, `src/arcagi3/explorer_agent/agent.py`
+- **Changes**: In explore.prompt, add instruction: "After your JSON response, write `---` then update your memory scratchpad with key observations and hypotheses." In agent.py `_explore_step`, after getting response text, split on `---`. Parse JSON from the first part. Use the second part as the new memory value. This replaces the current approach of extracting memory from within the JSON.
+- **Expected impact**: Cleaner memory management, model has explicit space for structured note-taking. Proven pattern from ADCR.
+
+### 24. [Prompt Engineering] Score change feedback — tell model when actions succeed
+- **Hypothesis**: ADCR detects score increases and tells the model "NEW LEVEL!!!! Whatever you did must have been good!" Explorer provides no feedback when score changes. Positive reinforcement helps the model learn what works and repeat successful patterns.
+- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`, `src/arcagi3/explorer_agent/prompts/explore.prompt`
+- **Changes**: In `_explore_step`, check if `context.game.current_score > context.game.previous_score`. If so, prepend to the explore prompt: "SCORE INCREASED! Your previous action was effective. Score: {old} → {new}." Also detect score decreases: "SCORE DECREASED — your last action was harmful."
+- **Expected impact**: Faster learning from feedback. Agent can identify and repeat successful strategies.
+
+### 25. [Memory Management] Multi-turn conversation context from previous step
+- **Hypothesis**: ADCR includes the previous prompt and model response as conversation history, giving the model continuity between steps. Explorer sends fresh single-message prompts each time. Adding conversation context should reduce repeated reasoning and help the model build on its previous analysis.
+- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
+- **Changes**: In `_explore_step`, store the previous explore prompt and response in `context.datastore["previous_prompt"]` and `context.datastore["previous_response"]`. When building messages for the next step, include them as a user/assistant message pair before the current prompt. This gives the model 1 turn of conversation history.
+- **Expected impact**: Better continuity between steps, less redundant reasoning, model can reference its own previous analysis.
+
+### 26. [Preprocessing] Use image_diff() for visual change highlighting between frames
+- **Hypothesis**: The `image_diff()` utility already exists in the codebase but Explorer doesn't use it. ADCR sends a diff-highlighted image showing what changed between frames. This gives the LLM a clear visual signal of what changed, much better than just counting cells.
+- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
+- **Changes**: In `_explore_step`, when vision is enabled and there's a previous frame image, compute `diff_img = image_diff(prev_img, curr_img)`. Add it to the message content after the current frame images. Label it: "Diff image (changed pixels highlighted in red)."
+- **Expected impact**: Much better visual understanding of action effects. Low effort since the utility already exists. Only applies when vision is enabled.
+
 ---
 
 ## Completed
