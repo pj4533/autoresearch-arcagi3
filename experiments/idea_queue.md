@@ -37,23 +37,23 @@
 - **Changes**: In explore.prompt, list actions as "ACTION1 = Move Up", "ACTION6 = Click (x,y)". Require JSON output with `"action": "ACTION6", "x": 32, "y": 16`. In agent.py, check if result["action"] starts with "ACTION" and skip convert. Fall back to convert only if needed.
 - **Expected impact**: ~2x faster, fewer parse errors, more reliable action selection.
 
-### 5. [State Tracking] Build explicit state graph with loop detection
+### 5. [Preprocessing] Click target list in explore prompt (builds on #3's object detection)
+- **Hypothesis**: After #3 identifies objects, the explore prompt should list them as named click targets instead of asking the LLM to guess coordinates. "Click target A: 5x3 color-9 block at (64, 32)" is much easier for the model than raw grid analysis. VC33 is the easiest scoring target (6 baseline clicks for level 1) — making the LLM accurate at clicking is the fastest path to a non-zero score.
+- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`, `src/arcagi3/explorer_agent/prompts/explore.prompt`
+- **Changes**: Reuse the object detection from #3 (or add `_find_clickable_targets` if not yet present). In explore prompt, add a "## Clickable Targets" section listing each non-background object: letter label (A, B, C...), color, size, center coordinates. Change the action format for clicks to reference targets: `"action": "ACTION6", "target": "A"` which maps to that target's coordinates. This eliminates coordinate guessing entirely.
+- **Expected impact**: Near-perfect click accuracy for VC33/FT09. Model just picks which target to click, not where. Fastest path to first non-zero score.
+
+### 6. [State Tracking] Build explicit state graph with loop detection
 - **Hypothesis**: LS20 agent repeats Move Down 68% of the time, stuck in loops. A state graph (hash grid → track seen states → warn about revisits) would break this pattern. Competition winners used this approach.
 - **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
 - **Changes**: Hash grid state each step. Store in `context.datastore["seen_states"]` dict mapping hash → {actions_tried, visit_count}. In explore prompt, if state seen before: "WARNING: You've visited this state N times. Actions already tried: [list]. You MUST try something different." Track untested actions per state.
 - **Expected impact**: Break LS20 loops. State graph was used by 2nd/3rd place competition winners.
 
-### 6. [State Tracking] Enhanced frame change description with color and position details
+### 7. [State Tracking] Enhanced frame change description with color and position details
 - **Hypothesis**: `_describe_frame_change` only reports "N cells changed (X% of grid)". The LLM needs to know WHAT changed to form hypotheses. In LS20 traces, the model kept saying "agent is in the 5-colored region" but couldn't tell what was different.
 - **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
 - **Changes**: In `_describe_frame_change`, report: (a) which colors changed (old→new), (b) region of changes (top/bottom/left/right quadrant), (c) direction of shift if applicable. Keep under 100 words.
 - **Expected impact**: Better hypotheses, especially for LS20 navigation.
-
-### 7. [Preprocessing] Click target list in explore prompt (builds on #3's object detection)
-- **Hypothesis**: After #3 identifies objects, the explore prompt should list them as named click targets instead of asking the LLM to guess coordinates. "Click target A: 5x3 color-9 block at (64, 32)" is much easier for the model than raw grid analysis.
-- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`, `src/arcagi3/explorer_agent/prompts/explore.prompt`
-- **Changes**: Reuse the object detection from #3 (or add `_find_clickable_targets` if not yet present). In explore prompt, add a "## Clickable Targets" section listing each non-background object: letter label (A, B, C...), color, size, center coordinates. Change the action format for clicks to reference targets: `"action": "ACTION6", "target": "A"` which maps to that target's coordinates. This eliminates coordinate guessing entirely.
-- **Expected impact**: Near-perfect click accuracy for VC33/FT09. Model just picks which target to click, not where.
 
 ### 8. [Prompt Engineering] StateAct-style structured state tracking in explore prompt
 - **Hypothesis**: In traces, the model's observations are repetitive ("grid is 51x51, mostly 3s"). StateAct-style prompting forces explicit state tracking, reducing steps by 39% in research. Requires model to explicitly state what it knows, what it's tried, and what's untested.
