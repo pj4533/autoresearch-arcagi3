@@ -360,6 +360,28 @@ Current agent calls LLM on every step. This is fundamentally wrong for efficienc
 - ACTION7 (undo) should be tested in probe phase
 - Reduce LLM call frequency (every 3-5 actions, not every action)
 
+### Executor Baseline Benchmark (2026-03-27, post-infrastructure fix)
+
+The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs). First successful benchmark run on LS20:
+
+**Results (LS20, 40 max actions):**
+- Score: 0, State: NOT_FINISHED, Actions: 40, Duration: 2047s (34 min)
+- Action distribution: ACTION1 (Move Up) = 27 (67.5%), ACTION2 (Move Down) = 10 (25%), ACTION3/4 = 3
+- Tokens: 748k prompt (avg 18,700/action), 111k completion (avg 2,779/action)
+- Time per action: ~51 seconds
+
+**Comparison to old experiments:**
+- Old: ~14.5s/action, ~8,300 prompt tok/action, ~700 comp tok/action
+- New: ~51s/action, ~18,700 prompt tok/action, ~2,779 comp tok/action
+- Completion tokens 4x higher — likely thinking mode generating ~2000 tokens/action that get stripped after generation. At 60-70 tok/s, this is ~30 seconds of WASTED inference per action.
+- Thinking tokens waste: ~30s × 40 actions = **~20 minutes wasted per game on thinking tokens that are discarded**
+
+**Confirms:**
+- Infrastructure works (benchmark completes, 40 max_actions)
+- Agent behavior unchanged (still loops Move Up/Down, score 0)
+- Thinking mode waste is even bigger than estimated — idea #27 (disable thinking for convert/JSON) is more urgent
+- Ideas #1-3 (game awareness, convert fallback, click probe) not yet implemented
+
 ## Dead Ends
 
 (patterns that don't work)
