@@ -257,11 +257,14 @@ Analyzed action traces from exp_001 (baseline) and exp_095 (latest):
 - Loss condition exists (limited clicks via `vrr.olv`)
 - Sprites are colored blocks on the grid — agent must identify which blocks to click
 
-**FT09 Known Mechanics:**
-- Click toggles cell colors (9→8)
-- Perform (ACTION5) submits the pattern
-- Multiple levels with increasing complexity
-- Available actions: ACTION5 (perform) + ACTION6 (click)
+**FT09 Mechanics (from source code):**
+- **ONLY clicking matters** — movement and perform are no-ops. Only ACTION6 (click) changes game state.
+- **3x3 toggle pattern**: Clicking a cell changes colors in a 3x3 neighborhood around it. Different cells have different toggle masks.
+- **Color cycling**: Colors cycle through a palette list (not just 9→8). Each click advances the color index by 1.
+- **Level completion**: All target sprites must match their target colors. `cgj()` checks this.
+- **Loss condition**: Limited moves/lives per level (`lpw.lph()`).
+- **Strategy**: This is a constraint satisfaction problem. Agent needs to: (1) discover toggle patterns by clicking and observing, (2) identify target colors, (3) plan click sequence to match targets.
+- **Available actions include ACTION1-6** but only ACTION6 does anything. CLAUDE.md says "perform to submit" but ACTION5 is actually a no-op.
 
 **LS20 Known Mechanics:**
 - Navigation with hidden state — directional moves shift elements
