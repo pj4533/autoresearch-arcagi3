@@ -385,6 +385,8 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - Thinking mode waste is even bigger than estimated — idea #27 (disable thinking for convert/JSON) is more urgent
 - Ideas #1-3 (game awareness, convert fallback, click probe) not yet implemented
 
+**Third baseline run (224617):** 40 actions, 47.3 min, 71s/action. 80% Move Up. Score 0. Even slower (was 51s/action, now 71s) — 3,321 completion tokens/action, 28,816 prompt tokens/action. Thinking token waste growing. Still only LS20 benchmark runs — FT09/VC33 not yet benchmarked under new system.
+
 ## Dead Ends
 
 (patterns that don't work)
