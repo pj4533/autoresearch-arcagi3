@@ -140,6 +140,54 @@ Studied the reference ADCR agent to identify proven patterns the Explorer agent 
 - Added #25: Multi-turn conversation context
 - Added #26: Use image_diff() for visual change highlighting
 
+### Diagnostic Analysis of Prior Experiments (2026-03-27)
+
+**CRITICAL FINDING: ALL 95+ prior experiments scored 0 across all 3 games. The agent has NEVER completed a single level.**
+
+Analyzed action traces from exp_001 (baseline) and exp_095 (latest):
+
+**VC33 (click-only game) — CATASTROPHIC FAILURE:**
+- Agent sends 100% movement actions (Move Down, Move Right, Move Up)
+- VC33 ONLY supports ACTION6 (click) — all movement actions are invalid/no-ops
+- Probe phase skipped (correct: no ACTION1-5 available) but explore phase defaults to movement
+- Root cause: LLM ignores available_actions list, defaults to movement. Convert fallback is hardcoded ACTION1.
+- The agent never clicks a single time in VC33.
+
+**FT09 (pattern completion with clicking) — BROKEN:**
+- 84% Move Down actions in exp_095 (21 of 25 actions)
+- FT09 needs clicking to toggle colors (9→8) then Perform to submit
+- Agent tries movement first, rarely clicks, never discovers toggle mechanic
+- Only 3-4 click attempts across 25 actions in baseline, and they don't target meaningful cells
+
+**LS20 (navigation) — STUCK IN LOOPS:**
+- 68% Move Down in exp_095 (17 of 25 actions)
+- Agent stuck in "5-colored region at bottom-left (rows 40-45, cols 2-5)" for ALL 25 actions
+- Observations identical across 20+ actions: same description, same grid region
+- No loop detection, no strategy change, no diversification
+
+**Root Causes Identified:**
+1. **LLM bias toward movement**: Qwen model defaults to "Move Down" regardless of game type
+2. **Weak action constraint communication**: Available actions listed in prompt but model ignores them
+3. **Broken convert fallback**: Hardcoded `ACTION1` fallback sends invalid actions for click-only games
+4. **No stuck detection**: Agent repeats same action indefinitely with no progress signal
+5. **No game-type awareness**: Same generic strategy for navigation vs. clicking vs. reasoning games
+6. **Insufficient click exposure**: Probe never tests clicking, explore rarely suggests it
+
+**Queue Reprioritization:**
+- Moved game-type-aware prompt to #1 (fixes VC33 catastrophic failure)
+- Added convert fallback fix as #2 (prevents invalid fallback actions)
+- Probe clicking at #3 (enables click discovery)
+- Loop detection at #5 (breaks LS20 stuck pattern)
+- Stuck detection at #9 (forces strategy change after N failed actions)
+
+**Game Structure from Data Analysis:**
+- LS20: 7 levels, baseline actions [29, 41, 172, 49, 53, 62, 82]
+- FT09: 6 levels, baseline varies
+- VC33: 7 levels, baseline varies
+- Grid: 64x64, 16 colors (0-15)
+- Click coordinates: 0-127 (scaled 2x from grid coords)
+- Max actions per experiment: 25 (old system), 40 (new system)
+
 ## Dead Ends
 
 (patterns that don't work)
