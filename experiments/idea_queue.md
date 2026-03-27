@@ -162,6 +162,24 @@
 - **Changes**: Add `_detect_symmetry` method. Report in prompt.
 - **Expected impact**: Potentially useful for ft09/vc33.
 
+### 27. [Prompt Engineering] Disable thinking mode for JSON/convert calls (Qwen-specific)
+- **Hypothesis**: Qwen3.5's thinking mode can leak `<think>` tags into JSON output (documented bug). The convert step just needs a simple ACTION mapping — thinking adds wasted tokens and risks JSON corruption. Disabling thinking for convert calls saves tokens and improves JSON reliability.
+- **Files to modify**: `src/arcagi3/adapters/mlx_adapter.py` (or wherever MLX provider is configured), `src/arcagi3/explorer_agent/agent.py`
+- **Changes**: Add ability to pass `enable_thinking=False` to the MLX adapter's chat template for specific calls. Use this for convert calls. Keep thinking enabled for explore calls where reasoning helps. Also lower temperature to 0.1-0.3 for convert calls.
+- **Expected impact**: More reliable JSON parsing, fewer fallback-to-ACTION1 failures, reduced token waste.
+
+### 28. [Prompt Engineering] Aggressive prompt compression (Qwen MLX has no KV cache reuse)
+- **Hypothesis**: Qwen3.5-35B on MLX has NO KV cache reuse due to hybrid DeltaNet architecture (ml-explore/mlx-lm#980). Every inference recomputes the full prompt from scratch. Compressing the prompt saves real wall-clock time on EVERY step. Currently ~14.5 sec/action.
+- **Files to modify**: `src/arcagi3/explorer_agent/prompts/system.prompt`, `src/arcagi3/explorer_agent/prompts/explore.prompt`, `src/arcagi3/explorer_agent/agent.py`
+- **Changes**: (1) Shorten system prompt to essentials. (2) After first step, abbreviate action descriptions to short codes. (3) Hard character limits on memory/hypothesis (200 chars each). (4) Use compact grid representation (only send non-background regions). (5) Set per-step max_tokens: 512 for explore, 128 for convert.
+- **Expected impact**: 20-40% reduction in per-step latency. More actions per time budget.
+
+### 29. [Prompt Engineering] Add explicit uncertainty permission to reduce hallucinated hypotheses
+- **Hypothesis**: Qwen3.5 has high hallucination rate and confidently asserts incorrect hypotheses. Adding "If you are uncertain about the game rules, say 'UNCERTAIN' rather than guessing" to the system prompt could reduce false-positive hypotheses that lead to wasted actions on wrong strategies.
+- **Files to modify**: `src/arcagi3/explorer_agent/prompts/system.prompt`, `src/arcagi3/explorer_agent/prompts/explore.prompt`
+- **Changes**: Add to system prompt: "It's better to say you're uncertain than to guess wrong. Mark hypotheses with confidence: HIGH/MEDIUM/LOW." In explore prompt, add a `"confidence"` field to JSON output. Use confidence to decide whether to test hypothesis or gather more data.
+- **Expected impact**: Fewer wasted actions on wrong hypotheses. Better explore/exploit balance.
+
 ---
 
 ## Completed

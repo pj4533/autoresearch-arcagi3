@@ -188,6 +188,45 @@ Analyzed action traces from exp_001 (baseline) and exp_095 (latest):
 - Click coordinates: 0-127 (scaled 2x from grid coords)
 - Max actions per experiment: 25 (old system), 40 (new system)
 
+### Qwen 3.5-35B Model-Specific Findings (2026-03-27)
+
+**Critical: No KV Cache Reuse on MLX**
+- Qwen3.5-35B-A3B has a hybrid DeltaNet + attention architecture (3:1 ratio)
+- The DeltaNet layers use recurrent SSM state that CANNOT be cached
+- **Every inference call recomputes the full prompt from scratch**
+- This means prompt length directly impacts latency on EVERY step
+- Source: ml-explore/mlx-lm#980
+
+**Implication**: Prompt compression is way more important than for cloud models. Every saved token reduces wall time per action. Current ~14.5 sec/action could be reduced significantly with shorter prompts.
+
+**Thinking Mode + JSON Issues:**
+- Qwen3.5 thinking mode can leak `<think>` tags into JSON output (documented bug)
+- Structured output does NOT work in thinking mode per Alibaba docs
+- Recommendation: Disable thinking for convert/JSON calls, keep for reasoning
+- Our MLX adapter strips `<think>` tags but doesn't disable thinking at template level
+
+**Token Efficiency Recommendations:**
+- Per-step max_tokens: 128 for convert, 512-1024 for explore (not blanket 4096)
+- Lower temperature for structured output (0.1-0.3) vs reasoning (0.6-0.7)
+- Abbreviate repetitive context after first introduction
+- Hard character limits on memory/hypothesis sections
+
+**Model Comparison Opportunity:**
+- Qwen3-32B dense DOES support KV cache reuse (standard attention throughout)
+- Despite slower raw tok/s (20-30 vs 60-70), effective throughput may be better for multi-turn because prompt doesn't recompute from scratch
+- Worth benchmarking head-to-head
+
+**Qwen Strengths for Our Use Case:**
+- 76.5 on IFBench (best instruction following among open models)
+- Strong agentic capabilities (78.6 on BrowseComp)
+- Follows detailed, structured prompt instructions reliably
+- JSON output from markdown code blocks works well
+
+**Qwen Weaknesses:**
+- High hallucination rate (~80-82% on AA-Omniscience for smaller variants)
+- Confidently asserts incorrect hypotheses — need explicit uncertainty permission
+- No vision via MLX (text-only, is_multimodal: false)
+
 ## Dead Ends
 
 (patterns that don't work)
