@@ -45,6 +45,24 @@ Fewer actions = better score. Every wasted action hurts. The agent plays 3 games
 - Preserve the `MultimodalAgent` base class interface. The `step(context: SessionContext) -> GameStep` signature must not change.
 - Python code must be syntactically valid. Test with `python -c "import ast; ast.parse(open('src/arcagi3/explorer_agent/agent.py').read())"` before running.
 
+## CRITICAL: How to Run Benchmarks
+
+**The benchmark takes 60-90 minutes. You MUST run it as a foreground command and WAIT for it to complete.** Do NOT:
+- Poll checkpoint files to check progress
+- Run the benchmark in the background and check on it
+- Sleep-and-poll in a loop
+- Use any kind of progress monitoring
+
+Just run the command and wait. It will print results to stdout when done. Example:
+
+```bash
+uv run python run_benchmark.py --config qwen3.5-35b-local --max-actions 40
+```
+
+This is a BLOCKING call. You run it, you wait, you read the output. That's it. Do NOT waste context tokens on polling. Each token you waste on monitoring is a token you can't use for actual experiments later.
+
+**Set a generous timeout** (at least 10 minutes / 600000ms) when running this command, since each game takes 20-30 minutes.
+
 ## Experiment Numbering
 
 Experiments are numbered sequentially: **exp_001, exp_002, exp_003, etc.** Read `experiments/log.md` to find the last experiment number and increment.
@@ -86,11 +104,13 @@ python -c "import ast; ast.parse(open('src/arcagi3/explorer_agent/agent.py').rea
 
 ### 3. Run the Benchmark
 
+**Run this as a BLOCKING foreground command. Wait for it to finish. Do NOT poll or monitor progress.**
+
 ```bash
 uv run python run_benchmark.py --config qwen3.5-35b-local --max-actions 40
 ```
 
-This runs all 3 games (ls20, ft09, vc33) and prints a summary with per-game scores, total actions, and average score.
+This takes 60-90 minutes. It runs all 3 games (ls20, ft09, vc33) and prints a summary when complete. Just wait for the output — do not check checkpoint files, do not run it in the background, do not sleep-and-poll.
 
 ### 4. Evaluate Results
 
