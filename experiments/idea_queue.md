@@ -18,11 +18,18 @@
 - **Changes**: In `_convert_to_game_action`, change the final fallback from `return {"action": "ACTION1"}` to: `available = self._get_available_action_names(context); return {"action": available[0] if available else "ACTION1"}`. For VC33 where only ACTION6 is available, this falls back to clicking instead of movement.
 - **Expected impact**: Prevents catastrophic fallback behavior. Even failed parses will at least try valid actions.
 
-### 3. [Exploration Strategy] Probe clicking actions for ft09/vc33 games
-- **Hypothesis**: The current probe phase only tests ACTION1-5. Games ft09 and vc33 require ACTION6 (clicking), which is never probed. The agent enters explore phase with zero knowledge of what clicking does.
+### 3. [Exploration Strategy] Programmatic click probe with object detection (NO LLM needed)
+- **Hypothesis**: For click-only games like VC33, the probe phase should skip the LLM entirely and programmatically scan the grid for clickable objects. VC33 level 1 only needs 6 clicks to solve — a smart scan could solve it in the probe phase alone. Even for FT09, clicking non-background objects reveals mechanics faster than asking the LLM to guess coordinates.
 - **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
-- **Changes**: In `_probe_step`, after probing ACTION1-5, if ACTION6 is in available_actions, scan the grid for non-background cells (color != most common color) and click 3-5 of them. Record click effects in action_effects. For VC33 where only ACTION6 is available, the entire probe should be click-based.
-- **Expected impact**: ft09 and vc33 enter explore phase knowing what clicking does.
+- **Changes**: Rewrite `_probe_step` for click games:
+  1. **Find background color**: Count color frequencies in grid. Most common = background (usually 0 or 3).
+  2. **Find non-background objects**: BFS/flood-fill to find connected components of non-background cells. For each, record: color, bounding box, center (row, col), cell count.
+  3. **Convert grid coords to click coords**: Multiply by 2 (grid is 64x64, clicks are 0-127).
+  4. **Click top-N objects by size**: Click center of each distinct non-background object, largest first. After each click, record frame change via `_describe_frame_change()` and score change.
+  5. **Store results**: Save click targets list and effects in `context.datastore["click_targets"]` and `action_effects`.
+  6. For VC33 (ACTION6 only): Skip ALL movement probing, go straight to click scan.
+  7. For FT09 (ACTION5+ACTION6): After click scan, also try Perform to test submission.
+- **Expected impact**: VC33 could score in the PROBE PHASE without any LLM calls. FT09 enters explore with click mechanics fully mapped. This is potentially the highest-impact single change for scoring.
 
 ### 4. [Prompt Engineering] Eliminate separate convert LLM call by outputting ACTION names directly
 - **Hypothesis**: The agent makes TWO LLM calls per explore step. Removing the convert call halves LLM inference time per action (~2x faster). Also reduces parse failures that trigger the broken ACTION1 fallback.
@@ -42,11 +49,11 @@
 - **Changes**: In `_describe_frame_change`, report: (a) which colors changed (old→new), (b) region of changes (top/bottom/left/right quadrant), (c) direction of shift if applicable. Keep under 100 words.
 - **Expected impact**: Better hypotheses, especially for LS20 navigation.
 
-### 7. [Preprocessing] Click target filtering — identify clickable objects
-- **Hypothesis**: For click games, the LLM needs to know WHERE to click. Currently it guesses coordinates. Scanning the grid for non-background objects and listing them as click targets transforms a 4096-cell search into a ~10-50 target problem.
-- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
-- **Changes**: Add `_find_clickable_targets` that finds non-background cells, groups adjacent same-color cells into objects, returns list with center coordinates. Include in explore prompt: "Clickable targets: red block at (32,16), blue cell at (48,24)."
-- **Expected impact**: Dramatically better ft09/vc33 click accuracy.
+### 7. [Preprocessing] Click target list in explore prompt (builds on #3's object detection)
+- **Hypothesis**: After #3 identifies objects, the explore prompt should list them as named click targets instead of asking the LLM to guess coordinates. "Click target A: 5x3 color-9 block at (64, 32)" is much easier for the model than raw grid analysis.
+- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`, `src/arcagi3/explorer_agent/prompts/explore.prompt`
+- **Changes**: Reuse the object detection from #3 (or add `_find_clickable_targets` if not yet present). In explore prompt, add a "## Clickable Targets" section listing each non-background object: letter label (A, B, C...), color, size, center coordinates. Change the action format for clicks to reference targets: `"action": "ACTION6", "target": "A"` which maps to that target's coordinates. This eliminates coordinate guessing entirely.
+- **Expected impact**: Near-perfect click accuracy for VC33/FT09. Model just picks which target to click, not where.
 
 ### 8. [Prompt Engineering] StateAct-style structured state tracking in explore prompt
 - **Hypothesis**: In traces, the model's observations are repetitive ("grid is 51x51, mostly 3s"). StateAct-style prompting forces explicit state tracking, reducing steps by 39% in research. Requires model to explicitly state what it knows, what it's tried, and what's untested.
@@ -179,6 +186,12 @@
 - **Files to modify**: `src/arcagi3/explorer_agent/prompts/system.prompt`, `src/arcagi3/explorer_agent/prompts/explore.prompt`
 - **Changes**: Add to system prompt: "It's better to say you're uncertain than to guess wrong. Mark hypotheses with confidence: HIGH/MEDIUM/LOW." In explore prompt, add a `"confidence"` field to JSON output. Use confidence to decide whether to test hypothesis or gather more data.
 - **Expected impact**: Fewer wasted actions on wrong hypotheses. Better explore/exploit balance.
+
+### 30. [Exploration Strategy] For VC33: brute-force click scan as entire strategy (no LLM)
+- **Hypothesis**: VC33 level 1 needs only 6 clicks. If we skip the LLM entirely for VC33 and just programmatically click every non-background object, we could solve levels purely through systematic scanning. With 40 max actions and ~20-50 distinct objects on a 64x64 grid, we have enough budget to try them all. This trades LLM "intelligence" for exhaustive coverage — since the agent currently scores 0 with the LLM anyway, this can only be an improvement.
+- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
+- **Changes**: In `step()`, if game_id contains "vc33" and phase is not exploit: (1) detect all non-background objects, (2) click them sequentially (largest first), (3) after each click check score, (4) if score increases, re-scan (new level may have different layout). No LLM calls at all for VC33. Essentially replace the entire explore phase with a programmatic scan.
+- **Expected impact**: Should solve VC33 level 1 (6 clicks) and possibly level 2 (13 clicks) within 40 actions. Even partial progress = breakthrough since current score is 0.
 
 ---
 
