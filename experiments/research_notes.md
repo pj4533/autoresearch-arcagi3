@@ -313,6 +313,53 @@ Analyzed token counts from prior experiments to understand prompt overhead.
 - Total: ~3-4 seconds saved per action, plus eliminating parse failure risk.
 - Over 40 actions: ~2-3 minutes saved per game.
 
+### ARC-AGI-3 Game Mechanics & Strategy Deep Research (2026-03-27)
+
+**CRITICAL: Scoring is QUADRATIC, not linear!**
+- Per-level: score = min(1.0, human_actions / agent_actions)^2
+- 3x human actions = (1/3)^2 = **11% score**, not 33%
+- 10x human actions = **1% score**
+- Later levels weighted MORE: Level 1 = 1/15 weight, Level 5 = 5/15 weight
+- Every RESET counts as an action
+- This means action efficiency has exponential returns. Reducing from 30 to 15 actions quadruples the score.
+
+Note: CLAUDE.md uses a simplified formula `max(0, 1 - agent/(3*human))`. The actual RHAE scoring from the technical paper is quadratic with level-weighted averaging.
+
+**Game-Specific Mechanics (from technical paper + competition docs):**
+
+- **LS20**: Map navigation with symbol transformations. Arrow-key controlled. **Has a three-life mechanic** — some actions can kill the agent! Level 1 has 355 possible states. Levels 8+ have partial observations (hidden/"latent" state). Recently upgraded with additional mechanics.
+
+- **FT09**: Click-based pattern completion. Toggle colors (9→8) in answer grid. Patterns occasionally **overlap on screen**. Levels 6+ have extremely large state spaces.
+
+- **VC33**: Volume/height adjustment — **alternate volume of objects to match target heights**. Visual salience aligns well with interactive elements. Level 6 needs ~10x level 1 actions (50 vs <5).
+
+**CRITICAL: Status Bar Masking for State Graph**
+- The game displays a status bar (step counter) that changes EVERY step
+- Without masking the status bar region before hashing, every frame looks unique
+- State graph (#6 in queue) WILL NOT WORK without status bar masking
+- Must identify the status bar region and exclude it from grid hashing
+- This is a prerequisite for idea #6 — executor must implement this
+
+**Competition Throughput Analysis:**
+- LLM agent at 14.5s/action: ~165 actions in 40 minutes
+- Non-LLM agents: 96,000+ actions in 8 hours (580x advantage)
+- 1st place (RL): trained on binary "did action change frame?" signal
+- 3rd place (graph): pure programmatic exploration, no learning, beat ALL LLMs
+- Pure LLM approaches scored <1% — "underperforms even a random policy"
+
+**Key Strategic Insight from Competition:**
+The ideal hybrid architecture should be:
+1. **Programmatic layer**: Frame hashing, state graph, action filtering, loop detection, frame diffing
+2. **LLM layer**: Hypothesis formation, goal inference, strategy — called RARELY, not every step
+
+Current agent calls LLM on every step. This is fundamentally wrong for efficiency.
+
+**New Ideas from This Research:**
+- Status bar masking (prerequisite for state graph)
+- Hypothesis-driven probing (ask LLM "what to test?" not "what to do?")
+- ACTION7 (undo) should be tested in probe phase
+- Reduce LLM call frequency (every 3-5 actions, not every action)
+
 ## Dead Ends
 
 (patterns that don't work)

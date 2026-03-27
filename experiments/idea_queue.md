@@ -43,11 +43,11 @@
 - **Changes**: Reuse the object detection from #3 (or add `_find_clickable_targets` if not yet present). In explore prompt, add a "## Clickable Targets" section listing each non-background object: letter label (A, B, C...), color, size, center coordinates. Change the action format for clicks to reference targets: `"action": "ACTION6", "target": "A"` which maps to that target's coordinates. This eliminates coordinate guessing entirely.
 - **Expected impact**: Near-perfect click accuracy for VC33/FT09. Model just picks which target to click, not where. Fastest path to first non-zero score.
 
-### 6. [State Tracking] Build explicit state graph with loop detection
-- **Hypothesis**: LS20 agent repeats Move Down 68% of the time, stuck in loops. A state graph (hash grid → track seen states → warn about revisits) would break this pattern. Competition winners used this approach.
+### 6. [State Tracking] Build explicit state graph with loop detection (MUST mask status bar)
+- **Hypothesis**: LS20 agent repeats Move Down 68% of the time, stuck in loops. A state graph (hash grid → track seen states → warn about revisits) would break this pattern. Competition winners used this approach. **CRITICAL**: The game has a status bar/step counter that changes every step. Without masking it before hashing, every frame looks unique and the graph can't detect revisits.
 - **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
-- **Changes**: Hash grid state each step. Store in `context.datastore["seen_states"]` dict mapping hash → {actions_tried, visit_count}. In explore prompt, if state seen before: "WARNING: You've visited this state N times. Actions already tried: [list]. You MUST try something different." Track untested actions per state.
-- **Expected impact**: Break LS20 loops. State graph was used by 2nd/3rd place competition winners.
+- **Changes**: (1) Add `_mask_status_bar(grid)` that zeros out the top/bottom few rows (or detect the step counter region by finding the row that changes every frame). (2) Hash the MASKED grid, not the raw grid. (3) Store in `context.datastore["state_graph"]` dict mapping hash → {actions_tried: {action: result_hash}, visit_count}. (4) In explore prompt, if state seen before: "WARNING: Visited N times. Tried: [list]. MUST try something different." (5) When all actions from current state tested, suggest the action leading to least-explored neighbor.
+- **Expected impact**: Break LS20 loops. State graph was used by 2nd/3rd place competition winners. Status bar masking is essential — without it, this doesn't work.
 
 ### 7. [State Tracking] Enhanced frame change description with color and position details
 - **Hypothesis**: `_describe_frame_change` only reports "N cells changed (X% of grid)". The LLM needs to know WHAT changed to form hypotheses. In LS20 traces, the model kept saying "agent is in the 5-colored region" but couldn't tell what was different.
@@ -187,7 +187,19 @@
 - **Changes**: Add to system prompt: "It's better to say you're uncertain than to guess wrong. Mark hypotheses with confidence: HIGH/MEDIUM/LOW." In explore prompt, add a `"confidence"` field to JSON output. Use confidence to decide whether to test hypothesis or gather more data.
 - **Expected impact**: Fewer wasted actions on wrong hypotheses. Better explore/exploit balance.
 
-### 30. [Exploration Strategy] For VC33: brute-force click scan as entire strategy (no LLM)
+### 30. [Exploration Strategy] Hypothesis-driven probing — ask LLM "what to test?" not "what to do?"
+- **Hypothesis**: Currently the LLM decides actions directly ("Move Down"). Humans explore differently — they form hypotheses ("I think clicking the red object does X") then test them. Reframing the explore prompt to ask for HYPOTHESES rather than ACTIONS, then executing tests programmatically, is closer to how humans solve these puzzles and reduces LLM calls.
+- **Files to modify**: `src/arcagi3/explorer_agent/prompts/explore.prompt`, `src/arcagi3/explorer_agent/agent.py`
+- **Changes**: Change explore prompt to ask: "What is your current hypothesis about the game rules? What experiment would test this hypothesis? What specific action sequence would confirm or refute it?" Output: `{"hypothesis": "...", "test_action": "ACTION1", "expected_if_true": "...", "expected_if_false": "..."}`. In agent.py, execute the test action, compare result to predictions, and update hypothesis confidence in memory. Only call LLM again when the test result is ambiguous or hypothesis is confirmed/refuted.
+- **Expected impact**: Better hypothesis quality, fewer wasted actions, LLM called every 2-3 actions instead of every action.
+
+### 31. [Exploration Strategy] Probe ACTION7 (undo) to enable recovery from bad states
+- **Hypothesis**: ACTION7 (undo) is available but never probed or used. LS20 has a three-life mechanic where some actions can kill the agent. Knowing undo works enables bolder exploration since mistakes can be reversed.
+- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
+- **Changes**: In `_probe_step`, if ACTION7 is in available_actions, test it after another action. Record whether undo successfully reverses the previous action. Store `undo_available: true/false` in datastore. In explore prompt, if undo works: "Undo is available — you can safely try risky actions."
+- **Expected impact**: Enables bolder exploration in LS20. Prevents permanent loss from risky actions.
+
+### 32. [Exploration Strategy] For VC33: brute-force click scan as entire strategy (no LLM)
 - **Hypothesis**: VC33 level 1 needs only 6 clicks. If we skip the LLM entirely for VC33 and just programmatically click every non-background object, we could solve levels purely through systematic scanning. With 40 max actions and ~20-50 distinct objects on a 64x64 grid, we have enough budget to try them all. This trades LLM "intelligence" for exhaustive coverage — since the agent currently scores 0 with the LLM anyway, this can only be an improvement.
 - **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
 - **Changes**: In `step()`, if game_id contains "vc33" and phase is not exploit: (1) detect all non-background objects, (2) click them sequentially (largest first), (3) after each click check score, (4) if score increases, re-scan (new level may have different layout). No LLM calls at all for VC33. Essentially replace the entire explore phase with a programmatic scan.
