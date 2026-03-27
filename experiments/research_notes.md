@@ -281,6 +281,38 @@ Analyzed action traces from exp_001 (baseline) and exp_095 (latest):
 - `apply_chat_template` called with default args — no `enable_thinking=False` option
 - `_strip_thinking_tags` removes `<think>` blocks AFTER generation (wasted tokens)
 
+### Token Usage Analysis (2026-03-27)
+
+Analyzed token counts from prior experiments to understand prompt overhead.
+
+**Average tokens per action (across experiments):**
+
+| Game | Prompt Tokens | Completion Tokens | Total | Seconds/Action |
+|------|--------------|-------------------|-------|----------------|
+| LS20 | 8,000-8,400 | 700-960 | ~9,000 | 14.6-17.4s |
+| FT09 | 7,800-19,500 | 470-570 | ~8,300-20,000 | 12.6-21.5s |
+| VC33 | 9,800-10,100 | 820-1,140 | ~10,600-11,200 | 16.8-20.8s |
+
+**Key findings:**
+- Prompt is 10-40x larger than completion. With no KV cache, ALL prompt tokens are reprocessed every action.
+- A 64x64 grid as JSON is ~8,000 tokens alone — this is the floor.
+- FT09 can balloon to 19,500 prompt tokens in some experiments (exp_089) — likely from accumulating observation text.
+- Completion tokens rarely exceed 1,200 — the max_completion_tokens of 4096 is 3-4x too high.
+- At 40 max actions, one game takes 8-14 minutes. Full 3-game benchmark: 24-42 minutes.
+
+**Optimization opportunities (from token data):**
+1. **Lower max_completion_tokens to 1500** — No lost content, prevents runaway generation.
+2. **Compress grid representation** — Sending only non-background regions could cut 8,000 to ~2,000 tokens.
+3. **Cap observation/memory text** — Prevent the balloon seen in FT09 exp_089 (19.5k tokens).
+4. **Eliminate convert call (#4)** — Saves ~8,000-10,000 prompt tokens per action (entire second call).
+
+**Speed impact of #4 (eliminate convert call):**
+- Each convert call costs ~8,000 prompt tokens (system prompt + frame + action list).
+- At ~60-70 tok/s prompt processing, that's ~2-3 seconds of pure prompt processing saved.
+- Plus ~500 completion tokens at ~60-70 tok/s = ~0.5 seconds.
+- Total: ~3-4 seconds saved per action, plus eliminating parse failure risk.
+- Over 40 actions: ~2-3 minutes saved per game.
+
 ## Dead Ends
 
 (patterns that don't work)
