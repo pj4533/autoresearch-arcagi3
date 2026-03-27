@@ -13,11 +13,8 @@ uv sync
 # Install with MLX support (local models on Apple Silicon)
 uv sync --extra mlx
 
-# Install with dashboard
-uv sync --extra dashboard
-
 # Install everything
-uv sync --extra mlx --extra dashboard
+uv sync --extra mlx
 
 # Check environment (API keys, connectivity)
 uv run python -m arcagi3.runner --check
@@ -68,92 +65,71 @@ uv run python -m arcagi3.runner --checkpoint <card_id>
 
 ## Autoresearch System
 
-The autoresearch system has three modes of operation:
+Two-agent flywheel: a **Researcher** proposes experiment ideas and a **Executor** implements and tests them. They run as separate Claude Code sessions, coordinating via markdown files in `experiments/`.
 
-### 1. Batch Experiment Runner
-Queue experiments and run them sequentially. Good for overnight runs.
+### Two-Agent Architecture
 
-```bash
-# Queue baseline experiments (4 configurations across all games)
-uv run python -m arcagi3.autoresearch.runner --baselines
+| Agent | Terminal | Reads | Writes |
+|-------|---------|-------|--------|
+| Executor | Terminal 2 | `experiments/idea_queue.md` | `experiments/log.md`, `experiments/breakthroughs.md`, agent code |
+| Researcher | Terminal 3 | `experiments/log.md`, `experiments/breakthroughs.md`, agent code | `experiments/idea_queue.md`, `experiments/research_notes.md` |
 
-# Run all pending experiments
-uv run python -m arcagi3.autoresearch.runner
+- **`program.md`** — Executor instructions (read this to start the executor)
+- **`research_program.md`** — Researcher instructions (read this to start the researcher)
 
-# Run continuously until queue empty (for overnight)
-uv run python -m arcagi3.autoresearch.runner --continuous
+### Git Model
 
-# Run a specific experiment
-uv run python -m arcagi3.autoresearch.runner --experiment exp_005
+All work happens on `main`. No branches.
+- **Accept (score improved):** commit agent code + logs
+- **Reject/neutral:** `git checkout -- src/arcagi3/explorer_agent/`, commit only logs
 
-# Retry failed experiments
-uv run python -m arcagi3.autoresearch.runner --resume
-```
-
-### 2. Full Autoresearch Loop (Researcher + Executor)
-Two-agent system: a researcher LLM proposes experiment ideas based on past results, and an executor implements the changes, runs the benchmark, and evaluates.
+### Running a Benchmark
 
 ```bash
-# Start autoresearch loop (runs until interrupted)
-uv run python autoresearch.py --config qwen3.5-35b-local
+# Run all 3 games with default config
+uv run python run_benchmark.py
 
-# Run N experiments then stop
-uv run python autoresearch.py --config qwen3.5-35b-local --max-experiments 5
+# Quick screen with one game
+uv run python run_benchmark.py --games ls20 --max-actions 40
 
-# Research only (propose ideas, queue them, don't execute)
-uv run python autoresearch.py --config qwen3.5-35b-local --research-only
-
-# Execute only (run already-queued experiments)
-uv run python autoresearch.py --config qwen3.5-35b-local --execute-only
-
-# Start with baselines, then autoresearch
-uv run python autoresearch.py --config qwen3.5-35b-local --baselines
-```
-
-### 3. Experiment Queue CLI
-Manually manage the experiment queue.
-
-```bash
-# Add experiment to queue
-uv run python -m arcagi3.autoresearch.queue add \
-  --hypothesis "Adding loop detection reduces wasted actions" \
-  --games ls20,ft09,vc33 --config qwen3.5-35b-local
-
-# List experiments
-uv run python -m arcagi3.autoresearch.queue list
-
-# Show experiment details
-uv run python -m arcagi3.autoresearch.queue show exp_005
-
-# Show best experiments by score
-uv run python -m arcagi3.autoresearch.queue best --top 10
-
-# Summary stats
-uv run python -m arcagi3.autoresearch.queue summary
+# Custom config
+uv run python run_benchmark.py --config qwen3.5-35b-local --max-actions 40
 ```
 
 ### Dashboard
-Web dashboard showing experiment results, score timelines, per-game analysis, and live progress.
+
+Static HTML dashboard generated from `experiments/log.md`. No server dependencies.
 
 ```bash
-uv run python -m arcagi3.dashboard.app --port 8050
-# Open http://localhost:8050
+# Generate dashboard
+uv run python generate_dashboard.py
 
-# Accessible on network (e.g., from another machine)
-uv run python -m arcagi3.dashboard.app --host 0.0.0.0 --port 8050
+# Serve it (in a separate terminal)
+cd experiments && python3 -m http.server 8080
+# Open http://localhost:8080/dashboard.html
 ```
 
 ### Overnight Run Pattern
 ```bash
-# Start dashboard in background
-uv run python -m arcagi3.dashboard.app --port 8050 &
+# Terminal 1: Dashboard server
+cd experiments && python3 -m http.server 8080
 
-# Start autoresearch loop (will run until interrupted or queue empty)
-nohup uv run python autoresearch.py --config qwen3.5-35b-local --baselines > autoresearch.log 2>&1 &
+# Terminal 2: Executor (Claude Code session)
+claude
+# "Read program.md and begin the autoresearch loop."
 
-# Monitor progress
-tail -f autoresearch.log
+# Terminal 3: Researcher (Claude Code session)
+claude
+# "Read research_program.md and begin the research loop."
 ```
+
+### Coordination Files
+
+All in `experiments/` (tracked in git):
+- `idea_queue.md` — Prioritized idea queue (researcher writes, executor pops)
+- `log.md` — Master experiment log (executor writes, researcher reads)
+- `breakthroughs.md` — Accepted improvements (executor writes)
+- `research_notes.md` — Researcher's journal (researcher writes)
 
 ## ARC CLI (for Claude Code)
 
@@ -214,17 +190,14 @@ Session state persists in `.arc_session/session.json`. Only one session can be a
 - `src/arcagi3/explorer_agent/` — Custom Probe -> Explore -> Exploit agent (primary research target)
 
 ### Autoresearch System
+- `program.md` — Executor agent instructions (Claude Code reads this)
+- `research_program.md` — Researcher agent instructions (Claude Code reads this)
+- `run_benchmark.py` — Run all 3 games and print summary (executor calls this)
+- `generate_dashboard.py` — Generate static HTML dashboard from `experiments/log.md`
 - `src/arcagi3/autoresearch/experiment_db.py` — SQLite experiment tracker
 - `src/arcagi3/autoresearch/runner.py` — Batch experiment runner
 - `src/arcagi3/autoresearch/queue_cli.py` — Experiment queue CLI
-- `src/arcagi3/autoresearch/researcher.py` — LLM-driven idea generation from experiment history
-- `src/arcagi3/autoresearch/executor.py` — Applies changes, runs benchmarks, evaluates verdicts
-- `src/arcagi3/autoresearch/mutations.py` — Mutation categories (prompt engineering, exploration strategy, state tracking, phase transitions, memory management, preprocessing, action sequencing)
-- `autoresearch.py` — Main orchestrator entry point (repo root)
-
-### Dashboard
-- `src/arcagi3/dashboard/app.py` — Dash (Plotly) web application
-- `src/arcagi3/dashboard/layouts/` — Pages: overview, experiments, games, live monitor
+- `src/arcagi3/autoresearch/mutations.py` — Mutation categories (7 categories)
 
 ### Creating a New Agent
 1. Create `src/arcagi3/<name>_agent/` with `__init__.py`, `agent.py`, `definition.py`, `prompts/`
@@ -303,9 +276,9 @@ ARC-AGI-3 autoresearch iterates on **agent strategy**, not model weights:
 The autoresearch system can modify agents across 7 categories: prompt engineering, exploration strategy, state tracking, phase transitions, memory management, preprocessing, and action sequencing. See `src/arcagi3/autoresearch/mutations.py` for details.
 
 ### Experiment Tracking
-- Experiments stored in SQLite (`experiments/experiments.db`)
-- Each experiment tracks: hypothesis, changes, per-game scores, actions, cost, verdict, git commit, prompt hash
-- Verdicts: `accept` (improved), `reject` (regressed), `baseline`, `neutral`, `partial`
+- Primary: `experiments/log.md` — markdown table with all experiment results
+- Secondary: SQLite (`experiments/experiments.db`) — structured queries via `experiment_db.py`
+- Verdicts: `improved` (score went up), `reverted` (score same or worse), `baseline` (reference run)
 
 ## Scoring
 
@@ -329,6 +302,7 @@ ARC-AGI-3 scores on action efficiency vs human baseline:
 - No API keys needed for local MLX models or offline game runs
 - Results saved to `results/` (gitignored)
 - Experiment DB at `experiments/experiments.db` (gitignored)
-- Experiments also logged to `experiments/experiment_log.jsonl` (gitignored)
+- Experiment log at `experiments/log.md` (tracked in git)
+- Coordination files in `experiments/` (tracked in git)
 - Checkpoints saved to `.checkpoint/` (gitignored)
 - Available games (committed): `ls20`, `ft09`, `vc33`
