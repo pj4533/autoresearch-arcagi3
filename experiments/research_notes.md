@@ -49,6 +49,59 @@ Accumulated knowledge from experiments. Never wiped, only appended.
 
 All 7 categories covered. Balanced distribution.
 
+### Competition Research Findings (2026-03-27)
+
+**ARC-AGI-3 Preview Competition Results (Aug 2025):**
+- 1st: StochasticGoose (12.58%) — CNN + RL predicting frame-changing actions
+- 2nd: Blind Squirrel (6.71%) — Directed state graphs with value-ranked action pairs
+- 3rd: Graph-based exploration (training-free, solved 12 private levels)
+- Best LLM approach: Tomas Engine (3.70%), crashed often
+- Current frontier models (March 2026): All below 1%. Gemini 3.1 Pro tops at 0.37%.
+
+**Key Takeaway**: Structured exploration and state tracking crushingly beat pure LLM reasoning.
+
+**Most Actionable Strategies from Research:**
+
+1. **State Graph Construction** (2nd/3rd place): Build directed graph where nodes = hashed grid states, edges = actions. Provides loop detection, shortest-path replay, frontier tracking. Single highest-impact change.
+
+2. **Click Target Filtering** (1st place insight): Most cells are background/empty. Identifying interactive objects and only clicking those transforms the 4096-cell search into a ~10-50 target problem.
+
+3. **StateAct Structured State Tracking** (academic research): Requiring explicit state tracking at each step reduced average steps from 31.49 to 19.11 (39% reduction). Outputs: current state summary, changes, mechanics discovered, goal hypothesis, untested approaches.
+
+4. **ReflAct Goal Reflection** (academic research): "What is my current state relative to my goal?" prompting improved success rates by 21-28%.
+
+5. **Cross-Level Budget Allocation**: Scoring formula weights later levels more. Optimal strategy: invest ~60% of action budget in exploration on levels 1-2, then exploit efficiently on levels 3+.
+
+6. **Visual Object Prioritization for Clicks** (graph-based approach): Segment frame into connected components. Prioritize larger, more colorful, more morphologically distinct objects. Five priority tiers.
+
+7. **Curiosity-Driven Exploration**: Prioritize actions whose outcomes are least predictable (highest information gain). Build forward model: "if I do X in state S, I expect S'". When result differs, that's the most valuable learning.
+
+**Sources Reviewed:**
+- ARC Prize 2025 Results and Analysis (arcprize.org)
+- ARC-AGI-3 Technical Report (arxiv 2603.24621)
+- 1st Place Write-up StochasticGoose (medium.com)
+- Graph-Based Exploration for ARC-AGI-3 (arxiv 2512.24156)
+- StateAct: Self-prompting and State-tracking (arxiv 2410.02810)
+- ReflAct: World-Grounded Decision Making (arxiv 2505.15182)
+- LPLH: Learning to Play Like Humans (arxiv 2505.12439)
+- ICM: Curiosity-driven Exploration (Pathak et al.)
+
+**Updated Queue Priorities (after research):**
+- Inserted State Graph Construction at #2 (highest-impact new idea)
+- Inserted StateAct prompting at #5
+- Inserted Click Target Filtering at #7
+- Inserted ReflAct Goal Reflection at #11
+- Queue now has 22 ideas across all 7 categories
+
+### Updated Category Coverage
+- Prompt Engineering: #1, #5, #6, #11 (4 ideas)
+- Exploration Strategy: #3, #12, #20 (3 ideas)
+- State Tracking: #2, #4, #13 (3 ideas)
+- Phase Transitions: #10, #14, #17 (3 ideas)
+- Memory Management: #8, #15, #18 (3 ideas)
+- Preprocessing: #7, #16, #19, #22 (4 ideas)
+- Action Sequencing: #9, #21 (2 ideas)
+
 ## Dead Ends
 
 (patterns that don't work)
