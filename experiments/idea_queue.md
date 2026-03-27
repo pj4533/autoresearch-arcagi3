@@ -12,11 +12,16 @@
 - **Changes**: In agent.py, detect game type from `context.game.game_id` and pass to prompt. In system.prompt, add conditional: if vc33, "THIS IS A CLICK-ONLY GAME. You MUST use Click actions with x,y coordinates. Movement actions DO NOT WORK." If ft09, "This is a pattern puzzle. You MUST click grid cells to change colors, then Perform to submit." If ls20, "This is a navigation game. Use movement actions." In explore.prompt, add "CRITICAL: You MUST choose from the available actions listed below. Other actions will be REJECTED." Repeat the constraint.
 - **Expected impact**: Should fix VC33 (currently 100% wasted actions) and FT09 (84% wrong actions). This is the single most impactful change possible.
 
-### 2. [Exploration Strategy] Fix convert fallback to use valid action from available_actions
-- **Hypothesis**: When the LLM outputs an unparseable action, `_convert_to_game_action` falls back to `{"action": "ACTION1"}` — which is Move Up. For VC33 (click-only), this fallback sends an invalid action. The fallback should use the FIRST available action, not hardcoded ACTION1.
+### 2. [Exploration Strategy] Fix convert to ONLY return available actions (TWO bugs)
+- **Hypothesis**: `_convert_to_game_action` has TWO bugs that break VC33:
+  - **Bug 1 (direct mapping)**: The direct mapping `action_map.get(human_action.lower())` returns ACTION2 for "Move Down" WITHOUT checking if ACTION2 is in available_actions. For VC33 (only ACTION6 available), this silently sends invalid movement actions.
+  - **Bug 2 (fallback)**: Final fallback is hardcoded `{"action": "ACTION1"}` regardless of available_actions.
 - **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
-- **Changes**: In `_convert_to_game_action`, change the final fallback from `return {"action": "ACTION1"}` to: `available = self._get_available_action_names(context); return {"action": available[0] if available else "ACTION1"}`. For VC33 where only ACTION6 is available, this falls back to clicking instead of movement.
-- **Expected impact**: Prevents catastrophic fallback behavior. Even failed parses will at least try valid actions.
+- **Changes**:
+  1. After direct mapping, validate: `if direct and direct in self._get_available_action_names(context): return {"action": direct}` — reject unavailable actions.
+  2. Change final fallback to: `available = self._get_available_action_names(context); fallback = available[0] if available else "ACTION1"`. For ACTION6 fallback, add center-of-grid coordinates: `{"action": "ACTION6", "x": 64, "y": 64}`.
+  3. The game_id format is `"ls20-cb3b57cc"` — use `context.game.game_id.split("-")[0]` to extract game type.
+- **Expected impact**: Fixes BOTH bugs. VC33 will no longer receive invalid movement actions from either the direct mapping or the fallback path.
 
 ### 3. [Exploration Strategy] Programmatic click probe with object detection (NO LLM needed)
 - **Hypothesis**: For click-only games like VC33, the probe phase should skip the LLM entirely and programmatically scan the grid for clickable objects. VC33 level 1 only needs 6 clicks to solve — a smart scan could solve it in the probe phase alone. Even for FT09, clicking non-background objects reveals mechanics faster than asking the LLM to guess coordinates.
