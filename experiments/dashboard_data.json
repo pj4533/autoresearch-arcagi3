@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T21:00:58.086166+00:00",
+  "generated_at": "2026-03-28T21:47:57.133613+00:00",
   "summary": {
-    "total": 19,
-    "completed": 19,
+    "total": 20,
+    "completed": 20,
     "improved": 1,
-    "reverted": 17,
+    "reverted": 18,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -256,9 +256,23 @@
       "duration": "3356s",
       "status": "reverted",
       "notes": "Journal tracks actions but model still can't discover scoring mechanics."
+    },
+    {
+      "id": "020",
+      "idea": "#3(new)",
+      "description": "State graph with untried action tracking",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "2390s",
+      "status": "reverted",
+      "notes": "Fast (2390s) but no score. State graph guides exploration but games don't respond to any actions."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
