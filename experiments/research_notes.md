@@ -427,7 +427,9 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 **Exp 004 partial results (idea #3 — click probe):**
 - LS20: Score 0, 40 actions, 50s/action. Same as baseline (click probe only affects click games).
 - FT09: Score 0, **40/40 ACTION6 clicks, ALL probe phase, 9 seconds total (0.2s/action)**. 650x speedup. But score 0 — randomly clicking objects doesn't solve the 3x3 toggle constraint puzzle. Need smarter targeting for FT09.
-- VC33: Pending — this is the key test. VC33 level 1 needs only 6 clicks.
+- VC33 (065536): Score 0, 40 actions, 45.8s/action. Click probe found 10 objects, clicked all. Then 30 explore actions (mostly Move Up from parse failures). **Score never changed.**
+  - **Root cause: clicking wrong objects.** Detected targets include color=0 (white, size 848) and color=5 (black, size 96) which are structural/border elements, not interactive game objects. The small color=9 (blue, 16) and color=11 (yellow, 12) are more likely interactive but clicks may not have hit the exact sprites.
+  - **Fix needed**: (1) Filter out likely structural colors (0=white, 5=black) from click targets. (2) Prioritize small/medium objects (size 4-64) over large ones. (3) After clicking with no frame change, mark that object as non-interactive and skip similar ones. (4) Consider a second pass with slightly offset coordinates if first click missed.
 
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓

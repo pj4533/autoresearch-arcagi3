@@ -24,18 +24,17 @@
   3. Bug 3: Already fixed. ✓
 - **Expected impact**: When JSON parse fails (which may still happen), the fallback will at least try valid actions for the game type. This is the safety net beneath the game-type prompt.
 
-### 3. [Exploration Strategy] Programmatic click probe with object detection (NO LLM needed)
-- **Hypothesis**: For click-only games like VC33, the probe phase should skip the LLM entirely and programmatically scan the grid for clickable objects. VC33 level 1 only needs 6 clicks to solve — a smart scan could solve it in the probe phase alone. Even for FT09, clicking non-background objects reveals mechanics faster than asking the LLM to guess coordinates.
+### 3. [Exploration Strategy] Refine click probe: filter structural objects, prioritize small targets
+- **Hypothesis**: Exp 004 showed click probe works mechanically (0.2s/action!) but clicks wrong objects. VC33 detected 10 targets including color=0 (size 848) and color=5 (size 96) — these are structural elements (borders, frames), not interactive game objects. The interactive objects in VC33 are smaller colored blocks (size ~4-64). Need smarter filtering.
 - **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
-- **Changes**: Rewrite `_probe_step` for click games:
-  1. **Find background color**: Count color frequencies in grid. Most common = background (usually 0 or 3).
-  2. **Find non-background objects**: BFS/flood-fill to find connected components of non-background cells. For each, record: color, bounding box, center (row, col), cell count.
-  3. **Convert grid coords to click coords**: Multiply by 2 (grid is 64x64, clicks are 0-127).
-  4. **Click top-N objects by size**: Click center of each distinct non-background object, largest first. After each click, record frame change via `_describe_frame_change()` and score change.
-  5. **Store results**: Save click targets list and effects in `context.datastore["click_targets"]` and `action_effects`.
-  6. For VC33 (ACTION6 only): Skip ALL movement probing, go straight to click scan.
-  7. For FT09 (ACTION5+ACTION6): After click scan, also try Perform to test submission.
-- **Expected impact**: VC33 could score in the PROBE PHASE without any LLM calls. FT09 enters explore with click mechanics fully mapped. This is potentially the highest-impact single change for scoring.
+- **Changes** (refine existing `_detect_objects` and `_click_probe_step`):
+  1. **Filter structural colors**: Skip color 0 (white/background) and color 5 (black/borders) in addition to the most-common background color. These are almost always non-interactive.
+  2. **Size filtering**: Prioritize objects with size 4-100 cells. Very large objects (>200) are usually backgrounds/frames. Very small (1-2) may be noise.
+  3. **Sort by size ascending** (smallest first) instead of descending — small distinctive objects are more likely interactive in VC33.
+  4. **Track click effects**: After each click, check if frame changed. If no change after clicking objects of a given color, skip remaining objects of that color.
+  5. **Re-detect after score change**: Already implemented ✓. On score increase, re-scan for new level's objects.
+  6. **Multiple background colors**: Instead of just the most common color, treat the top 2-3 most common colors as background (they're usually the floor/walls/borders).
+- **Expected impact**: With proper filtering, the probe should click actual interactive objects. VC33 level 1 needs ~6 clicks — if even half of filtered targets are correct, it could score.
 
 ### 4. [Prompt Engineering] Eliminate separate convert LLM call by outputting ACTION names directly
 - **Hypothesis**: The agent makes TWO LLM calls per explore step. Removing the convert call halves LLM inference time per action (~2x faster). Also reduces parse failures that trigger the broken ACTION1 fallback.
