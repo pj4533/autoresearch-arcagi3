@@ -1,14 +1,30 @@
 {
-  "generated_at": "2026-03-27T19:58:15.638447+00:00",
+  "generated_at": "2026-03-28T00:04:58.152455+00:00",
   "summary": {
-    "total": 0,
-    "completed": 0,
+    "total": 1,
+    "completed": 1,
     "improved": 0,
     "reverted": 0,
-    "baselines": 0,
+    "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
   },
-  "experiments": [],
-  "running_best": []
+  "experiments": [
+    {
+      "id": "001",
+      "idea": "\u2014",
+      "description": "Baseline (no changes)",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "7480s",
+      "status": "baseline",
+      "notes": "All explore responses failed JSON parse \u2014 model outputs prose instead of JSON. Every action falls back to ACTION1 (Move Up)."
+    }
+  ],
+  "running_best": [
+    0.0
+  ]
 }
