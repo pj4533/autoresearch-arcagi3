@@ -424,6 +424,11 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - Routes VC33 and FT09 to click probe in `_probe_step()`
 - This is Path A+C combined — should be very fast (no LLM latency) and may solve VC33 level 1 outright
 
+**Exp 004 partial results (idea #3 — click probe):**
+- LS20: Score 0, 40 actions, 50s/action. Same as baseline (click probe only affects click games).
+- FT09: Score 0, **40/40 ACTION6 clicks, ALL probe phase, 9 seconds total (0.2s/action)**. 650x speedup. But score 0 — randomly clicking objects doesn't solve the 3x3 toggle constraint puzzle. Need smarter targeting for FT09.
+- VC33: Pending — this is the key test. VC33 level 1 needs only 6 clicks.
+
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
 - Convert fallback uses available[0] instead of ACTION1 ✓
