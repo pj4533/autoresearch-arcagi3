@@ -509,6 +509,29 @@ Everything improved dramatically. Next: #1 (game-type) + #5 (click targets) on t
 - VC33: Pending.
 - **Key insight**: State graph diversifies actions within the same ACTION TYPE (tries different movements) but doesn't shift between types (movement→clicking). Need #1 (game-type prompt) for that. Best next experiment: combine #27+#1+#6.
 
+**COORDINATE MAPPING BUG FOUND (2026-03-28):**
+
+The base agent loop (`agent.py:507-508`) divides click x,y by 2:
+```python
+"x": max(0, min(int(x), 127)) // 2,
+"y": max(0, min(int(y), 127)) // 2,
+```
+
+So the correct formula to click on grid cell (row, col) is:
+- `click_x = col * 2` (after //2, game receives col) ✓
+- `click_y = row * 2` (after //2, game receives row) ✓
+
+Current formula: `click_x = int(avg_c * 127 / max(cols - 1, 1))` — WRONG for non-64x64 grids.
+
+Example for VC33 (51x51 grid), cell at col=25:
+- Current: 25 * 127 / 50 = 63 → game gets 63//2 = 31 (WRONG, 6 cells off)
+- Correct: 25 * 2 = 50 → game gets 50//2 = 25 (CORRECT)
+
+For 64x64 grids (LS20/FT09): both formulas happen to give similar results.
+For 51x51 grids (VC33): every click is ~6 cells off target.
+
+**THIS IS THE #1 BLOCKER FOR SCORING.** All click infrastructure works but clicks physically miss the objects.
+
 **Previous alternative approaches (may not be needed now):**
 1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
 2. **Add stop sequences** — Stop on `<think>` token to prevent thinking from starting

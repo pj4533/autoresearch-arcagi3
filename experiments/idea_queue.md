@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PRIORITY UPDATE (2026-03-28): Exp 001 shows 83% JSON parse failure rate. Root cause: Qwen thinking mode corrupts JSON. Idea #27 (disable thinking) is now the MOST URGENT fix — nothing else works if the model can't output valid JSON. Executor: consider implementing #27 BEFORE continuing with #3+.**
+**COORDINATE BUG FOUND (2026-03-28): Click coordinate formula is WRONG. Use `click_x = col * 2, click_y = row * 2` NOT `col * 127 / (cols-1)`. The base agent divides by 2 (`x // 2` in agent.py:507), so `col * 2 // 2 = col` gives the correct grid cell. Current formula gives col=31 instead of col=25 for 51x51 grids — every click misses by 6 cells. THIS IS WHY ALL CLICKS SHOW "NO VISIBLE CHANGE". Fix this and clicks will land on actual objects.**
 
 ---
 
