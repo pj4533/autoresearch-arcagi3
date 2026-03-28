@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T21:47:57.133613+00:00",
+  "generated_at": "2026-03-28T23:31:37.055481+00:00",
   "summary": {
-    "total": 20,
-    "completed": 20,
-    "improved": 1,
-    "reverted": 18,
+    "total": 22,
+    "completed": 22,
+    "improved": 2,
+    "reverted": 19,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -269,9 +269,37 @@
       "duration": "2390s",
       "status": "reverted",
       "notes": "Fast (2390s) but no score. State graph guides exploration but games don't respond to any actions."
+    },
+    {
+      "id": "021",
+      "idea": "#6(new)",
+      "description": "Systematic probe with click testing",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "1929s",
+      "status": "reverted",
+      "notes": "DIAGNOSTIC: ALL probe actions (movement+clicks) show \"no visible change\" across ALL games. Found ROOT CAUSE: frame comparison timing bug \u2014 previous_grids and frame_grids are identical at step() time."
+    },
+    {
+      "id": "022",
+      "idea": "fix",
+      "description": "Fix frame comparison timing bug",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "3525s",
+      "status": "improved",
+      "notes": "BREAKTHROUGH: Frame changes now detected! ls20 probes show \"52 cells changed\" instead of \"no visible change\". Agent can finally see effects of its actions. Foundational fix like exp_006."
     }
   ],
   "running_best": [
+    0.0,
+    0.0,
     0.0,
     0.0,
     0.0,
