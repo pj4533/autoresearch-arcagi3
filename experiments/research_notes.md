@@ -614,6 +614,12 @@ Also from action_data in exp results: x=19,y=13 and x=10,y=12 were sent — thes
 
 **Speed progression: 131s → 78s → 50s → 23s → 11.5s → 4.8s/action (27x improvement)**
 
+**Exp 018 (idea #1 — hypothesis-driven exploration):**
+- LS20: 21s/act. Most balanced action distribution ever: Right 37.5%, Left 27.5%, Up 27.5%, Down 7.5%. Model forms hypotheses: "maze navigation, agent is value 1, walls are 3". Score 0 but exploration quality much better.
+- FT09: 54.9s/act. 82.5% clicks. Hypothesizes it needs to click. Score 0 (click issue).
+- VC33: 25s/act. 100% clicks. Correctly identifies click-only game. Score 0 (click issue).
+- Hypothesis testing IS producing meaningful theories about game mechanics. But some steps have empty hypotheses (parse failures). The approach is directionally correct.
+
 **Exp 009 (idea #7 — enhanced frame change description):**
 - LS20: Score 0, 40 actions, **11.5s/act** (fastest ever!). Now reports color transitions and change regions.
 - Frame changes now show: "12 cells changed (0.5%); colors: 5->3(x8), 4->3(x4); region: bottom-left"
