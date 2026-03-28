@@ -636,6 +636,11 @@ Also from action_data in exp results: x=19,y=13 and x=10,y=12 were sent — thes
 
 **IMPLICATION: Once fixed, ALL previous ideas may become viable.** The agent will finally be able to see what its actions do. Hypothesis testing, action journals, state graphs — all depend on observing effects. This is the foundational bug that blocked everything.
 
+**Exp 022 results (frame comparison fix):**
+- LS20: Frame fix WORKS! Agent sees "52 cells changed" per movement action. Model reasons about effects for the first time. Most balanced actions ever (30% L, 30% R, 25% D, 15% U). Score 0.
+- FT09: Clicks STILL show "no visible change" despite frame fix. The agent correctly reports "Repeated clicks produced no visible changes." This means **clicks genuinely don't change the frame** — it's NOT a comparison bug for clicks. The click pipeline has a real issue.
+- **Conclusion**: Frame fix unblocked LS20 exploration (agent can now learn from movement). Click games (FT09/VC33) have a separate infrastructure issue where ACTION6 doesn't produce frame changes. This needs game-engine-level debugging.
+
 **Exp 009 (idea #7 — enhanced frame change description):**
 - LS20: Score 0, 40 actions, **11.5s/act** (fastest ever!). Now reports color transitions and change regions.
 - Frame changes now show: "12 cells changed (0.5%); colors: 5->3(x8), 4->3(x4); region: bottom-left"
