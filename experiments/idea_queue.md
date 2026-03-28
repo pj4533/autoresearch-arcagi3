@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PRIORITY REORDER (2026-03-27): Based on analysis of 95+ prior experiments, ALL scoring 0. See research notes for diagnostic details.**
+**PRIORITY UPDATE (2026-03-28): Exp 001 shows 83% JSON parse failure rate. Root cause: Qwen thinking mode corrupts JSON. Idea #27 (disable thinking) is now the MOST URGENT fix — nothing else works if the model can't output valid JSON. Executor: consider implementing #27 BEFORE continuing with #3+.**
 
 ---
 
@@ -175,11 +175,11 @@
 - **Changes**: Add `_detect_symmetry` method. Report in prompt.
 - **Expected impact**: Potentially useful for ft09/vc33.
 
-### 27. [Prompt Engineering] Disable thinking mode for JSON/convert calls (Qwen-specific)
-- **Hypothesis**: Qwen3.5's thinking mode can leak `<think>` tags into JSON output (documented bug). The convert step just needs a simple ACTION mapping — thinking adds wasted tokens and risks JSON corruption. Disabling thinking for convert calls saves tokens and improves JSON reliability.
-- **Files to modify**: `src/arcagi3/adapters/mlx_adapter.py` (or wherever MLX provider is configured), `src/arcagi3/explorer_agent/agent.py`
-- **Changes**: Add ability to pass `enable_thinking=False` to the MLX adapter's chat template for specific calls. Use this for convert calls. Keep thinking enabled for explore calls where reasoning helps. Also lower temperature to 0.1-0.3 for convert calls.
-- **Expected impact**: More reliable JSON parsing, fewer fallback-to-ACTION1 failures, reduced token waste.
+### 27. [Prompt Engineering] Disable thinking mode for ALL LLM calls (Qwen-specific) — URGENT
+- **Hypothesis**: Exp 001 shows only 14-17% of explore responses produce valid JSON. Thinking mode is the ROOT CAUSE — it generates `<think>` tokens that corrupt JSON output (documented Qwen bug). The adapter strips thinking tags AFTER generation, but the damage is done: the model's JSON output is already corrupted. Disabling thinking should dramatically improve JSON parse rates. Also saves ~2000 tokens/action of wasted generation (~30s/action).
+- **Files to modify**: `src/arcagi3/adapters/mlx_adapter.py`
+- **Changes**: In `call_provider`, pass `enable_thinking=False` to `apply_chat_template`: `prompt = self._tokenizer.apply_chat_template(chat_messages, tokenize=False, add_generation_prompt=True, enable_thinking=False)`. This single line change could fix the 83% JSON parse failure rate AND cut per-action time from ~70s to ~40s.
+- **Expected impact**: JSON parse rate from ~17% to potentially 80%+. Per-action time reduced by ~30s. This unblocks ALL other improvements since nothing works if the model can't output valid JSON.
 
 ### 28. [Prompt Engineering] Aggressive prompt compression (Qwen MLX has no KV cache reuse)
 - **Hypothesis**: Qwen3.5-35B on MLX has NO KV cache reuse due to hybrid DeltaNet architecture (ml-explore/mlx-lm#980). Every inference recomputes the full prompt from scratch. Compressing the prompt saves real wall-clock time on EVERY step. Currently ~14.5 sec/action.
