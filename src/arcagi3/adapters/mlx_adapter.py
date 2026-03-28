@@ -128,10 +128,12 @@ class MlxAdapter(ProviderAdapter):
     def call_provider(self, messages: List[Dict[str, Any]]) -> MLXResponse:
         """Run local inference via mlx-lm."""
         from mlx_lm import generate
+        from mlx_lm.sample_utils import make_sampler, make_logits_processors
 
         chat_messages = self._convert_messages(messages)
         prompt = self._tokenizer.apply_chat_template(
-            chat_messages, tokenize=False, add_generation_prompt=True
+            chat_messages, tokenize=False, add_generation_prompt=True,
+            enable_thinking=False
         )
 
         # Get generation params from config kwargs
@@ -143,13 +145,16 @@ class MlxAdapter(ProviderAdapter):
         top_p = kwargs.get("top_p", 0.9)
         repetition_penalty = kwargs.get("repetition_penalty", None)
 
+        sampler = make_sampler(temp=temperature, top_p=top_p)
+
         generate_kwargs = {
             "max_tokens": max_tokens,
-            "temp": temperature,
-            "top_p": top_p,
+            "sampler": sampler,
         }
         if repetition_penalty is not None:
-            generate_kwargs["repetition_penalty"] = repetition_penalty
+            generate_kwargs["logits_processors"] = make_logits_processors(
+                repetition_penalty=repetition_penalty
+            )
 
         logger.debug(
             f"MLX generate: max_tokens={max_tokens}, temp={temperature}, top_p={top_p}"
