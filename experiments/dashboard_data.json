@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T12:04:28.691823+00:00",
+  "generated_at": "2026-03-28T12:38:18.169112+00:00",
   "summary": {
-    "total": 8,
-    "completed": 8,
+    "total": 9,
+    "completed": 9,
     "improved": 1,
-    "reverted": 6,
+    "reverted": 7,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -113,9 +113,23 @@
       "duration": "2491s",
       "status": "reverted",
       "notes": "Fastest yet (67% faster than baseline). State graph helps model decide faster but no score improvement."
+    },
+    {
+      "id": "009",
+      "idea": "#7",
+      "description": "Enhanced frame change description (colors, region)",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "1949s",
+      "status": "reverted",
+      "notes": "New speed record (74% faster than baseline). Better frame descriptions help model decide faster but still no score."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
