@@ -17,3 +17,4 @@ Games: ls20, ft09, vc33. Max actions per experiment: 40.
 | 010 | #8 | StateAct-style structured prompting | 0.0000 | 120 | 0 | 0 | 0 | 3086s | reverted | Only 1 parse failure (best ever). Structured output works but no score improvement. |
 | 011 | #9 | Stuck detection + random action fallback | 0.0000 | 120 | 0 | 0 | 0 | 1003s | reverted | 87% faster (random actions skip LLM after 15 stuck actions). But random actions don't score either. |
 | 012 | #10 | Structured memory (facts/hypotheses/actions) | 0.0000 | 120 | 0 | 0 | 0 | 3268s | reverted | No improvement. Structured memory didn't help model choose better actions. |
+| 013 | #32 | Brute-force click scan for VC33 (corrected coords) | 0.0000 | 120 | 0 | 0 | 0 | 3656s | reverted | col*2/row*2 mapping still shows "no visible change" for all clicks. Same coords as exp_004. Issue is NOT coordinate mapping. |
