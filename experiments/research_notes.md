@@ -556,6 +556,24 @@ However, stuck_random clicks DO include x,y directly: `{"action": "ACTION6", "x"
 - Score-triggered re-scan on level completion
 - This is the critical test: correct coordinates + systematic clicking of all non-background objects
 
+**Exp 013 result: STILL score 0 despite coordinate fix + brute force click.**
+
+10 brute_click actions (correct col*2 formula), 0 frame changes. Even with corrected coordinates, clicks don't register.
+
+**Root cause investigation: Camera transform layer**
+The game uses `camera.display_to_grid(x, y)` to convert click coordinates. The base agent sends `x // 2` (0-63 range). But the camera may apply additional transforms:
+- Viewport offset (grid not at position 0,0 in display)
+- Zoom/scale factor different from 1:1
+- Grid padding within the 64x64 display frame
+
+VC33 grid is 49x58 within a ~64x64 display. If there's padding (e.g., grid starts at display offset 7,3), then `col*2 // 2 = col` gives grid-relative coordinates but the camera expects display-absolute coordinates.
+
+**Suggested debug approach:**
+1. Print exact (x, y) values reaching `game_client.execute_action` for ACTION6
+2. Use `arc` CLI to manually play VC33 — click known objects and see what coordinates work
+3. Try clicking at the RAW grid positions the model reports (e.g., "row 22, col 54" → send x=54, y=22 WITHOUT the *2 conversion — just raw grid cell indices)
+4. Try a grid of evenly spaced clicks (0, 16, 32, 48, 64, 80, 96, 112) × (same) to find where interactive sprites actually are in display space
+
 **Exp 009 (idea #7 — enhanced frame change description):**
 - LS20: Score 0, 40 actions, **11.5s/act** (fastest ever!). Now reports color transitions and change regions.
 - Frame changes now show: "12 cells changed (0.5%); colors: 5->3(x8), 4->3(x4); region: bottom-left"
