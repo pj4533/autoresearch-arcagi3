@@ -14,3 +14,4 @@ Games: ls20, ft09, vc33. Max actions per experiment: 40.
 | 007 | #5 | Click target list in explore prompt (object detection) | 0.0000 | 120 | 0 | 0 | 0 | 3650s | reverted | 17% faster than exp_006. Click targets shown to LLM but still no score. Model can now output JSON but click actions still don't produce visible changes. |
 | 008 | #6 | State graph with loop detection + status bar masking | 0.0000 | 120 | 0 | 0 | 0 | 2491s | reverted | Fastest yet (67% faster than baseline). State graph helps model decide faster but no score improvement. |
 | 009 | #7 | Enhanced frame change description (colors, region) | 0.0000 | 120 | 0 | 0 | 0 | 1949s | reverted | New speed record (74% faster than baseline). Better frame descriptions help model decide faster but still no score. |
+| 010 | #8 | StateAct-style structured prompting | 0.0000 | 120 | 0 | 0 | 0 | 3086s | reverted | Only 1 parse failure (best ever). Structured output works but no score improvement. |
