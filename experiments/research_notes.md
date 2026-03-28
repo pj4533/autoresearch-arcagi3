@@ -505,7 +505,9 @@ Everything improved dramatically. Next: #1 (game-type) + #5 (click targets) on t
 **Exp 008 (idea #6 — state graph with loop detection, on top of #27):**
 - LS20: Score 0, 40 actions, **17.7s/act**. JSON 92%. ACTION3 (Move Left) jumped to 40% — state graph working! Model now tries untried actions when warned about revisited states. Most diverse action distribution yet.
 - Implementation: status bar masking (top/bottom 2 rows), MD5 grid hash, state→action→state transitions, untried action suggestions.
-- FT09/VC33: Pending.
+- FT09 (115103): Score 0, 40 actions, 25.5s/act. 14 unique click targets (no more click loop!). But 65% Move Down — state graph diversifies but model still defaults to movement for FT09. Needs #1 (game-type prompt) to eliminate movement.
+- VC33: Pending.
+- **Key insight**: State graph diversifies actions within the same ACTION TYPE (tries different movements) but doesn't shift between types (movement→clicking). Need #1 (game-type prompt) for that. Best next experiment: combine #27+#1+#6.
 
 **Previous alternative approaches (may not be needed now):**
 1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
