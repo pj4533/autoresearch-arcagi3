@@ -101,16 +101,20 @@ class ExplorerAgent(MultimodalAgent):
             ]
         return list(HUMAN_ACTIONS_LIST)
 
+    def _save_current_frame(self, context: SessionContext) -> None:
+        """Save current frame grid to datastore for next step's comparison."""
+        grid = context.last_frame_grid
+        if grid:
+            context.datastore["saved_prev_grid"] = [row[:] for row in grid]
+
     def _describe_frame_change(self, context: SessionContext) -> str:
-        """Compare previous and current frames to describe what changed."""
-        prev_grids = context.frames.previous_grids
+        """Compare saved previous frame to current frame to describe what changed."""
+        prev = context.datastore.get("saved_prev_grid")
         curr_grids = context.frames.frame_grids
+        curr = curr_grids[-1] if curr_grids else None
 
-        if not prev_grids or not curr_grids:
+        if not prev or not curr:
             return "no previous frame to compare"
-
-        prev = prev_grids[-1]
-        curr = curr_grids[-1]
 
         if prev == curr:
             return "no visible change"
@@ -160,6 +164,9 @@ class ExplorerAgent(MultimodalAgent):
         action_name = probe_actions[probe_index]
         context.datastore["probe_index"] = probe_index + 1
         context.datastore["previous_action"] = action_name
+
+        # Save current frame for next step's comparison
+        self._save_current_frame(context)
 
         return GameStep(
             action={"action": action_name},
@@ -264,6 +271,9 @@ class ExplorerAgent(MultimodalAgent):
         game_action = self._convert_to_game_action(context, str(human_action))
 
         context.datastore["previous_action"] = game_action.get("action", "")
+
+        # Save current frame for next step's comparison
+        self._save_current_frame(context)
 
         reasoning = {
             "phase": context.datastore.get("phase", PHASE_EXPLORE),
