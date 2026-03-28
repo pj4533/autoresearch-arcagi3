@@ -387,7 +387,15 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 
 **Third baseline run (224617, LS20):** 40 actions, 47.3 min, 71s/action. 80% Move Up. Score 0.
 
-**FT09 baseline (231647):** 32 actions (GAME_OVER — lost!), 37 min, 55.5s/action. **100% ACTION1 (Move Up)** — every single action was Move Up in a click-only game. No probe phase at all (went straight to explore). No clicking attempted. Agent ran the game into GAME_OVER by exhausting moves on no-ops. This is even worse than old experiments (which at least had 16% non-movement).
+**FT09 baseline (231647):** 32 actions (GAME_OVER — lost!), 37 min, 55.5s/action. **100% ACTION1 (Move Up)** — every single action was Move Up in a click-only game. No probe phase, no clicking. Game ended in GAME_OVER.
+
+**VC33 baseline (000347):** 40 actions, 40.3 min. 39 ACTION1 + 1 ACTION6. LLM sometimes says "Click at (50,55)" but convert maps it to ACTION1 — CONFIRMS the direct-mapping bug. Only 1 of ~3 click attempts became actual ACTION6.
+
+**Executor implemented ideas #1 + #2 (partial):**
+- Game-type-aware system prompt with CRITICAL constraints ✓
+- Convert fallback uses available[0] instead of ACTION1 ✓
+- Simplified explore prompt JSON format ✓
+- **NOT fixed: convert direct mapping still ignores available_actions** — Bug 1 from idea #2. When LLM says "Move Up", direct mapping returns ACTION2 without checking if available. This will still cause VC33 to get movement actions.
 
 ## Dead Ends
 
