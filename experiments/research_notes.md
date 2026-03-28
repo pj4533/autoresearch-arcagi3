@@ -443,6 +443,8 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 **Exp 005 partial results (idea #4 — eliminate convert):**
 - LS20: Score 0, 40 actions, 78.3s/action. JSON parse **8%** (WORSE than 17%!). Simpler prompt format didn't improve JSON output. Still 85% Move Up. Speed improved from 131s→78s (convert skipped) but still much slower than needed.
 - **Key insight**: JSON parse rate is NOT a prompt format issue — it's thinking mode. Regardless of how we format the prompt, thinking tokens corrupt the output ~90% of the time. Idea #27 (disable thinking) is the critical path.
+- FT09: Score 0, GAME_OVER, 40 actions, 56.6s/action. JSON parse 5%. Only 12.5% clicks — REGRESSED from exp 003's 85% because fallback fixes (#2) were reverted. Testing #4 in isolation fails because the explore fallback is still "Move Up".
+- **Conclusion**: Individual ideas don't work in isolation. Need either: (A) combine #1+#2+#3+#4 together, or (B) fix thinking mode (#27) first which makes all prompt changes effective.
 
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
