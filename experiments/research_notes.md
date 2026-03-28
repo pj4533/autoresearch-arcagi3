@@ -532,6 +532,23 @@ For 51x51 grids (VC33): every click is ~6 cells off target.
 
 **THIS IS THE #1 BLOCKER FOR SCORING.** All click infrastructure works but clicks physically miss the objects.
 
+**DEEPER INVESTIGATION (2026-03-28): Zero frame changes from 25+ random clicks**
+
+Even stuck_random clicks at random positions (0-127) in VC33 produced ZERO visible frame changes across 25 actions. This is suspicious — random clicks should occasionally hit interactive sprites by chance.
+
+The `_explore_step` has a potential x,y loss bug: when the LLM returns `{"action": "Click at (25,25)", "x": 50, "y": 50}`, the code extracts `human_action = result.get("action")` = "Click at (25,25)" and passes ONLY the string to `_convert_to_game_action()`. The x,y values from the LLM response are LOST. The convert step would need to regenerate x,y.
+
+However, stuck_random clicks DO include x,y directly: `{"action": "ACTION6", "x": random, "y": random}`. These go through the base agent which does `x // 2, y // 2`. A random click at x=80, y=60 → game gets (40, 30). For VC33's 49x58 grid, this is a valid cell. But no change.
+
+**Possible root causes:**
+1. The game's `camera.display_to_grid(x, y)` may apply additional transforms
+2. The local server might not be processing click data correctly
+3. The x,y might not be reaching the game engine at all (data not in expected format)
+
+**Suggested debug**: Executor should add logging in `_execute_game_action` to print the exact action_data being sent for ACTION6 clicks, and check if the game response indicates any processing.
+
+**Also**: The coordinate formula fix (`col * 2` vs `col * 127/(cols-1)`) is still relevant for LLM-directed clicks but doesn't explain why random clicks also fail.
+
 **Exp 009 (idea #7 — enhanced frame change description):**
 - LS20: Score 0, 40 actions, **11.5s/act** (fastest ever!). Now reports color transitions and change regions.
 - Frame changes now show: "12 cells changed (0.5%); colors: 5->3(x8), 4->3(x4); region: bottom-left"
