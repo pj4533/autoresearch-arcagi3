@@ -6,3 +6,4 @@ Games: ls20, ft09, vc33. Max actions per experiment: 40.
 | Exp | Idea | Description | Avg Score | Actions | ls20 | ft09 | vc33 | Duration | Status | Notes |
 |-----|------|-------------|-----------|---------|------|------|------|----------|--------|-------|
 | 001 | — | Baseline (no changes) | 0.0000 | 120 | 0 | 0 | 0 | 7480s | baseline | All explore responses failed JSON parse — model outputs prose instead of JSON. Every action falls back to ACTION1 (Move Up). |
+| 002 | #1 | Game-type-aware prompts + ACTION fallback fix | 0.0000 | 120 | 0 | 0 | 0 | 9043s | reverted | Model behavior changed (tried ACTION6 for vc33) but JSON still malformed (literal "..." in values). Slower due to longer prompts. |

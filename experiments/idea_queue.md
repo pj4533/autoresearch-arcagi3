@@ -215,4 +215,4 @@
 
 ## Completed
 
-(none yet)
+- **#1 [Prompt Engineering] Game-type-aware system prompt** — Exp 002: reverted (score=0.0000). Model tried correct actions but JSON output still malformed.
