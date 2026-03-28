@@ -22,3 +22,4 @@ Games: ls20, ft09, vc33. Max actions per experiment: 40.
 | 015 | #13 | ReflAct-style goal reflection prompt | 0.0000 | 120 | 0 | 0 | 0 | 2740s | reverted | No improvement. Goal reflection didn't help the model discover game mechanics. |
 | 016 | #16 | Score change feedback in prompt | 0.0000 | 120 | 0 | 0 | 0 | 3257s | reverted | No score changes occurred so feedback never triggered. The agent never scores on any game. |
 | 017 | #20 | Multi-turn conversation context | 0.0000 | 120 | 0 | 0 | 0 | 3886s | reverted | Slower (extra tokens with no KV cache). Multi-turn context didn't help discover game mechanics. |
+| 018 | #1(new) | Hypothesis-driven exploration | 0.0000 | 120 | 0 | 0 | 0 | 3337s | reverted | Model forms hypotheses but test actions still don't produce score. 9 parse failures (higher than baseline). |
