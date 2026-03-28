@@ -402,7 +402,14 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - Bug 1: Explore parse fallback uses available[0], ACTION6 gets center coords (64,64) ✓
 - Bug 2: Convert direct mapping checks `direct in available` ✓
 - Bug 3: Convert final fallback uses available[0] ✓
-- Combined with #1 (game-type prompts, currently reverted): When re-applied together with #2, even parse failures will use valid actions. For VC33, fallback = clicking center instead of Move Up. For FT09, fallback = clicking center. Should dramatically improve action validity.
+- Combined with #1 (game-type prompts, currently reverted): When re-applied together with #2, even parse failures will use valid actions.
+
+**Exp 003 results (idea #2 — fallback fixes, partial results so far):**
+- FT09 (043645): Score 0, 40 actions, 131s/action (!). **ACTION6=34 (85%), ACTION1=6 (15%)**. JSON parse 28%. Clicks went from 0% → 85%! But 131s/action is terrible (double the previous). Each action hits TWO LLM calls (explore + convert) because the fallback outputs "ACTION6" which the convert direct mapping doesn't recognize as a human-readable action.
+- Score still 0: clicking center (64,64) repeatedly doesn't solve puzzles. Need targeted clicking.
+- The 15% remaining ACTION1 are from convert failing to map "ACTION6" string to the right game action.
+- **Speed issue**: 131s/action = 87 min per game. 3 games = ~4.4 hours per experiment. Untenable.
+- **Confirms**: #4 (eliminate convert call) and #27 (disable thinking) both urgently needed for speed.
 
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
