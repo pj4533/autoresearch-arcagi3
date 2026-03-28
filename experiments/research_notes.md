@@ -440,6 +440,10 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - Prompt massively simplified: no code fences, no step-by-step, just "ONLY JSON"
 - Expected: ~2x speed improvement + potentially better JSON parse rate from simpler format
 
+**Exp 005 partial results (idea #4 — eliminate convert):**
+- LS20: Score 0, 40 actions, 78.3s/action. JSON parse **8%** (WORSE than 17%!). Simpler prompt format didn't improve JSON output. Still 85% Move Up. Speed improved from 131s→78s (convert skipped) but still much slower than needed.
+- **Key insight**: JSON parse rate is NOT a prompt format issue — it's thinking mode. Regardless of how we format the prompt, thinking tokens corrupt the output ~90% of the time. Idea #27 (disable thinking) is the critical path.
+
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
 - Convert fallback uses available[0] instead of ACTION1 ✓
