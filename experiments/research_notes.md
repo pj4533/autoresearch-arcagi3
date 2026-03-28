@@ -391,6 +391,10 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 
 **VC33 baseline (000347):** 40 actions, 40.3 min. 39 ACTION1 + 1 ACTION6. LLM sometimes says "Click at (50,55)" but convert maps it to ACTION1 — CONFIRMS the direct-mapping bug. Only 1 of ~3 click attempts became actual ACTION6.
 
+**Post-changes benchmark results:**
+- LS20 (005533): Score 0, 40 actions, 71.7s/action. ACTION1=31 (77.5%). JSON parse 17%. Similar to baseline.
+- FT09 (015301): Score 0, 40 actions, 85.9s/action. **ACTION1=25 (62.5%), ACTION6=15 (37.5%)**. JSON parse 20%. IMPROVEMENT: Clicks went from 0% → 37.5%. Game-type prompt is working when JSON parses. But 80% parse failure still causes Move Up fallback.
+
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
 - Convert fallback uses available[0] instead of ACTION1 ✓
