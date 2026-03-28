@@ -502,6 +502,11 @@ Everything improved dramatically. Next: #1 (game-type) + #5 (click targets) on t
     2. **Coordinate mapping**: Even if right objects, clicks may not land on interactive sprites. Need to verify grid→display→game coordinate chain.
     3. **Click loop**: Track clicked targets, deprioritize after N ineffective clicks.
 
+**Exp 008 (idea #6 — state graph with loop detection, on top of #27):**
+- LS20: Score 0, 40 actions, **17.7s/act**. JSON 92%. ACTION3 (Move Left) jumped to 40% — state graph working! Model now tries untried actions when warned about revisited states. Most diverse action distribution yet.
+- Implementation: status bar masking (top/bottom 2 rows), MD5 grid hash, state→action→state transitions, untried action suggestions.
+- FT09/VC33: Pending.
+
 **Previous alternative approaches (may not be needed now):**
 1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
 2. **Add stop sequences** — Stop on `<think>` token to prevent thinking from starting
