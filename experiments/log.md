@@ -15,3 +15,4 @@ Games: ls20, ft09, vc33. Max actions per experiment: 40.
 | 008 | #6 | State graph with loop detection + status bar masking | 0.0000 | 120 | 0 | 0 | 0 | 2491s | reverted | Fastest yet (67% faster than baseline). State graph helps model decide faster but no score improvement. |
 | 009 | #7 | Enhanced frame change description (colors, region) | 0.0000 | 120 | 0 | 0 | 0 | 1949s | reverted | New speed record (74% faster than baseline). Better frame descriptions help model decide faster but still no score. |
 | 010 | #8 | StateAct-style structured prompting | 0.0000 | 120 | 0 | 0 | 0 | 3086s | reverted | Only 1 parse failure (best ever). Structured output works but no score improvement. |
+| 011 | #9 | Stuck detection + random action fallback | 0.0000 | 120 | 0 | 0 | 0 | 1003s | reverted | 87% faster (random actions skip LLM after 15 stuck actions). But random actions don't score either. |
