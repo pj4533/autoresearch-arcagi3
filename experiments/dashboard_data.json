@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T10:18:18.246528+00:00",
+  "generated_at": "2026-03-28T11:21:02.943037+00:00",
   "summary": {
-    "total": 6,
-    "completed": 6,
+    "total": 7,
+    "completed": 7,
     "improved": 1,
-    "reverted": 4,
+    "reverted": 5,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -87,9 +87,23 @@
       "duration": "4404s",
       "status": "improved",
       "notes": "BREAKTHROUGH: JSON parse failures dropped from 100% to 9%. Duration 41% faster. vc33 3.5x faster. Model now produces valid JSON and varied actions. Foundational fix that unblocks everything."
+    },
+    {
+      "id": "007",
+      "idea": "#5",
+      "description": "Click target list in explore prompt (object detection)",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "3650s",
+      "status": "reverted",
+      "notes": "17% faster than exp_006. Click targets shown to LLM but still no score. Model can now output JSON but click actions still don't produce visible changes."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
