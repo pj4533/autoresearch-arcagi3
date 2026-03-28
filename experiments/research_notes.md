@@ -446,6 +446,12 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - FT09: Score 0, GAME_OVER, 40 actions, 56.6s/action. JSON parse 5%. Only 12.5% clicks — REGRESSED from exp 003's 85% because fallback fixes (#2) were reverted. Testing #4 in isolation fails because the explore fallback is still "Move Up".
 - **Conclusion**: Individual ideas don't work in isolation. Need either: (A) combine #1+#2+#3+#4 together, or (B) fix thinking mode (#27) first which makes all prompt changes effective.
 
+**Executor now implementing idea #27 (disable thinking mode):**
+- Single line: `enable_thinking=False` in `apply_chat_template`
+- Clean test: no other agent/prompt changes — baseline + thinking disabled
+- This is the moment of truth: if JSON parse jumps from ~15% to 80%+, thinking mode was the root cause and ALL previous ideas become viable when re-applied
+- Also includes sampler API fix from earlier infrastructure work
+
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
 - Convert fallback uses available[0] instead of ACTION1 ✓
