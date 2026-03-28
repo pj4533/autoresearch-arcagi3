@@ -592,6 +592,13 @@ This would immediately reveal: (1) Does clicking work at all in local mode? (2) 
 
 If manual clicks work with the `arc` CLI but agent clicks don't, the bug is in how the benchmark runner sends action data. If manual clicks also fail, the bug is in the local game engine's click handling.
 
+**Exp 014 partial (idea #11 — multi-action planning):**
+- LS20: **4.8s/action** (27x faster than baseline!). 24/40 plan_execute (60% free). Score 0.
+- FT09: 17.3s/action. 26/40 plan_execute (65% free). Score 0.
+- Planning works: LLM plans 2 follow-up actions per call. Only ~13 LLM calls for 40 actions.
+
+**Speed progression: 131s → 78s → 50s → 23s → 11.5s → 4.8s/action (27x improvement)**
+
 **Exp 009 (idea #7 — enhanced frame change description):**
 - LS20: Score 0, 40 actions, **11.5s/act** (fastest ever!). Now reports color transitions and change regions.
 - Frame changes now show: "12 cells changed (0.5%); colors: 5->3(x8), 4->3(x4); region: bottom-left"
