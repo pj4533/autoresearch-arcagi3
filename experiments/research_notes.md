@@ -494,7 +494,9 @@ Everything improved dramatically. Next: #1 (game-type) + #5 (click targets) on t
 
 **Exp 007 partial (idea #5 — click targets on top of #27):**
 - LS20: Score 0, 40 actions, **23.0s/act** (2x faster than exp 006!). JSON 78%. Click targets don't affect LS20 (movement game). Speed gain likely from optimized prompt or reduced overhead.
-- FT09/VC33: Pending — these are the key tests. Click targets give the LLM specific objects with coordinates to click.
+- FT09 (110711): Score 0, 40 actions, 48.7s/act. JSON 95%. **95% clicks** (38 ACTION6). Click targets WORK — model uses them accurately: "Click object C (color=9 at click(13,9))". BUT stuck clicking **same target C ~10+ times in a row**. NEW BUG: click loop. Model picks one target and repeats it endlessly.
+  - **Fix needed**: Track clicked targets. After N clicks on same target with no effect, remove it from list or add "You already clicked C 5 times. Try a DIFFERENT target." This is the click equivalent of the movement loop problem.
+- VC33: Pending.
 
 **Previous alternative approaches (may not be needed now):**
 1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
