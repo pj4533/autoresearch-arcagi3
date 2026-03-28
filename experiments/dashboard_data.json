@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T16:11:07.902957+00:00",
+  "generated_at": "2026-03-28T16:58:07.684108+00:00",
   "summary": {
-    "total": 14,
-    "completed": 14,
+    "total": 15,
+    "completed": 15,
     "improved": 1,
-    "reverted": 12,
+    "reverted": 13,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -191,9 +191,23 @@
       "duration": "1127s",
       "status": "reverted",
       "notes": "85% faster (plan execution skips LLM). But faster wrong actions still score 0."
+    },
+    {
+      "id": "015",
+      "idea": "#13",
+      "description": "ReflAct-style goal reflection prompt",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "2740s",
+      "status": "reverted",
+      "notes": "No improvement. Goal reflection didn't help the model discover game mechanics."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
