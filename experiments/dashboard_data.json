@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T19:57:48.984296+00:00",
+  "generated_at": "2026-03-28T21:00:58.086166+00:00",
   "summary": {
-    "total": 18,
-    "completed": 18,
+    "total": 19,
+    "completed": 19,
     "improved": 1,
-    "reverted": 16,
+    "reverted": 17,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -243,9 +243,23 @@
       "duration": "3337s",
       "status": "reverted",
       "notes": "Model forms hypotheses but test actions still don't produce score. 9 parse failures (higher than baseline)."
+    },
+    {
+      "id": "019",
+      "idea": "#2(new)",
+      "description": "Action-effect journal",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "3356s",
+      "status": "reverted",
+      "notes": "Journal tracks actions but model still can't discover scoring mechanics."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
