@@ -410,6 +410,12 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - The 15% remaining ACTION1 are from convert failing to map "ACTION6" string to the right game action.
 - **Speed issue**: 131s/action = 87 min per game. 3 games = ~4.4 hours per experiment. Untenable.
 - **Confirms**: #4 (eliminate convert call) and #27 (disable thinking) both urgently needed for speed.
+- VC33 (054925): Score 0, 40 actions, 108.9s/action. **ACTION6=30 (75%), ACTION1=10 (25%)**. Clicks went 2.5% → 75%. But clicking center (64,64) doesn't hit any interactive objects — score unchanged. Need targeted clicking (#3, #5, or #32).
+
+**Exp 003 summary**: Fallback fixes dramatically improved action VALIDITY (VC33: 2.5→75% clicks, FT09: 0→85%) but not TARGETING. All click-game clicks go to center (64,64). Two paths to first score:
+  - Path A: Programmatic click probe (#3) → finds real objects → clicks them
+  - Path B: Disable thinking (#27) → JSON parse rate 80%+ → game-type prompt works → LLM picks targets
+  - Path C: Brute-force VC33 scan (#32) → no LLM, click all non-background objects
 
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
