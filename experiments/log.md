@@ -19,3 +19,4 @@ Games: ls20, ft09, vc33. Max actions per experiment: 40.
 | 012 | #10 | Structured memory (facts/hypotheses/actions) | 0.0000 | 120 | 0 | 0 | 0 | 3268s | reverted | No improvement. Structured memory didn't help model choose better actions. |
 | 013 | #32 | Brute-force click scan for VC33 (corrected coords) | 0.0000 | 120 | 0 | 0 | 0 | 3656s | reverted | col*2/row*2 mapping still shows "no visible change" for all clicks. Same coords as exp_004. Issue is NOT coordinate mapping. |
 | 014 | #11 | Multi-action planning (plan 3 per LLM call) | 0.0000 | 120 | 0 | 0 | 0 | 1127s | reverted | 85% faster (plan execution skips LLM). But faster wrong actions still score 0. |
+| 015 | #13 | ReflAct-style goal reflection prompt | 0.0000 | 120 | 0 | 0 | 0 | 2740s | reverted | No improvement. Goal reflection didn't help the model discover game mechanics. |
