@@ -620,6 +620,22 @@ Also from action_data in exp results: x=19,y=13 and x=10,y=12 were sent — thes
 - VC33: 25s/act. 100% clicks. Correctly identifies click-only game. Score 0 (click issue).
 - Hypothesis testing IS producing meaningful theories about game mechanics. But some steps have empty hypotheses (parse failures). The approach is directionally correct.
 
+**EXP 021: ROOT CAUSE OF ALL FAILURES FOUND — FRAME COMPARISON TIMING BUG**
+
+`previous_grids` and `frame_grids` are IDENTICAL at `step()` time. The agent's `_describe_frame_change()` compares them and ALWAYS returns "no visible change" — not because actions have no effect, but because both variables point to the SAME frame (the post-action frame).
+
+**This explains EVERYTHING across 21 experiments:**
+- Why ALL clicks showed "no visible change" (they may have worked! we just couldn't see it)
+- Why ALL movement showed "no visible change" (same bug)
+- Why hypothesis testing couldn't discover rules (no observable feedback)
+- Why action-effect journals were useless (all effects recorded as "no change")
+- Why state graphs couldn't help (every state looked the same)
+- Why coordinate fixes appeared not to work (effects happened but were invisible)
+
+**Fix (exp 022 in progress):** Save the current frame to datastore BEFORE returning the action. On the next step, compare the saved pre-action frame to the new post-action frame. This gives the actual delta.
+
+**IMPLICATION: Once fixed, ALL previous ideas may become viable.** The agent will finally be able to see what its actions do. Hypothesis testing, action journals, state graphs — all depend on observing effects. This is the foundational bug that blocked everything.
+
 **Exp 009 (idea #7 — enhanced frame change description):**
 - LS20: Score 0, 40 actions, **11.5s/act** (fastest ever!). Now reports color transitions and change regions.
 - Frame changes now show: "12 cells changed (0.5%); colors: 5->3(x8), 4->3(x4); region: bottom-left"
