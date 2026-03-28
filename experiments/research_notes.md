@@ -480,6 +480,18 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - With 98% JSON parse, LLM can now READ these targets and click accurately
 - This is the combination that should produce first non-zero score
 
+**Exp 006 VC33 result:** Score 0, 40 actions, **17.5s/act** (3x faster!). **JSON parse 100%**. ACTION6=23 (57.5%), movement=17 (42.5%). Model clicks specific targets: "Click object at row 22, col 45 (a 9)". Still 42.5% movement no-ops — needs #1 (game-type prompt) to eliminate. Score 0 likely because clicks don't land on interactive sprites (coordinate mapping or wrong targets).
+
+**Exp 006 full summary (thinking disabled, ACCEPTED):**
+
+| Game | JSON Parse | Clicks | Speed | Score |
+|------|-----------|--------|-------|-------|
+| LS20 | 72% | N/A (movement game) | 50.6s/act | 0 |
+| FT09 | 98% | 72.5% | 42.0s/act | 0 |
+| VC33 | **100%** | 57.5% | **17.5s/act** | 0 |
+
+Everything improved dramatically. Next: #1 (game-type) + #5 (click targets) on this foundation.
+
 **Previous alternative approaches (may not be needed now):**
 1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
 2. **Add stop sequences** — Stop on `<think>` token to prevent thinking from starting
