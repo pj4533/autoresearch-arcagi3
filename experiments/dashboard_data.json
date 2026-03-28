@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-03-28T09:02:48.937495+00:00",
+  "generated_at": "2026-03-28T10:18:18.246528+00:00",
   "summary": {
-    "total": 5,
-    "completed": 5,
-    "improved": 0,
+    "total": 6,
+    "completed": 6,
+    "improved": 1,
     "reverted": 4,
     "baselines": 1,
     "best_score": 0.0,
@@ -74,9 +74,23 @@
       "duration": "7511s",
       "status": "reverted",
       "notes": "Same duration as baseline. Model sometimes produces JSON structure but truncated (unterminated strings). Still falls back to Move Up."
+    },
+    {
+      "id": "006",
+      "idea": "#27",
+      "description": "Disable Qwen thinking mode (enable_thinking=False)",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "4404s",
+      "status": "improved",
+      "notes": "BREAKTHROUGH: JSON parse failures dropped from 100% to 9%. Duration 41% faster. vc33 3.5x faster. Model now produces valid JSON and varied actions. Foundational fix that unblocks everything."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
