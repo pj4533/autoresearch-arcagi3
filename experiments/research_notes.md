@@ -471,6 +471,15 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - FT09: Score 0, 40 actions, **42s/act**. JSON parse **98%!!** **72.5% clicks** (29 ACTION6). Comp 656 tok/act. Model now targets specific cells: "Click block at row 12, col 14". Still 27.5% movement (no-ops) — needs #1 (game-type prompt) to eliminate.
 - **Next step**: Re-apply #1 (game-type prompt) + #2 (fallback fixes) ON TOP of #27. With 98% JSON parse, the game-type prompt should actually work → near-100% clicking → targeted → first score.
 
+**Exp 006 ACCEPTED — #27 is now the new baseline.** First accepted experiment!
+
+**Executor now implementing idea #5 (click targets in prompt) on top of #27:**
+- `_detect_objects()`: BFS object detection with coordinate conversion built in
+- `_build_click_targets_desc()`: Labels objects A-T with color, size, click coords
+- Injected into explore prompt: `"A: color=9 size=16 at click(64,32)"`
+- With 98% JSON parse, LLM can now READ these targets and click accurately
+- This is the combination that should produce first non-zero score
+
 **Previous alternative approaches (may not be needed now):**
 1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
 2. **Add stop sequences** — Stop on `<think>` token to prevent thinking from starting
