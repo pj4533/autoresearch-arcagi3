@@ -452,6 +452,21 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - This is the moment of truth: if JSON parse jumps from ~15% to 80%+, thinking mode was the root cause and ALL previous ideas become viable when re-applied
 - Also includes sampler API fix from earlier infrastructure work
 
+**RESULT: `enable_thinking=False` DID NOT WORK!**
+- Completion tokens: 3513/action (baseline was 3320) — NO reduction
+- JSON parse: 8% — NO improvement
+- VC33: Score 0, 15% clicks, 52.8s/action
+
+**Why it failed**: Qwen3.5 may not support `enable_thinking` in the chat template the same way Qwen3 did. The parameter is likely silently ignored. From earlier research: "Qwen 3.5 does NOT support the /think and /no_think soft switches that Qwen3 did."
+
+**Alternative approaches to suppress thinking:**
+1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
+2. **Add stop sequences** — Stop on `<think>` token to prevent thinking from starting
+3. **Strip thinking prompt** — Check the actual generated prompt string and remove any thinking-related system tokens before passing to generate
+4. **Try Qwen3-32B dense model** — Has standard attention (supports KV cache) and may handle thinking toggle better
+5. **More aggressive JSON extraction** — Parse JSON from responses that contain mixed prose+JSON, looking for the last valid JSON object
+6. **Increase max_tokens + post-process** — Let thinking happen, ensure JSON isn't truncated, extract JSON from the full response
+
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
 - Convert fallback uses available[0] instead of ACTION1 ✓

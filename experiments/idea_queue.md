@@ -174,11 +174,15 @@
 - **Changes**: Add `_detect_symmetry` method. Report in prompt.
 - **Expected impact**: Potentially useful for ft09/vc33.
 
-### 27. [Prompt Engineering] Disable thinking mode for ALL LLM calls (Qwen-specific) — URGENT
-- **Hypothesis**: Exp 001 shows only 14-17% of explore responses produce valid JSON. Thinking mode is the ROOT CAUSE — it generates `<think>` tokens that corrupt JSON output (documented Qwen bug). The adapter strips thinking tags AFTER generation, but the damage is done: the model's JSON output is already corrupted. Disabling thinking should dramatically improve JSON parse rates. Also saves ~2000 tokens/action of wasted generation (~30s/action).
-- **Files to modify**: `src/arcagi3/adapters/mlx_adapter.py`
-- **Changes**: In `call_provider`, pass `enable_thinking=False` to `apply_chat_template`: `prompt = self._tokenizer.apply_chat_template(chat_messages, tokenize=False, add_generation_prompt=True, enable_thinking=False)`. This single line change could fix the 83% JSON parse failure rate AND cut per-action time from ~70s to ~40s.
-- **Expected impact**: JSON parse rate from ~17% to potentially 80%+. Per-action time reduced by ~30s. This unblocks ALL other improvements since nothing works if the model can't output valid JSON.
+### 27. [Prompt Engineering] Fix JSON truncation — increase max_tokens or suppress thinking — URGENT
+- **Hypothesis**: `enable_thinking=False` was tried but DID NOT WORK (Qwen3.5 silently ignores it). Completion tokens are still ~3500/action. Exp 005 noted "truncated (unterminated strings)" — the 4096 max_tokens is too low because ~2000 tokens go to thinking, leaving only ~2000 for JSON which gets cut off. The root cause of JSON parse failure is TRUNCATION, not corruption.
+- **Files to modify**: `src/arcagi3/adapters/mlx_adapter.py`, `src/arcagi3/models.yml`
+- **Changes** (try in order):
+  1. **SIMPLEST: Increase max_tokens to 8192** in models.yml for qwen3.5-35b-local config. This gives room for thinking (~2000 tok) + full JSON (~500 tok) with margin. Will be slower per action but JSON should actually complete.
+  2. **Strip thinking from prompt**: After `apply_chat_template`, inspect the generated prompt string and remove any `<|im_start|>think` or thinking-instruction tokens before passing to generate.
+  3. **Add a stop string**: Pass `stop=["<think>"]` or similar to the generate call to prevent thinking from starting.
+  4. **Try Qwen3-32B dense** (`qwen3-32b-local`): Standard attention, may handle thinking differently, supports KV cache.
+- **Expected impact**: Option 1 (increase max_tokens) should immediately fix JSON truncation. Slower per action but JSON parse rate should jump from ~8% to 50%+. This unblocks all other improvements.
 
 ### 28. [Prompt Engineering] Aggressive prompt compression (Qwen MLX has no KV cache reuse)
 - **Hypothesis**: Qwen3.5-35B on MLX has NO KV cache reuse due to hybrid DeltaNet architecture (ml-explore/mlx-lm#980). Every inference recomputes the full prompt from scratch. Compressing the prompt saves real wall-clock time on EVERY step. Currently ~14.5 sec/action.
