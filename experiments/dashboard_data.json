@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T13:49:23.990704+00:00",
+  "generated_at": "2026-03-28T14:45:18.182738+00:00",
   "summary": {
-    "total": 11,
-    "completed": 11,
+    "total": 12,
+    "completed": 12,
     "improved": 1,
-    "reverted": 9,
+    "reverted": 10,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -152,9 +152,23 @@
       "duration": "1003s",
       "status": "reverted",
       "notes": "87% faster (random actions skip LLM after 15 stuck actions). But random actions don't score either."
+    },
+    {
+      "id": "012",
+      "idea": "#10",
+      "description": "Structured memory (facts/hypotheses/actions)",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "3268s",
+      "status": "reverted",
+      "notes": "No improvement. Structured memory didn't help model choose better actions."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
