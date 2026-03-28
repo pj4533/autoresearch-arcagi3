@@ -574,6 +574,24 @@ VC33 grid is 49x58 within a ~64x64 display. If there's padding (e.g., grid start
 3. Try clicking at the RAW grid positions the model reports (e.g., "row 22, col 54" → send x=54, y=22 WITHOUT the *2 conversion — just raw grid cell indices)
 4. Try a grid of evenly spaced clicks (0, 16, 32, 48, 64, 80, 96, 112) × (same) to find where interactive sprites actually are in display space
 
+**Exp 013 action_data confirmed x,y ARE sent correctly:**
+- Action 1: x=47, y=13 (within 49x58 grid bounds) ✓
+- Action 2: x=57, y=48 ✓
+- All 10 brute clicks have valid coordinates reaching the game
+- But result_score stays 0 through all 40 actions
+
+**SIMPLEST DEBUG: Manual test with arc CLI:**
+```bash
+arc start vc33 --max-actions 40
+arc state --image    # See the grid
+arc action click --x 50 --y 25    # Click a visible object
+arc state --image    # See if anything changed
+arc end
+```
+This would immediately reveal: (1) Does clicking work at all in local mode? (2) What coordinates hit interactive sprites? (3) Is there a display/grid mapping we're missing?
+
+If manual clicks work with the `arc` CLI but agent clicks don't, the bug is in how the benchmark runner sends action data. If manual clicks also fail, the bug is in the local game engine's click handling.
+
 **Exp 009 (idea #7 — enhanced frame change description):**
 - LS20: Score 0, 40 actions, **11.5s/act** (fastest ever!). Now reports color transitions and change regions.
 - Frame changes now show: "12 cells changed (0.5%); colors: 5->3(x8), 4->3(x4); region: bottom-left"
