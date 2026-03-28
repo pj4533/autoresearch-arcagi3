@@ -549,6 +549,13 @@ However, stuck_random clicks DO include x,y directly: `{"action": "ACTION6", "x"
 
 **Also**: The coordinate formula fix (`col * 2` vs `col * 127/(cols-1)`) is still relevant for LLM-directed clicks but doesn't explain why random clicks also fail.
 
+**Executor implementing coordinate fix + brute-force click scan:**
+- `click_x = min(col * 2, 127)` and `click_y = min(row * 2, 127)` ✓ (my recommended fix!)
+- New `_brute_force_click_step()`: detects non-background cells, clicks each sequentially
+- New `_detect_click_targets()`: finds unique non-background positions
+- Score-triggered re-scan on level completion
+- This is the critical test: correct coordinates + systematic clicking of all non-background objects
+
 **Exp 009 (idea #7 — enhanced frame change description):**
 - LS20: Score 0, 40 actions, **11.5s/act** (fastest ever!). Now reports color transitions and change regions.
 - Frame changes now show: "12 cells changed (0.5%); colors: 5->3(x8), 4->3(x4); region: bottom-left"
