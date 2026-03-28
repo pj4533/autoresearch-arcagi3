@@ -466,6 +466,11 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - This is with BASELINE agent code — no #1-#4 changes applied yet
 - When combined with #1+#2+#4, should see even better results
 
+**Exp 006 partial results (thinking disabled, baseline agent):**
+- LS20: Score 0, 40 actions, 50.6s/act. JSON parse 72%. Comp 1470 tok/act.
+- FT09: Score 0, 40 actions, **42s/act**. JSON parse **98%!!** **72.5% clicks** (29 ACTION6). Comp 656 tok/act. Model now targets specific cells: "Click block at row 12, col 14". Still 27.5% movement (no-ops) — needs #1 (game-type prompt) to eliminate.
+- **Next step**: Re-apply #1 (game-type prompt) + #2 (fallback fixes) ON TOP of #27. With 98% JSON parse, the game-type prompt should actually work → near-100% clicking → targeted → first score.
+
 **Previous alternative approaches (may not be needed now):**
 1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
 2. **Add stop sequences** — Stop on `<think>` token to prevent thinking from starting
