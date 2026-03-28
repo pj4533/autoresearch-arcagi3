@@ -532,6 +532,12 @@ For 51x51 grids (VC33): every click is ~6 cells off target.
 
 **THIS IS THE #1 BLOCKER FOR SCORING.** All click infrastructure works but clicks physically miss the objects.
 
+**Exp 009 (idea #7 — enhanced frame change description):**
+- LS20: Score 0, 40 actions, **11.5s/act** (fastest ever!). Now reports color transitions and change regions.
+- Frame changes now show: "12 cells changed (0.5%); colors: 5->3(x8), 4->3(x4); region: bottom-left"
+- Speed keeps improving: 131s → 78s → 50s → 23s → 17s → **11.5s/act**
+- Coordinate bug not yet fixed — executor testing #7 (enhanced frame changes) separately.
+
 **Previous alternative approaches (may not be needed now):**
 1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
 2. **Add stop sequences** — Stop on `<think>` token to prevent thinking from starting
