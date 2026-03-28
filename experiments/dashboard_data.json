@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T02:42:05.908161+00:00",
+  "generated_at": "2026-03-28T05:49:59.541813+00:00",
   "summary": {
-    "total": 2,
-    "completed": 2,
+    "total": 3,
+    "completed": 3,
     "improved": 0,
-    "reverted": 1,
+    "reverted": 2,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -35,9 +35,23 @@
       "duration": "9043s",
       "status": "reverted",
       "notes": "Model behavior changed (tried ACTION6 for vc33) but JSON still malformed (literal \"...\" in values). Slower due to longer prompts."
+    },
+    {
+      "id": "003",
+      "idea": "#2",
+      "description": "Fix three hardcoded Move Up fallbacks",
+      "avg_score": 0.0,
+      "actions": 80,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "10990s",
+      "status": "reverted",
+      "notes": "ls20 regressed to 0 actions. Much slower (2x LLM calls per action). JSON parse still 100% failure rate \u2014 root cause is model outputting prose, not fallback logic."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0
   ]
