@@ -492,6 +492,10 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 
 Everything improved dramatically. Next: #1 (game-type) + #5 (click targets) on this foundation.
 
+**Exp 007 partial (idea #5 — click targets on top of #27):**
+- LS20: Score 0, 40 actions, **23.0s/act** (2x faster than exp 006!). JSON 78%. Click targets don't affect LS20 (movement game). Speed gain likely from optimized prompt or reduced overhead.
+- FT09/VC33: Pending — these are the key tests. Click targets give the LLM specific objects with coordinates to click.
+
 **Previous alternative approaches (may not be needed now):**
 1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
 2. **Add stop sequences** — Stop on `<think>` token to prevent thinking from starting
