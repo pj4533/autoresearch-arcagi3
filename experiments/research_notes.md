@@ -398,6 +398,12 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - **REVERTED**: Executor reverted changes because JSON still malformed ("..." literal in values) and slower due to longer prompts.
 - **Verdict**: Game-type prompts work directionally but can't overcome 80% JSON parse failure. Thinking mode fix (#27) is the gating issue.
 
+**Executor now implementing idea #2 (all 3 bugs):**
+- Bug 1: Explore parse fallback uses available[0], ACTION6 gets center coords (64,64) ✓
+- Bug 2: Convert direct mapping checks `direct in available` ✓
+- Bug 3: Convert final fallback uses available[0] ✓
+- Combined with #1 (game-type prompts, currently reverted): When re-applied together with #2, even parse failures will use valid actions. For VC33, fallback = clicking center instead of Move Up. For FT09, fallback = clicking center. Should dramatically improve action validity.
+
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
 - Convert fallback uses available[0] instead of ACTION1 ✓
