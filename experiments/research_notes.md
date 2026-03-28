@@ -429,7 +429,16 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - FT09: Score 0, **40/40 ACTION6 clicks, ALL probe phase, 9 seconds total (0.2s/action)**. 650x speedup. But score 0 — randomly clicking objects doesn't solve the 3x3 toggle constraint puzzle. Need smarter targeting for FT09.
 - VC33 (065536): Score 0, 40 actions, 45.8s/action. Click probe found 10 objects, clicked all. Then 30 explore actions (mostly Move Up from parse failures). **Score never changed.**
   - **Root cause: clicking wrong objects.** Detected targets include color=0 (white, size 848) and color=5 (black, size 96) which are structural/border elements, not interactive game objects. The small color=9 (blue, 16) and color=11 (yellow, 12) are more likely interactive but clicks may not have hit the exact sprites.
-  - **Fix needed**: (1) Filter out likely structural colors (0=white, 5=black) from click targets. (2) Prioritize small/medium objects (size 4-64) over large ones. (3) After clicking with no frame change, mark that object as non-interactive and skip similar ones. (4) Consider a second pass with slightly offset coordinates if first click missed.
+  - **Fix needed**: (1) Filter structural colors, (2) prioritize small objects, (3) track click effects, (4) offset coordinates.
+  - Executor noted "coordinate mapping likely wrong" — need to verify grid-to-click conversion.
+
+**Executor now implementing idea #4 (eliminate convert call):**
+- Available actions show ACTION codes in prompt: "ACTION1 = Move Up"
+- Explore prompt requires ACTION codes in JSON output
+- When action starts with "ACTION", skips convert step entirely
+- ACTION6 carries x,y coordinates through
+- Prompt massively simplified: no code fences, no step-by-step, just "ONLY JSON"
+- Expected: ~2x speed improvement + potentially better JSON parse rate from simpler format
 
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
