@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T19:00:18.737257+00:00",
+  "generated_at": "2026-03-28T19:57:48.984296+00:00",
   "summary": {
-    "total": 17,
-    "completed": 17,
+    "total": 18,
+    "completed": 18,
     "improved": 1,
-    "reverted": 15,
+    "reverted": 16,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -230,9 +230,23 @@
       "duration": "3886s",
       "status": "reverted",
       "notes": "Slower (extra tokens with no KV cache). Multi-turn context didn't help discover game mechanics."
+    },
+    {
+      "id": "018",
+      "idea": "#1(new)",
+      "description": "Hypothesis-driven exploration",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "3337s",
+      "status": "reverted",
+      "notes": "Model forms hypotheses but test actions still don't produce score. 9 parse failures (higher than baseline)."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
