@@ -592,6 +592,21 @@ This would immediately reveal: (1) Does clicking work at all in local mode? (2) 
 
 If manual clicks work with the `arc` CLI but agent clicks don't, the bug is in how the benchmark runner sends action data. If manual clicks also fail, the bug is in the local game engine's click handling.
 
+**CLICKABLE SPRITE POSITIONS FOR VC33 (from game source code):**
+
+Sprites with tag "ZGd" or "zHk" are the only clickable ones:
+- AEF (ZGd+zHk) at set_position(34, 24) → send click_x=68, click_y=48
+- mZh (ZGd) at set_position(57, 46) → send click_x=114, click_y=92
+- XTW (ZGd) at set_position(16, 14) → send click_x=32, click_y=28
+- dkk (zHk) at set_position(0, 12) → send click_x=0, click_y=24
+- WGb (zHk) at set_position(42, 25) → send click_x=84, click_y=50
+
+Note: set_position(x, y) where x=column, y=row. These are the sprite TOP-LEFT corners. The sprites have varying sizes (AEF is 14x10, dkk is 12x9, etc.) so clicking anywhere within their bounding box should work.
+
+**TEST**: Executor should try clicking EXACTLY at these positions. If they produce changes, the BFS was detecting wrong targets. If they don't, the camera transform is the issue.
+
+Also from action_data in exp results: x=19,y=13 and x=10,y=12 were sent — these DON'T match any clickable sprite position. The agent is clicking the wrong places.
+
 **Exp 014 partial (idea #11 — multi-action planning):**
 - LS20: **4.8s/action** (27x faster than baseline!). 24/40 plan_execute (60% free). Score 0.
 - FT09: 17.3s/action. 26/40 plan_execute (65% free). Score 0.
