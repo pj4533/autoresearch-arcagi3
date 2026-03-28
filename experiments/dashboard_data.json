@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T14:45:18.182738+00:00",
+  "generated_at": "2026-03-28T15:50:52.609082+00:00",
   "summary": {
-    "total": 12,
-    "completed": 12,
+    "total": 13,
+    "completed": 13,
     "improved": 1,
-    "reverted": 10,
+    "reverted": 11,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -165,9 +165,23 @@
       "duration": "3268s",
       "status": "reverted",
       "notes": "No improvement. Structured memory didn't help model choose better actions."
+    },
+    {
+      "id": "013",
+      "idea": "#32",
+      "description": "Brute-force click scan for VC33 (corrected coords)",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "3656s",
+      "status": "reverted",
+      "notes": "col*2/row*2 mapping still shows \"no visible change\" for all clicks. Same coords as exp_004. Issue is NOT coordinate mapping."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
