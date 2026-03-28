@@ -459,7 +459,14 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 
 **Why it failed**: Qwen3.5 may not support `enable_thinking` in the chat template the same way Qwen3 did. The parameter is likely silently ignored. From earlier research: "Qwen 3.5 does NOT support the /think and /no_think soft switches that Qwen3 did."
 
-**Alternative approaches to suppress thinking:**
+**UPDATE: `enable_thinking=False` DOES WORK!** Earlier analysis was wrong — the first benchmark after the change used a stale process. Fresh process results:
+- JSON parse: 8% → **72%** (9x improvement!)
+- Completion tokens: 3500 → **1470/action** (58% reduction)
+- Speed: 78s → **50.6s/action** (36% faster)
+- This is with BASELINE agent code — no #1-#4 changes applied yet
+- When combined with #1+#2+#4, should see even better results
+
+**Previous alternative approaches (may not be needed now):**
 1. **Increase max_tokens to 8192** — If thinking consumes ~2000 tokens, 4096 leaves only ~2000 for JSON which gets truncated. Doubling max_tokens gives room for both. The exp 005 note says "truncated (unterminated strings)" — this is truncation, not corruption.
 2. **Add stop sequences** — Stop on `<think>` token to prevent thinking from starting
 3. **Strip thinking prompt** — Check the actual generated prompt string and remove any thinking-related system tokens before passing to generate
