@@ -395,7 +395,22 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
 - Game-type-aware system prompt with CRITICAL constraints ✓
 - Convert fallback uses available[0] instead of ACTION1 ✓
 - Simplified explore prompt JSON format ✓
-- **NOT fixed: convert direct mapping still ignores available_actions** — Bug 1 from idea #2. When LLM says "Move Up", direct mapping returns ACTION2 without checking if available. This will still cause VC33 to get movement actions.
+- **NOT fixed: convert direct mapping still ignores available_actions** — Bug 1 from idea #2.
+
+**CRITICAL FINDING FROM EXP 001 LOG**: "All explore responses failed JSON parse — model outputs prose instead of JSON. Every action falls back to ACTION1."
+
+This means the ROOT CAUSE of 100% Move Up is NOT the game-type awareness or convert bugs — it's that **Qwen 3.5 in thinking mode outputs prose instead of JSON**. The full failure chain:
+1. LLM outputs prose (thinking mode leaks or model ignores JSON instruction)
+2. `extract_json_from_response` fails to find JSON
+3. Explore fallback produces `{"action": "Move Up"}` (hardcoded)
+4. Convert direct mapping catches "Move Up" → ACTION1
+5. Every single action becomes ACTION1
+
+**Implications for queue priority:**
+- Executor's explore prompt changes (removing code fences, "ONLY JSON") might fix this
+- If still broken: idea #27 (disable thinking mode for JSON calls) becomes URGENT
+- Game-type awareness (#1) and convert fixes (#2) only matter AFTER JSON parsing works
+- The explore fallback itself (`{"action": "Move Up"}`) should also be game-type-aware
 
 ## Dead Ends
 

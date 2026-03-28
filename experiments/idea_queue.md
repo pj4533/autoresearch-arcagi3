@@ -12,16 +12,17 @@
 - **Changes**: In agent.py, detect game type from `context.game.game_id` and pass to prompt. In system.prompt, add conditional: if vc33, "THIS IS A CLICK-ONLY GAME. You MUST use Click actions with x,y coordinates. Movement actions DO NOT WORK." If ft09, "This is a pattern puzzle. You MUST click grid cells to change colors, then Perform to submit." If ls20, "This is a navigation game. Use movement actions." In explore.prompt, add "CRITICAL: You MUST choose from the available actions listed below. Other actions will be REJECTED." Repeat the constraint.
 - **Expected impact**: Should fix VC33 (currently 100% wasted actions) and FT09 (84% wrong actions). This is the single most impactful change possible.
 
-### 2. [Exploration Strategy] Fix convert to ONLY return available actions (TWO bugs)
-- **Hypothesis**: `_convert_to_game_action` has TWO bugs that break VC33:
-  - **Bug 1 (direct mapping)**: The direct mapping `action_map.get(human_action.lower())` returns ACTION2 for "Move Down" WITHOUT checking if ACTION2 is in available_actions. For VC33 (only ACTION6 available), this silently sends invalid movement actions.
-  - **Bug 2 (fallback)**: Final fallback is hardcoded `{"action": "ACTION1"}` regardless of available_actions.
+### 2. [Exploration Strategy] Fix THREE hardcoded "Move Up" fallbacks across agent code
+- **Hypothesis**: There are THREE hardcoded "Move Up"/ACTION1 fallbacks in the agent. EXP 001 showed ALL explore responses fail JSON parse → every action hits these fallbacks → 100% Move Up. Even with the game-type prompt fix, if JSON parsing fails, the agent still defaults to Move Up for click-only games.
+  - **Bug 1 (EXPLORE parse fallback, line ~253)**: `result = {"action": "Move Up", "reasoning": "Fallback due to parse error"}` — when JSON parse fails (which is EVERY action per exp 001), this hardcodes Move Up.
+  - **Bug 2 (CONVERT direct mapping)**: `action_map.get(human_action.lower())` returns ACTION2 for "Move Down" WITHOUT checking available_actions.
+  - **Bug 3 (CONVERT final fallback)**: Was `{"action": "ACTION1"}` — executor already fixed to `available[0]`. ✓ DONE.
 - **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
 - **Changes**:
-  1. After direct mapping, validate: `if direct and direct in self._get_available_action_names(context): return {"action": direct}` — reject unavailable actions.
-  2. Change final fallback to: `available = self._get_available_action_names(context); fallback = available[0] if available else "ACTION1"`. For ACTION6 fallback, add center-of-grid coordinates: `{"action": "ACTION6", "x": 64, "y": 64}`.
-  3. The game_id format is `"ls20-cb3b57cc"` — use `context.game.game_id.split("-")[0]` to extract game type.
-- **Expected impact**: Fixes BOTH bugs. VC33 will no longer receive invalid movement actions from either the direct mapping or the fallback path.
+  1. **Bug 1 (CRITICAL)**: Change explore parse fallback to use available actions: `available = self._get_available_action_names(context); fallback_action = available[0] if available else "ACTION1"`. For ACTION6, add coords: `{"action": "Click (64, 64)", ...}`.
+  2. **Bug 2**: After direct mapping, validate: `if direct and direct in self._get_available_action_names(context): return {"action": direct}`.
+  3. Bug 3: Already fixed. ✓
+- **Expected impact**: When JSON parse fails (which may still happen), the fallback will at least try valid actions for the game type. This is the safety net beneath the game-type prompt.
 
 ### 3. [Exploration Strategy] Programmatic click probe with object detection (NO LLM needed)
 - **Hypothesis**: For click-only games like VC33, the probe phase should skip the LLM entirely and programmatically scan the grid for clickable objects. VC33 level 1 only needs 6 clicks to solve — a smart scan could solve it in the probe phase alone. Even for FT09, clicking non-background objects reveals mechanics faster than asking the LLM to guess coordinates.
