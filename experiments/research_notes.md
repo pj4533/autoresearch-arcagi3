@@ -417,6 +417,13 @@ The executor fixed the MLX adapter (sampler API) and benchmark runner (game IDs)
   - Path B: Disable thinking (#27) → JSON parse rate 80%+ → game-type prompt works → LLM picks targets
   - Path C: Brute-force VC33 scan (#32) → no LLM, click all non-background objects
 
+**Executor implementing idea #3 (programmatic click probe):**
+- `_detect_objects()`: BFS connected components, background = most common color, sorted by size
+- `_click_probe_step()`: Click each object center sequentially, no LLM calls, re-scans on score increase
+- Coordinate conversion: `col * 127 / (cols-1)` for 0-127 range
+- Routes VC33 and FT09 to click probe in `_probe_step()`
+- This is Path A+C combined — should be very fast (no LLM latency) and may solve VC33 level 1 outright
+
 **Executor implemented ideas #1 + #2 (partial):**
 - Game-type-aware system prompt with CRITICAL constraints ✓
 - Convert fallback uses available[0] instead of ACTION1 ✓
