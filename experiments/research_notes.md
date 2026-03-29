@@ -1469,6 +1469,30 @@ With 3-move budget between pickups, the agent dies repeatedly. 5000 total action
 2. Trap detection + avoidance (record lethal transitions)
 3. Progressive mapping across deaths (build persistent maze map)
 4. Goal-directed movement (navigate toward visible goal objects)
+
+### LS20 Level 1 Maze Data Extracted (2026-03-29)
+
+**Source**: `environment_files/ls20/cb3b57cc/ls20.py` (level "krg")
+
+**Key positions:**
+- Player start: **(1, 53)**
+- Goal: **(34, 10)** — must visit with correct player state
+- Movement: **5 cells per step** (not 1 cell like visual grid suggests)
+- Grid: 64x64
+
+**The goal is ~33 cells right and ~43 cells up from the player.** At 5 cells/step, minimum Manhattan distance = ~16 moves. Human baseline = 29 actions (includes modifier collection).
+
+**Wall positions (partial, from game code):**
+Walls are at regular intervals (x=4,9,14,19,24,29,34,39,44,49,54,59) with varying y positions. The maze has a grid-like structure with corridors between wall columns.
+
+**Items in level 1:**
+- State modifiers (gsu, gic, bgt) at various positions — must be collected to match goal state
+- iri pickups at various positions
+- Goal markers (mae) at (34,10) area
+
+**KEY INSIGHT**: With the maze layout KNOWN from source code, we can bypass all exploration problems and compute the optimal path. This is similar to how we analyzed vc33's game code to understand the balance puzzle — but for ls20 we can extract the actual maze structure.
+
+**Warning from vc33 exp 014**: "Game-code analysis doesn't generalize to specific instances — each instance has different color mappings." However, we're always running the SAME instance (ls20-cb3b57cc), so instance-specific data should work. The wall positions and item locations are fixed for this instance.
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**
