@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-03-29T19:42:04.329684+00:00",
+  "generated_at": "2026-03-29T19:51:54.811697+00:00",
   "summary": {
-    "total": 40,
+    "total": 41,
     "completed": 34,
     "improved": 2,
     "reverted": 31,
@@ -529,6 +529,19 @@
       "duration": "0s",
       "status": "diagnostic",
       "notes": "Proper DFS with tried-at-depth tracking. Reached 34 steps (>29 baseline!) on attempt 4. Still scored 0 \u2014 ls20 likely requires collecting modifiers AND reaching goal with correct player state (shape/color/rotation), not just navigation. The maze navigation is SOLVED but the puzzle scoring condition needs items+state matching."
+    },
+    {
+      "id": "041",
+      "idea": "#1",
+      "description": "LS20 randomized direction per death",
+      "avg_score": 0.6667,
+      "actions": 0,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "0s",
+      "status": "diagnostic",
+      "notes": "Randomized direction preference each death explores different branches. Reached depth 46 \u2014 well beyond 29 baseline. Still 0 score. CONFIRMS: ls20 navigation is solved (depth 34-46 achieved). The blocker is game mechanics: state modifiers + goal matching, not maze navigation."
     }
   ],
   "running_best": [
@@ -552,6 +565,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
