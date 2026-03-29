@@ -2,41 +2,32 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 021 — score 0.6667): Levels 1+2 solved via trial-and-lock with re-trialing. Level 3 has 8 horizontal buttons — ALL show improvement=0. The `_measure_imbalance()` only counts GREEN cells. Level 3 likely uses different colors → green metric shows 0 even if buttons change the frame. Fix: use total cell change count as trial metric instead of green-only.**
+**PHILOSOPHY (2026-03-29, post exp 022 — score 0.6667): Level 3 is a VERTICAL BAR CHART — gray bars of varying heights with 8 buttons at the bottom (one per bar). This is fundamentally different from levels 1-2 (horizontal balance). Row-based imbalance can't capture bar height. Need: (1) bar height measurement per column, (2) "bar height variance" as the imbalance metric, (3) trial-and-lock to find which button reduces variance.**
 
 ---
 
-### 1. [Puzzle Logic] Use total cell change as trial metric — not green-only
-- **Hypothesis**: Exp 021 solved levels 1+2 (score 0.6667) but level 3 (8 horizontal buttons) shows improvement=0 for ALL buttons. The `_measure_imbalance()` counts only GREEN (color 3) cells. Level 3 likely uses different fill colors, so green metric reads 0 even though buttons DO change the frame. Fix: measure TOTAL cell changes between pre-click and post-click grids. The button that changes the most cells is the interactive one.
+### 1. [Puzzle Logic] Bar height metric for level 3 — measure column heights not row distribution
+- **Hypothesis**: Exp 022 confirmed level 3 is a vertical bar chart (gray bars of different heights, 8 buttons at bottom). The current `_measure_imbalance()` counts green cells per row — completely wrong for vertical bars. The correct metric is BAR HEIGHT VARIANCE: measure the height of each gray column (scan down from top, count gray cells), compute max-min or variance. The button that reduces this variance is the correct one.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. Add `_count_cell_changes(grid_before, grid_after)` → count cells where `grid_before[r][c] != grid_after[r][c]`
-  2. In trial phase: save grid snapshot before each trial click, count changes after
-  3. Lock the button with the MOST cell changes (not green imbalance improvement)
-  4. Keep `_measure_imbalance()` as a secondary metric for re-trialing (plateau detection), but use cell change count for initial button selection
-  5. Save pre-click grid in datastore: `context.datastore["pre_trial_grid"] = [row[:] for row in grid]`
-- **Expected impact**: Detects interactive buttons regardless of color scheme → solves level 3+.
+  1. Add `_measure_bar_heights(grid)`: for each column region (between button x-positions), scan down from top row (below status bar) counting non-background cells. Return list of heights.
+  2. Add `_bar_height_variance(heights)`: return max(heights) - min(heights). This is the bar chart imbalance.
+  3. In trial phase for level 3+: use bar_height_variance as the trial metric (instead of green row imbalance). Save heights before click, compare after. The button that reduces variance most gets locked.
+  4. Auto-detect puzzle type: if buttons are arranged horizontally at the bottom AND grid has vertical bars above them → use bar height metric. If buttons are scattered with horizontal regions → use row-based green metric.
+  5. For plateau detection: re-measure bar_height_variance. Plateau = variance unchanged for 3 steps.
+- **Expected impact**: Solves vertical bar chart puzzles like level 3. Combined with existing row-based metric for levels 1-2, covers both puzzle types.
 
-### 2. [Puzzle Logic] Color-agnostic imbalance for plateau detection
-- **Hypothesis**: Even after fixing the trial metric, the plateau detection (re-trialing after 3 stale steps) still uses green-only `_measure_imbalance()`. Level 3+ may plateau based on different colors. Use a generic "distribution variance" metric.
+### 2. [Puzzle Logic] Auto-detect puzzle type — horizontal balance vs vertical bar chart
+- **Hypothesis**: Levels 1-2 are horizontal balance puzzles (green fill, horizontal divider). Level 3 is a vertical bar chart (gray bars, buttons at bottom). The agent needs to detect WHICH type of puzzle it's facing and use the appropriate metric. A simple heuristic: if buttons are in a horizontal row at the bottom → bar chart. If buttons are above/below a horizontal divider → horizontal balance.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Replace `_measure_imbalance()` with a color-agnostic version:
-  1. Find the most common non-background color in the grid (the "fill" color) — this auto-detects green, blue, red, etc.
-  2. Count that color per sampled row
-  3. Return max-min as imbalance (same logic, different color target)
-- **Expected impact**: Plateau detection works for any color scheme.
+- **Changes**: Add `_detect_puzzle_type(grid, buttons)`:
+  1. Check button Y positions: if all within 2 rows of each other AND near bottom → "bar_chart"
+  2. Check for horizontal divider (rows with >40% single non-bg color): if found → "horizontal_balance"
+  3. Return puzzle type → route to appropriate metric
+- **Expected impact**: Handles both puzzle types automatically. Levels 1-2 use row metric, level 3 uses column/bar metric.
 
-### 3. [Puzzle Logic] Investigate level 3 visually — what do 8 horizontal buttons look like?
-- **Hypothesis**: Level 3 has "8 horizontal buttons" and none improve green imbalance. Visual investigation would reveal: what's the puzzle structure? Different fill colors? Different mechanic entirely? Are the 8 buttons controlling 8 independent regions?
-- **Files to modify**: None initially — investigation
-- **Changes**: Use arc CLI to reach level 3 (solve levels 1+2 first, ~30 actions) and inspect:
-  ```bash
-  arc start vc33 --max-actions 300
-  # Level 1+2 auto-solve via existing strategy
-  arc state --image    # See level 3 layout
-  # Click a few of the 8 buttons and observe
-  arc end
-  ```
+### 3. [Puzzle Logic] Total cell change count as universal trial fallback
+- **Hypothesis**: If both specific metrics (row imbalance, bar height) fail to detect improvement, use the most generic metric: total cells changed. ANY button that changes >10 cells is interactive. This is a universal fallback that works for unknown puzzle types.
 - **Expected impact**: Understanding level 3 → targeted fix.
 
 ### 4. [Life Management] Health bar tracking + stop on low lives

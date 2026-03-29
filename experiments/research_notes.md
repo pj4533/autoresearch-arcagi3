@@ -1228,8 +1228,32 @@ This is a much better approach than trying to deduce the correct button from geo
 |-------|---------|-----------|---------|----------|--------|
 | 1 | 2 | Green (3) | Horizontal gray | 6 | SOLVED |
 | 2 | 4 | Green (3), R orientation | Horizontal | 13 | SOLVED (cycling) |
-| 3 | 8 | Unknown (not green) | Horizontal? | 31 | BLOCKED (metric) |
+| 3 | 8 (horizontal row at bottom) | Gray vertical bars | Vertical bar chart | 31 | BLOCKED (needs bar height metric) |
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
+
+### Exp 022: Level 3 is a Vertical Bar Chart (2026-03-29)
+
+**Exp 022 (column imbalance attempt)**: Score 0.6667 (same, reverted). Key discovery: Level 3 is a **vertical bar chart** — gray bars of different heights with 8 buttons arranged in a horizontal row at the bottom (one per bar/column).
+
+**Why row-based imbalance fails for level 3:**
+- Row-based metric counts green cells per row → measures horizontal fill distribution
+- Bar chart has vertical structures → row-based metric sees roughly equal green per row (bars span all rows, just different heights)
+- Column-based approach tried but broke level 1 (column imbalance is dominated by static decorative elements)
+
+**The correct approach for level 3:**
+1. Detect it's a bar chart (buttons in horizontal row at bottom)
+2. Measure EACH BAR'S HEIGHT (scan down each column region for non-background cells)
+3. Compute bar height variance (max - min)
+4. Trial each button → find which one reduces height variance
+5. Lock and click repeatedly
+
+**Two puzzle types identified:**
+| Type | Visual | Buttons | Metric | Levels |
+|------|--------|---------|--------|--------|
+| Horizontal balance | Green fill, horizontal divider | Above/below divider | Green cells per row (range) | 1, 2 |
+| Vertical bar chart | Gray bars, varying heights | Horizontal row at bottom | Bar heights per column (range) | 3 |
+
+**Need: auto-detect puzzle type and route to appropriate metric.**
 
 **Why QwQ-32B might succeed where others failed:**
 - Qwen3.5-35B (3B active MoE) lacks depth of reasoning
