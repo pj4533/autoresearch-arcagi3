@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T02:23:05.896025+00:00",
+  "generated_at": "2026-03-29T03:23:57.191113+00:00",
   "summary": {
-    "total": 25,
-    "completed": 25,
+    "total": 26,
+    "completed": 26,
     "improved": 2,
-    "reverted": 22,
+    "reverted": 23,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -334,9 +334,23 @@
       "duration": "3074s",
       "status": "reverted",
       "notes": "Undo not available in any of the 3 games. No impact."
+    },
+    {
+      "id": "026",
+      "idea": "#14(new)",
+      "description": "Grid differencing with cell-level detail",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "3561s",
+      "status": "reverted",
+      "notes": "Detailed diffs show exact cell changes (e.g. block of color 12 shifting) but model can't translate to scoring."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
