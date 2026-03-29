@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-03-29T22:34:09.882878+00:00",
+  "generated_at": "2026-03-29T22:44:51.845793+00:00",
   "summary": {
-    "total": 54,
+    "total": 55,
     "completed": 45,
     "improved": 2,
     "reverted": 42,
@@ -711,6 +711,19 @@
       "duration": "7s",
       "status": "reverted",
       "notes": "Tried LEFT-side buttons sorted[6,4,2,0] \u00d7 [9,3,5,6]. CRITICAL FINDING: actual bar data CONTRADICTS source analysis. fCG has 48 green px (source says height=4), sro has 50 green px (source=2), uUB has 26 black+24 green (source=28). Bars extend nearly full grid height. SOURCE ANALYSIS FUNDAMENTALLY WRONG for this game instance. Need researcher to analyze the ACTUAL grid data empirically, not rely on source code positions."
+    },
+    {
+      "id": "055",
+      "idea": "#1",
+      "description": "VC33 L3 empirical diagnostic + solution",
+      "avg_score": 0.6667,
+      "actions": 200,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "2s",
+      "status": "diagnostic",
+      "notes": "**BUTTON MAPPING FULLY VERIFIED**: btn(12)=fCG-2, btn(16)=fCG+2, btn(24)=sro-2/TKb+2, btn(28)=TKb-2/sro+2, btn(34)=TKb-2/nDF+2, btn(38)=nDF-2/TKb+2, btn(46)=nDF-2/uUB+2, btn(50)=uUB-2/nDF+2. Pair 1 (fCG) is SPECIAL: just grows/shrinks independently, no chain transfer. Initial heights: {fCG:48, sro:50, TKb:48, nDF:46, uUB:24}. 23-click plan ran but no score \u2014 plan was computed for WRONG initial heights {4,2,4,6,28}. Researcher needs to recompute with ACTUAL heights."
     }
   ],
   "running_best": [
@@ -734,6 +747,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
