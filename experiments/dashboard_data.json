@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T14:42:06.691945+00:00",
+  "generated_at": "2026-03-29T14:44:33.759296+00:00",
   "summary": {
-    "total": 5,
-    "completed": 5,
+    "total": 6,
+    "completed": 6,
     "improved": 0,
-    "reverted": 4,
+    "reverted": 5,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -74,9 +74,23 @@
       "duration": "122s",
       "status": "reverted",
       "notes": "Color saliency priority (groups 0-3). 200 actions per game. vc33: GAME_OVER after 200 actions (ran out of lives from wrong clicks). Agent clicks objects but wrong sequence/logic. click_results cache prevents re-trying positions in new states."
+    },
+    {
+      "id": "007",
+      "idea": "\u2014",
+      "description": "Click cache clear + no LLM + 200 actions",
+      "avg_score": 0.0,
+      "actions": 600,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "7s",
+      "status": "reverted",
+      "notes": "Clear click_queue on state change + LLM_INTERVAL=0. 600 actions in 6.6s. Still 0 \u2014 brute-force clicking can't solve vc33 puzzle logic. Lives are consumed by wrong clicks before finding the right sequence."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
