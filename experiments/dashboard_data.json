@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T03:23:57.191113+00:00",
+  "generated_at": "2026-03-29T04:14:23.186601+00:00",
   "summary": {
-    "total": 26,
-    "completed": 26,
+    "total": 27,
+    "completed": 27,
     "improved": 2,
-    "reverted": 23,
+    "reverted": 24,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -347,9 +347,23 @@
       "duration": "3561s",
       "status": "reverted",
       "notes": "Detailed diffs show exact cell changes (e.g. block of color 12 shifting) but model can't translate to scoring."
+    },
+    {
+      "id": "027",
+      "idea": "#15(new)",
+      "description": "Aggressive prompt compression",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "2944s",
+      "status": "reverted",
+      "notes": "1 parse failure (best). ls20 fast (373s). But no score \u2014 Qwen3.5-35B may lack reasoning ability to solve these games regardless of prompt."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
