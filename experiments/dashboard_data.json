@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-03-29T23:04:25.388395+00:00",
+  "generated_at": "2026-03-29T23:13:21.043336+00:00",
   "summary": {
-    "total": 57,
+    "total": 58,
     "completed": 46,
     "improved": 2,
     "reverted": 43,
@@ -750,6 +750,19 @@
       "duration": "6s",
       "status": "reverted",
       "notes": "Tried 3 variants: (1) btn[7,5,1]\u00d7[9,3,6] = 18 clicks direct, (2) same + neutral interleaving = 36 clicks, (3) corrected dirs btn[6,5,0]\u00d7[9,3,6] + neutral = 36 clicks. None scored. Consecutive same-button clicks may not register (cooldown). The 18-click plan needs correct buttons AND all clicks to register. 36 exp at plateau."
+    },
+    {
+      "id": "058",
+      "idea": "#1",
+      "description": "VC33 L3 neutral-interleaved + missing PPS-UP",
+      "avg_score": 0.6667,
+      "actions": 200,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "2s",
+      "status": "diagnostic",
+      "notes": "**DECORATIONS MOVE WITH NEUTRAL INTERLEAVING!** btn[6]\u00d710 with neutrals: ChX 36.2\u219245.8 (+9.6), VAJ 46.2\u219236.6 (-9.6). Rate: 0.96 display px/effective click. PPS-UP at (16,112) did NOT work \u2014 deco 14 unchanged. btn[5] also stopped working after step 20 \u2014 likely RAN OUT OF LIVES from neutral clicks (each neutral = 1 life lost). KEY CONSTRAINT: can't waste clicks on neutrals, need to alternate between REAL buttons. Need researcher to find PPS-UP button and life-efficient click strategy."
     }
   ],
   "running_best": [
@@ -773,6 +786,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
