@@ -1101,6 +1101,11 @@ This means blind exploration (programmatic or random) is FUNDAMENTALLY blocked o
   "Step 1: I see colored objects at positions X, Y, Z. Step 2: The orange object at X appears to be a movable piece..."
 - Important: uses thinking mode by default — may need `enable_thinking=False` like Qwen3.5 did (exp 006)
 
+**ADCR Agent Potential Bug (from code review):**
+ADCR agent (line 156) uses `context.frames.previous_grids` for before/after comparison. This is the SAME API that was stale in the explorer agent (exp 021/022 root cause). If the frame timing bug affects ADCR too, it would show the LLM two identical frames and `image_diff()` would show no changes — making ADCR blind to action effects.
+
+The explorer agent's fix (saving frame to datastore before returning action) was NOT applied to ADCR. If testing ADCR (#8 in queue), the executor should verify that `previous_grids` ≠ `frame_grids` first, or apply the same fix.
+
 **Why QwQ-32B might succeed where others failed:**
 - Qwen3.5-35B (3B active MoE) lacks depth of reasoning
 - Qwen3-32B (dense but not reasoning-trained) has the capacity but not the training
