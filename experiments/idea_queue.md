@@ -2,29 +2,34 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 032): Stategraph baseline confirmed: 120 actions in 17s (350x faster than explorer). Clicks WORK in vc33 (frame changes detected). Key blockers: (1) ft09 wastes all actions on movement instead of clicking, (2) stategraph tries untried movement before clicks, (3) no BFS-to-frontier when stuck. Focus: game-type awareness, click prioritization, smarter navigation.**
+**PHILOSOPHY (2026-03-29, post exp 004): Pure programmatic stategraph: 120 actions in 1.4s. vc33 clicks confirmed working (265 cell changes on color 9 blocks). ft09 game version BROKEN (only status bar changes). Focus entirely on vc33 (6 clicks to solve level 1) and ls20 (movement works). Key need: better click targeting for vc33, BFS navigation for ls20.**
 
 ---
 
-### 1. [Preprocessing] Game-type-aware action routing for stategraph
-- **Hypothesis**: Exp 032 showed ft09 "movement fails (click-only game)" — the stategraph wastes all actions trying movement first (Priority 2: untried non-click actions). But ft09 only responds to clicks despite having ACTION1-6 available. The fix: detect which action TYPES produce frame changes during the first few actions, then deprioritize types that don't work.
+### 1. [Exploration Strategy] VC33-focused: 5-tier click priority + more actions
+- **Hypothesis**: VC33 is confirmed working (exp 002 diagnostic: color 9 blocks produce 265 cell changes). Level 1 needs only 6 clicks. The agent already detects interactive objects but doesn't prioritize well — it clicks structural elements and background. The 3rd-place solution's priority system finds interactive buttons in ~5-10 clicks. Combined with more actions (agent does 40 in 0.5s with no LLM), this is the clearest path to first score.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`, `src/arcagi3/utils/formatting.py`
+- **Changes**: Two changes combined for maximum impact:
+  1. **5-tier click priority**: Group connected components by color saliency + size:
+     - **Group 0**: Salient color ({6-15}) AND medium size (2-32px per dim). VC33's interactive sprites are color 9 (blue) and 11 (yellow) — salient, medium → group 0.
+     - **Group 1**: Non-salient ({0-5}) AND medium size
+     - **Group 2**: Salient AND wrong size
+     - **Group 3**: Other non-status-bar
+     - **Group 4**: Status bar
+     - Click random pixel within each segment (not center — ensures hitting the object).
+     - Exhaust all group 0 actions across all states before trying group 1.
+  2. **Increase max_actions to 200**: At 0.012s/action (no LLM), 200 actions = 2.4s. VC33 level 1 needs 6 clicks out of maybe 20-30 group-0 targets. With 200 actions, the agent can exhaustively try every group-0 click across every reachable state.
+
+  Run: `uv run python run_benchmark.py --agent stategraph --max-actions 200 --games vc33`
+- **Expected impact**: First non-zero score on vc33. With priority targeting and enough budget, the agent should click all interactive objects within ~50 actions.
+
+### 2. [Exploration Strategy] VC33 click-only mode — skip all movement
+- **Hypothesis**: VC33 ONLY supports ACTION6 (click). The stategraph currently wastes 4-5 actions per state trying movement (untried non-click Priority 2). For click-only games, movement should be eliminated entirely. This doubles the effective click budget.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: In `_choose_action()`, after the first pass through all action types from a state:
-  1. Check `action_knowledge`: which action types produced frame changes?
-  2. If movement actions (ACTION1-5) ALL produced "no visible change" but clicks produced changes → deprioritize movement entirely. Put clicks at Priority 2 (before untried movement).
-  3. If clicks produced no changes but movement did → deprioritize clicks.
-  4. This is learned per-game, not hardcoded. After trying each movement action once and seeing no effect, switch to click-only exploration.
+- **Changes**: In `_choose_action()`, check `available_actions`. If only ACTION6 is available, skip Priority 2 (untried non-click) entirely. All actions are clicks at detected objects. Also: after learning that movement doesn't work (from action_knowledge showing all movement = "no visible change"), permanently skip movement actions for the rest of the game.
+- **Expected impact**: Doubles effective click budget for vc33. Every action is a meaningful click.
 
-  Simpler alternative: Check `available_actions`. If the game ONLY has ACTION6 (vc33), skip movement entirely. If the game has ACTION1-6 (ft09), try one of each type first, then route based on observed effects.
-- **Expected impact**: ft09 goes from 0% useful actions to ~90%+ clicks. vc33 already click-focused but benefits too. Immediate improvement on 2/3 games.
-
-### 2. [Exploration Strategy] Remove LLM calls entirely from stategraph
-- **Hypothesis**: Exp 032 ran 120 actions in 17s — most are programmatic. The LLM is called every 15 steps but its hypotheses don't improve action selection. The 3rd-place solution used ZERO LLM calls. Removing LLM calls makes the agent fully programmatic and maximizes throughput.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Set `LLM_INTERVAL = 999999` or add an `--llm-interval 0` flag that skips LLM calls entirely. All actions chosen by graph exploration logic only.
-- **Expected impact**: Even faster than 17s. More actions in same budget. Tests whether pure programmatic exploration can score.
-
-### 3. [Exploration Strategy] 5-tier click priority groups for stategraph
+### 3. [Exploration Strategy] 5-tier click priority groups for stategraph (general)
 - **Hypothesis**: Exp 032 shows vc33 "detects click effects but no score" — the agent clicks objects and sees changes but doesn't solve levels. The issue is targeting: current `detect_interactive_objects()` filters to size < 200 which catches structural elements. The 3rd-place solution's 5-tier priority system based on color saliency + size finds interactive buttons in ~5-10 clicks.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`, `src/arcagi3/utils/formatting.py`
 - **Changes**: Based on 3rd-place implementation:
@@ -161,3 +166,4 @@
 - **#2(queue) [Bug Fix] Click diagnostic** — Exp 033: vc33 clicks work, ft09 broken.
 - **#3(queue) [Architecture] Qwen3-32B** — Exp 003: reverted. 2x slower, same score.
 - **#5(queue) [Exploration Strategy] No LLM calls** — Exp 004: reverted. 12x faster (1.4s) but still 0 score.
+- **#6(queue) [Exploration Strategy] BFS to frontier** — Exp 005: reverted. Better navigation but no score (24s).
