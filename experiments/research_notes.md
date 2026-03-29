@@ -1326,7 +1326,42 @@ The programmatic agent could handle levels 1-2 (simple 2-button balance → tria
 |-------|---------|-------------|-----------------|----------|--------|
 | 1 | 2 | Horizontal balance | Green fill convergence | 6 | SOLVED |
 | 2 | 4 | Horizontal balance (cycling) | Green fill convergence | 13 | SOLVED |
-| 3 | 8 | Vertical bar chart | Colored markers (11/14/15) | 31 | STUCK: 6 experiments (022-027), scoring condition unknown. Gaps=[1,0,1,5] tried, per-button probing done, still no score. |
+| 3 | 8 | Vertical bar chart | Colored markers (11/14/15) | 31 | STUCK: 6 experiments (022-027), scoring condition unknown |
+
+### Exp 028: LS20 Visual Investigation (2026-03-29)
+
+**ls20 is a MAZE NAVIGATION game!** Visual investigation via arc CLI revealed:
+| Element | Color | Description |
+|---------|-------|-------------|
+| Player | Blue (cross shape) | The entity you control |
+| Walkable path | Green | Can be traversed |
+| Walls | Yellow | Impassable barriers |
+| Key/collectible | Maroon (block) | Item to collect |
+| Door/exit | Gray (box) | Goal to reach |
+| Health bar | White | Health indicator in status area |
+
+**Key mechanics:**
+- Movement scrolls the view by ~52 cells per move (partial visibility)
+- The maze is MUCH larger than the 64x64 visible area
+- The player needs to navigate through green paths to reach gray exits
+- May need to collect maroon keys before doors open
+- Health drains during movement → limited action budget
+- `perform` (ACTION5) likely interacts with objects at the player's position
+
+**Strategy for programmatic solving:**
+1. Detect blue cross (player position) in grid
+2. Detect green cells (walkable), yellow cells (walls)
+3. BFS from player to nearest maroon/gray target through green cells
+4. Execute path as ACTION1-4 sequence
+5. Try ACTION5 (perform) when reaching a goal object
+6. Handle scrolling: build accumulated map by tracking scroll offset
+
+**Level 1 baseline: 29 actions.** A BFS path through visible maze should solve in ~30-40 actions if the goal is visible. The challenge is partial visibility (view scrolls) — agent may need to explore to find the goal.
+
+**Comparison to vc33:**
+- vc33: click puzzle (solved levels 1-2, level 3 stuck)
+- ls20: maze navigation (solvable with pathfinding if player/goals detected)
+- ls20 is potentially MORE tractable programmatically — maze solving is a well-understood problem
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**

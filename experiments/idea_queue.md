@@ -2,28 +2,22 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 027): vc33 level 3 scoring condition unknown after 6 experiments (022-027). Markers detected, buttons probed, targeted clicking tried — still no score. Pivoting to ls20. The arc CLI visual approach should reveal ls20's navigation mechanics. Also: vc33 level 3 may need the executor to visually inspect it via `arc state --image` to understand what the ACTUAL goal is.**
+**PHILOSOPHY (2026-03-29, post exp 028): ls20 visual investigation done! It's a MAZE: player=blue cross, green=walkable, yellow=walls, maroon=key, gray=door/exit, white bar=health. View scrolls 52 cells per move. Need: player detection + pathfinding toward goals. vc33 level 3 still stuck (6 experiments). Focus on ls20 maze solving.**
 
 ---
 
-### 1. [Navigation Strategy] Investigate ls20 visually — identify player, goals, mechanics
-- **Hypothesis**: The visual investigation approach unlocked vc33 (exp 019). Apply the same approach to ls20. Claude Code can SEE the grid via `arc state --image` and identify: the player character, walls/obstacles, health indicator, goal objects, interactive elements. This understanding is prerequisite for any ls20 strategy. With 29 baseline actions for level 1, even a partially correct strategy could score.
-- **Files to modify**: None initially — investigation. Then `src/arcagi3/stategraph_agent/agent.py` based on findings.
-- **Changes**: Use arc CLI interactively:
-  ```bash
-  arc start ls20 --max-actions 50
-  arc state --image    # See the initial grid — identify player, objects, walls
-  arc action move_right
-  arc state --image    # What moved? Where did the player go?
-  arc action move_down
-  arc state --image    # How does the grid respond to movement?
-  arc action perform
-  arc state --image    # Does perform do anything at the current location?
-  arc end
-  ```
-  Key questions to answer: (1) Where is the player? (2) What does the goal look like? (3) How does health drain work visually? (4) Are there collectible objects? (5) What does `perform` do?
+### 1. [Navigation Strategy] LS20 maze solver — detect player + BFS toward goals
+- **Hypothesis**: Exp 028 revealed ls20 is a maze: blue cross=player, green=walkable, yellow=walls, maroon=key/collectible, gray=door/exit, white bar=health. The view scrolls 52 cells per move. The programmatic agent can: (1) detect the blue cross position, (2) detect green walkable cells, (3) BFS from player to nearest maroon/gray target, (4) execute the path as movement actions. Level 1 baseline is 29 actions — a simple BFS solve should be achievable.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**:
+  1. `_detect_player(grid)`: scan for blue cross (unique color, small ~2-4px cluster). Return (row, col).
+  2. `_detect_goals(grid)`: scan for maroon blocks and gray boxes. Return list of (row, col, type).
+  3. `_bfs_path(grid, start, goal)`: BFS through green cells from player to nearest goal. Return list of directions (up/down/left/right).
+  4. `_execute_path(path)`: convert path to ACTION1-4 sequence.
+  5. In `step()`: if movement game (ACTION1-5 available): detect player → detect goals → BFS → execute. If path is blocked or goal not visible: move toward unexplored edges to scroll the view.
+  6. After reaching a goal: try `perform` (ACTION5) to interact with it.
 - **Target game**: ls20
-- **Expected impact**: Understanding ls20 mechanics → targeted strategy. Even level 1 score would increase avg from 0.6667.
+- **Expected impact**: First ls20 score. BFS through visible maze should solve level 1 in ~30-40 actions. Would increase avg from 0.6667 to potentially 0.8+.
 
 ### 2. [Puzzle Logic] VC33 level 3: visually inspect the puzzle via arc CLI
 - **Hypothesis**: After 6 experiments (022-027) trying to crack level 3 programmatically, the scoring condition is still unknown. The executor should visually inspect level 3 via `arc state --image` to understand what the ACTUAL goal looks like. The markers, bars, and buttons are known — but what does "solved" look like? Is it bar height equality? A specific pattern? Something else entirely?
@@ -40,12 +34,19 @@
 - **Target game**: vc33 level 3
 - **Expected impact**: Visual understanding of what "solved" means for level 3.
 
-### 3. [Navigation Strategy] LS20 health-aware exploration — monitor and conserve
-- **Hypothesis**: ls20 has health drain that kills the agent. The health indicator is likely visible (colored bar). The agent should monitor health and switch to conservative mode when health is low — only traverse known-safe paths, don't explore new areas.
-- **Strategy change / Files**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Add health detection (scan for color-7 orange bar in status area). When health < 30%, stop exploring new states and only use known transitions.
+### 3. [Navigation Strategy] LS20 scrolling map builder — accumulate explored terrain
+- **Hypothesis**: ls20's view scrolls 52 cells per move. The agent only sees a portion of the maze at a time. By tracking which cells have been explored (building a partial map from sequential frames), the agent can: (a) know where it has been, (b) avoid revisiting explored areas, (c) find the frontier of unexplored paths to navigate toward.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: Maintain a large accumulated map (larger than 64x64 grid) by stitching frames together based on scroll direction. Track player position in absolute coordinates. BFS on the accumulated map instead of just the current frame.
 - **Target game**: ls20
-- **Expected impact**: Prevents GAME_OVER, preserves more actions for purposeful navigation.
+- **Expected impact**: Solves the "partial visibility" problem. Agent can plan paths through previously-seen areas.
+
+### 4. [Navigation Strategy] LS20 health monitoring — white bar parsing
+- **Hypothesis**: ls20 has a white health bar (exp 028). Monitor it to avoid GAME_OVER. When health is low, prioritize reaching the goal over exploring.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: Scan for white bar (color 0 or 15?) in status area. Parse remaining health. When health < 30%, switch to exploitation: follow shortest known path to nearest goal.
+- **Target game**: ls20
+- **Expected impact**: Prevents death, preserves score from completed actions.
 
 ### 3. [Action Efficiency] VC33 levels 1-2: solve in minimum clicks
 - **Hypothesis**: Levels 1-2 are solved but may use more clicks than the human baseline (6 and 13). By looking at the image and understanding the exact puzzle state, the executor could solve in fewer clicks, improving per-level scores.
