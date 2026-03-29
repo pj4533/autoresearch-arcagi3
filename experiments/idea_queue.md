@@ -2,44 +2,41 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 043): LS20 is closest to scoring — waypoints reached within ~3 cells (exp 042-043). Position drift is the ONLY blocker. Fix the drift and ls20 level 1 should score. VC33 level 3 still needs visual investigation. Scoring formula is QUADRATIC: (human/agent)^2, so action efficiency matters enormously once a level is solved.**
+**PHILOSOPHY (2026-03-29, ROOT CAUSE FOUND): Exp 042-043 used WRONG waypoint coordinates! The rbt() collision check requires specific grid-aligned positions. Agent was targeting item positions (19,30)→(34,10) but needs to target COLLECTION positions (16,28)→(31,8). Agent was exactly ONE UP MOVE short both times. Fix: change 2 waypoint coordinates. See research notes for full derivation.**
 
 ---
 
-### 1. [Puzzle Logic] LS20 grid-search at waypoint — systematically find exact modifier cell
-- **Hypothesis**: Exp 042-043 reached within ~3 cells of the modifier at (19,30) but didn't collect it. Position tracking drifts because movement is not always exactly 5 cells. Instead of fixing the drift, **brute-force the last few cells**: when the agent's estimated position is within ~8 cells of a waypoint, enter a "grid search" mode — try all 4 directions systematically in a small spiral pattern. This guarantees passing through the exact modifier cell within ~16 extra moves.
+### 1. [Puzzle Logic] LS20 use COMPUTED COLLECTION POSITIONS as waypoints (root cause fix!)
+- **Hypothesis**: **ROOT CAUSE FOUND.** Source code analysis reveals the `rbt()` collision check is asymmetric: `sprite.x >= target_x AND sprite.x < target_x + 5`. This means the agent must move to a SPECIFIC grid-aligned position to collect items — not just be "near" them. From start (1,53) with 5-cell moves, the ONLY positions that trigger collection are:
+  - Modifier (bgt at 19,30): **collection position = (16, 28)**
+  - Goal (mae at 34,10): **collection position = (31, 8)**
+  - Exp 042 reached (16,33) and (31,13) — both exactly ONE UP MOVE short (y off by 5)!
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-  1. When `abs_distance_to_waypoint < 8`: enter grid-search mode
-  2. Grid search pattern: try RIGHT, UP, LEFT, LEFT, DOWN, DOWN, RIGHT, RIGHT, RIGHT, UP, UP, UP... (expanding spiral)
-  3. After each move, check if frame changed significantly (modifier collected → distinctive frame change when sprite disappears)
-  4. If modifier collected (detected by frame change pattern), switch to goal waypoint
-  5. If spiral exhausted without collection, resume DFS toward waypoint with tighter distance threshold
+- **Changes**: Change waypoint targets from item positions to collection positions:
+  ```python
+  # OLD (wrong — these are sprite positions, not reachable collection positions):
+  waypoints = [(19, 30), (34, 10)]
+  # NEW (computed collection positions from rbt() analysis):
+  waypoints = [(16, 28), (31, 8)]
+  ```
+  This is a **2-line change**. The agent already reaches the correct X. It just needs the correct Y target.
 - **Target game**: ls20
-- **Expected impact**: First ls20 score. Closes the ~3-cell gap between estimated and actual position.
+- **Expected impact**: First ls20 score. This directly fixes the root cause — no grid search or calibration needed.
+- **Why this is right**: Movement confirmed ALWAYS exactly 5 cells (source line 1438). No partial moves. The drift isn't from movement calibration — it's from targeting the WRONG coordinates. The agent aims at (19,30) and stops when "close enough" at (16,33). But the collection position is (16,28), one more UP move away.
 
-### 2. [Puzzle Logic] LS20 detect modifier/goal from frame content, not accumulated position
-- **Hypothesis**: Instead of tracking accumulated position (which drifts), detect the modifier sprite VISUALLY on the grid. The "bgt" rotation modifier has a distinctive appearance. When it appears near the player center (20,32), the agent is close. When it DISAPPEARS from the grid after a move, the modifier was collected. This bypasses position tracking entirely.
+### 2. [Puzzle Logic] LS20 grid-search fallback at waypoint (if fix #1 doesn't work)
+- **Hypothesis**: If the computed collection positions don't fully solve it (e.g., maze routing prevents reaching the exact cell), add a grid search: when within ~8 cells of waypoint, try all 4 directions systematically in a spiral. Guarantees hitting every nearby 5-cell-aligned position within ~16 extra moves.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-  1. Each step, scan the visible grid for distinctive sprites (non-background, non-wall, non-player patterns)
-  2. Track which distinctive patterns are visible frame-to-frame
-  3. If a pattern was visible and then disappeared after a move → item collected
-  4. Use this as the waypoint-switch trigger instead of proximity check
-  5. Also: scan for goal-area distinctive pattern to know when approaching goal
+- **Changes**: When `abs_distance_to_waypoint < 8` AND waypoint not yet triggered: enter spiral search mode. Try UP first (since exp 042-043 were both one UP short).
 - **Target game**: ls20
-- **Expected impact**: Reliable modifier detection without any position tracking drift.
+- **Expected impact**: Robust fallback. At most ~16 extra moves.
 
-### 3. [Puzzle Logic] LS20 calibrate movement displacement from frame comparison
-- **Hypothesis**: Movement may not be exactly 5 cells per step (partial moves near walls). Compare frames before/after to detect actual displacement: find the pixel shift by cross-correlating the two frames. Use the measured displacement instead of assuming 5.
+### 3. [Puzzle Logic] LS20 detect modifier collection from player rotation change
+- **Hypothesis**: Source code confirms the bgt modifier is NOT removed when collected — it stays visible on the grid. So "detect by sprite disappearance" won't work. BUT the player sprite DOES rotate (`nio.set_rotation`). Detect collection by: compare player center pixels before/after moving through modifier area. If the player's visual appearance changed (rotation), the modifier was collected → switch to goal waypoint.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-  1. After each successful move (frame changed), compare saved_prev_grid with current grid
-  2. Find the offset (dx, dy) that maximizes pixel overlap between the two grids
-  3. Use this measured offset to update abs_x, abs_y instead of hardcoded ±5
-  4. This self-corrects drift on every move
+- **Changes**: After each move near modifier area, compare a small region around player center (20,32) with saved frame. If pixel pattern at center changed shape (not just position shift), modifier was collected.
 - **Target game**: ls20
-- **Expected impact**: Accurate position tracking → waypoints hit precisely.
+- **Expected impact**: Reliable waypoint switching independent of position tracking.
 
 ### 4. [Visual Analysis] VC33 level 3 — visual investigation via arc CLI
 - **Hypothesis**: After 6 programmatic experiments (022-027) on vc33 level 3, the scoring condition is still unknown. The executor should visually inspect level 3 via `arc state --image` to see what the bars/markers/buttons look like. This approach unlocked levels 1+2 (exp 019). Level 3 has colored markers (11/14/15) that indicate target heights — the executor needs to SEE them.

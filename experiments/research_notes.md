@@ -1640,3 +1640,69 @@ Three hypotheses for why the agent misses by ~3 cells:
 - ft09: game version broken, skip entirely
 - Brute-force clicking vc33: life mechanic kills agent (exp 006-008)
 - Uniform clicking vc33 level 3: needs per-button exact counts (exp 024)
+
+### ROOT CAUSE FOUND: LS20 Position Drift (2026-03-29, post exp 043)
+
+**Deep source code analysis of ls20 movement and collision reveals WHY exp 042-043 failed.**
+
+**Movement mechanics (confirmed from source):**
+- Movement is ALWAYS exactly 5 cells per step — no partial moves
+- Blocked moves (wall collision) → player doesn't move at all, 0 cells
+- `step()` at line 1438: `qul, cfy = self.mgu.x + lgr * 5, self.mgu.y + kyr * 5`
+
+**The rbt() collision check (line 1399-1401) is ASYMMETRIC:**
+```python
+return [bes for bes in oyx if bes.x >= edo and bes.x < edo + hds
+        and bes.y >= cdg and bes.y < cdg + xwr]
+```
+This finds sprites where: `sprite.x >= target_x AND sprite.x < target_x + 5 AND sprite.y >= target_y AND sprite.y < target_y + 5`
+
+**Computing EXACT collection positions:**
+
+For modifier (kdy/"bgt" sprite at position 19,30):
+- Need target where: 19 >= target_x AND 19 < target_x+5 → target_x in [15, 19]
+- And: 30 >= target_y AND 30 < target_y+5 → target_y in [26, 30]
+- Reachable from (1,53): x=1+5n → **x=16** (n=3). y=53-5m → **y=28** (m=5)
+- **Collection position: (16, 28)** — the ONLY reachable position that triggers collection
+
+For goal (lhs/"mae" sprite at position 34,10):
+- Need target where: 34 >= target_x AND 34 < target_x+5 → target_x in [30, 34]
+- And: 10 >= target_y AND 10 < target_y+5 → target_y in [6, 10]
+- Reachable from (1,53): x=1+5n → **x=31** (n=6). y=53-5m → **y=8** (m=9)
+- **Goal position: (31, 8)** — the ONLY reachable position that triggers the goal
+
+**What exp 042 actually reached:**
+- Modifier area: agent at **(16, 33)** — correct x, but y=33 NOT in [26,30]. **Missed by exactly one UP move (y=33→28)!**
+- Goal area: agent at **(31, 13)** — correct x, but y=13 NOT in [6,10]. **Missed by exactly one UP move (y=13→8)!**
+
+**Root cause: The waypoint proximity check triggers too early.** The agent navigates toward (19,30) and when estimated distance < threshold, it considers the waypoint "reached" and switches. But distance from (16,33) to (19,30) is |3|+|3|=6, which triggers the threshold. The agent needed ONE MORE UP MOVE to reach (16,28).
+
+**Additional findings:**
+- The bgt modifier is NOT removed when collected (no `remove_sprite()` call). It stays visible. So "detect modifier by sprite disappearance" (old idea #2) won't work.
+- The player sprite DOES rotate on collection (`nio.set_rotation`), which changes the player's visual appearance.
+- Walking through the modifier cell multiple times keeps cycling rotation (tuv = (tuv+1)%4).
+- For wrong-state goal visits: the game flashes red and RETURNS without moving (line 1451-1453). This could cause frame changes without position changes, confusing position tracking.
+
+**THE FIX (three options, ranked by simplicity):**
+
+**Option A (simplest): Use computed collection positions as waypoints.**
+Change waypoints from item positions (19,30)→(34,10) to collection positions (16,28)→(31,8). The agent already reaches the right X coordinate — it just needs to target the right Y. This is a 2-line change.
+
+**Option B: Grid search at waypoint.**
+When within ~8 cells of waypoint, try all 4 directions in a spiral. Guarantees hitting the exact cell. More robust but slower (~16 extra moves).
+
+**Option C: Tighter proximity threshold.**
+Reduce waypoint proximity threshold from ~8 to ≤3. This forces the agent closer but might not reach the exact cell.
+
+**Recommended: Option A first (2-line change), with Option B as fallback.**
+
+**Exact waypoints for ls20 level 1:**
+| Waypoint | Item Position | Collection Position | Direction from start |
+|----------|--------------|--------------------|--------------------|
+| Modifier (bgt) | (19, 30) | **(16, 28)** | 3 right, 5 up |
+| Goal (mae) | (34, 10) | **(31, 8)** | 6 right, 9 up |
+
+**Level 1 minimum path: start(1,53) → modifier(16,28) → goal(31,8)**
+- Start to modifier: ~8 steps (3R + 5U) + maze overhead
+- Modifier to goal: ~7 steps (3R + 4U) + maze overhead
+- Human baseline: 29 steps
