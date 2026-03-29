@@ -2,24 +2,27 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, SOLUTION FOUND): ls20 level 1 EXACT solution from source code: Player starts at (1,53) with state (snw=5, tmx=1, tuv=3). Goal at (34,10) requires state (5,1,0). ONLY ONE modifier: "bgt" rotation at (19,30) — collecting it changes tuv from 3→0 (exactly what's needed!). Route: start(1,53) → modifier(19,30) → goal(34,10). DFS already reaches 34+ steps. Just add waypoint navigation!**
+**PHILOSOPHY (2026-03-29, post exp 042): Waypoint navigation ALMOST WORKS! Both waypoints reached within ~3 cells: modifier (16,33)≈(19,30), goal (31,13)≈(34,10). Position tracking drifts. Fix: either (1) correct the drift (movement might not be exactly 5 cells), (2) detect modifier/goal visually on grid instead of by position, or (3) widen the "reached" threshold. The agent IS navigating to the right areas — just needs exact positioning.**
 
 ---
 
-### 1. [Puzzle Logic] LS20 2-waypoint navigation — modifier at (19,30) then goal at (34,10)
-- **Hypothesis**: Source code analysis reveals the EXACT level 1 solution. Player starts at (1,53) with state (snw=5, tmx=1, tuv=3). Goal at (34,10) requires (5,1,0). The ONLY difference is tuv: 3→0. There's exactly ONE modifier: "bgt" rotation at (19,30). Collecting it cycles tuv: (3+1)%4 = 0 — perfect match. Route: start→modifier→goal. DFS already reaches 34+ steps. Just bias DFS toward waypoints.
+### 1. [Puzzle Logic] LS20 fix position drift — detect modifier/goal from grid, not accumulated position
+- **Hypothesis**: Exp 042 reached both waypoints within ~3 cells but didn't score. Position tracking drifts because movement may not always be exactly 5 cells (partial moves near walls?). Fix: instead of tracking accumulated position, detect the modifier and goal VISUALLY on the grid. The "bgt" modifier sprite has a distinctive appearance. When it appears near the player center (20,32) on the grid, the agent is adjacent. When it DISAPPEARS after a move, the modifier was collected → switch waypoint.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-  1. For ls20: define waypoints = [(19,30), (34,10)]. Current waypoint index starts at 0.
-  2. In `_choose_action()` for ls20: among untried/available moves, prefer the one that reduces Manhattan distance to the current waypoint. This is a SOFT bias (try preferred direction first, fall back to DFS on failure), not a hard requirement.
-  3. When the agent's grid center position is within 5 cells of waypoint[0] (modifier at 19,30): switch to waypoint[1] (goal at 34,10).
-  4. Items are collected by walking over them (no ACTION5 needed).
-  5. Movement = 5 cells per step. Manhattan distance from (1,53) to (19,30) ≈ 18+23 = 41 cells ≈ 8 steps. From (19,30) to (34,10) ≈ 15+20 = 35 cells ≈ 7 steps. Total ≈ 15 steps + maze overhead.
-  6. With DFS backtracking + waypoint bias, the agent should reach both waypoints within 29 steps.
+- **Changes**: Three possible fixes (try in order):
 
-  **Coordinate note**: Positions are in game coordinates. The player is at fixed grid center (20,32). Movement scrolls the view. The agent needs to track its absolute position: `abs_x += 5 * dx` per move. Start at (1,53). Check if abs_position is near waypoint.
+  **Fix A (simplest): Calibrate position tracking.**
+  Movement might be less than 5 cells when near walls. Instead of `abs += 5`, detect actual displacement by comparing frame-center features before/after move. Or: count non-background pixels that shifted and compute actual displacement.
+
+  **Fix B: Detect modifier visually.**
+  Scan the grid for the "bgt" modifier sprite (distinctive color/pattern near position (19,30) relative to player). When it appears on the visible grid within ~10 cells of center: navigate toward it. When it disappears from the grid after a move: modifier collected, switch to goal waypoint. This avoids position tracking entirely.
+
+  **Fix C: Wider waypoint threshold + continued approach.**
+  Instead of switching waypoint at distance < 5, keep navigating toward the waypoint until either (a) score changes, or (b) the frame shows the modifier was collected (disappeared). The agent oscillates near the waypoint but eventually hits the exact cell.
+
+  **Also**: The goal at (34,10) requires EXACT position matching too. The agent reached (31,13) but needed (34,10). Same fix applies — keep approaching until score changes.
 - **Target game**: ls20
-- **Expected impact**: First ls20 score! Navigation already works (34+ steps). Waypoint bias guides the DFS toward modifier then goal. Human baseline 29 actions.
+- **Expected impact**: First ls20 score. Exp 042 proved the waypoint approach works directionally — just needs the last ~3 cells of precision.
 
 ### 2. [Puzzle Logic] LS20 track absolute position — needed for waypoint navigation
 - **Hypothesis**: The agent doesn't currently track its absolute position in the maze. Since the view scrolls and the player stays at grid center (20,32), the agent needs to compute absolute position: start at (1,53), add (±5, 0) or (0, ±5) per successful move. This enables distance-to-waypoint calculation.
