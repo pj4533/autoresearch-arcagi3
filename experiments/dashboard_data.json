@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T16:55:04.503412+00:00",
+  "generated_at": "2026-03-29T17:10:00.237383+00:00",
   "summary": {
-    "total": 24,
-    "completed": 23,
+    "total": 25,
+    "completed": 24,
     "improved": 2,
-    "reverted": 20,
+    "reverted": 21,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -321,6 +321,19 @@
       "duration": "22s",
       "status": "reverted",
       "notes": "Cell-change trials + exhaustion detection + max 5 clicks per button before re-trial. Cycles through all 8 level-3 buttons. Some bars change 296 cells. But level 3 still unsolved \u2014 bars need specific click counts (not uniform 5). Puzzle requires understanding target heights."
+    },
+    {
+      "id": "025",
+      "idea": "#1",
+      "description": "Round-robin bar chart pairs",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "20s",
+      "status": "reverted",
+      "notes": "Grouped 8 buttons into 4 pairs, round-robin one per pair per round. Tried left-first and right-first. Can't determine correct direction per pair \u2014 both buttons produce similar cell changes. Level 3 bars have colored markers (11/14/15) indicating targets but can't determine target from metrics alone."
     }
   ],
   "running_best": [
@@ -344,6 +357,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
