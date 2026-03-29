@@ -1751,3 +1751,18 @@ The "reaching within 3 cells" in exp 042 was a coincidence from the DFS's random
 4. Navigate RIGHT + UP through maze to goal at (34, 10) — 3R + 4U = 7 direct moves
 5. Arrive with tuv=0 → level complete!
 Total: ~14 direct moves + maze overhead. Human baseline: 29 moves.
+
+### Exp 045 Confirms Goal Unreachable from (1,53) (2026-03-29)
+
+**Exp 045**: Used my earlier collection positions (16,28) and (31,8). Agent reached BOTH exactly. Score still 0 across 3 deaths.
+
+**This CONFIRMS the (39,45) starting position hypothesis:**
+- From (1,53), reachable x values are {1, 6, 11, 16, 21, 26, 31, 36, ...}
+- Goal at (34, 10): x=34 is NOT in this set (34 ≢ 1 mod 5)
+- Therefore the goal is **mathematically unreachable** from (1,53) with 5-cell moves
+- The agent can NEVER score on ls20 with start position (1,53), no matter what path it takes
+- This explains ALL 24 failed ls20 experiments
+
+**Additional note from exp 045**: "Agent oscillates at waypoints without trying ACTION5 (perform)." From source code: ACTION5 is NOT available in ls20 (game constructor line 1339 only enables actions [1,2,3,4]). This is a red herring — perform doesn't help.
+
+**The modifier at (19,30) was likely collected** when the agent passed through (16,28) [since rbt() overlap check passes], but the goal at (34,10) can NEVER be triggered from the (1,53) grid. Only from (39,45) where 34 ≡ 4 mod 5 = 39 mod 5.
