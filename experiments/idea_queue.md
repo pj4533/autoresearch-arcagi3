@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 033): CORRECTION: ls20 health = 3 HEARTS, ~18 moves per heart (~54 total). Death from TRAPS, not movement drain. My source code analysis was wrong. The agent has a decent budget but: (1) oscillates at maze junctions, (2) maze is still too large for undirected exploration, (3) needs trap avoidance + anti-oscillation + committed exploration direction.**
+**PHILOSOPHY (2026-03-29, post exp 034): 14 experiments at 0.6667. Anti-oscillation confirmed: "maze size is the fundamental blocker." Blind exploration CAN'T work. But we HAVE the maze layout from game source code! Idea #1 = known-maze pathfinding: BFS on extracted maze data (player at (1,53), goal at (34,10), walls known, 5 cells/step). This bypasses exploration entirely. TEST THIS NEXT.**
 
 ---
 
@@ -161,5 +161,8 @@
 - **Stategraph 029**: Green density heuristic — too greedy for large maze. Reverted.
 - **Stategraph 030**: BFS maze solver — invisible walls break visual pathfinding. Reverted.
 - **Stategraph 031**: Wall-hit avoidance + 5000 actions — still GAME_OVER from health drain. Reverted.
-- **Stategraph 032**: DFS corridor following — corridors don't lead to goals. Reverted. "Score stable at 0.6667 for 12 experiments."
+- **Stategraph 032**: DFS corridor following — corridors don't lead to goals. Reverted.
+- **Stategraph 033**: Pickup-first + corridor — CORRECTED: health=3 hearts not per-move. Oscillation at junctions. Reverted.
+- **Stategraph 034**: Anti-oscillation — "maze size is the fundamental blocker, not oscillation." Reverted. 14 experiments at plateau.
 - **Explorer 001-030**: All score 0. See log_archive_explorer.md.
+- **NOT YET TESTED**: Known-maze pathfinding (#1 in queue — maze data extracted from game code).
