@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T14:37:05.930185+00:00",
+  "generated_at": "2026-03-29T14:42:06.691945+00:00",
   "summary": {
-    "total": 4,
-    "completed": 4,
+    "total": 5,
+    "completed": 5,
     "improved": 0,
-    "reverted": 3,
+    "reverted": 4,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -61,9 +61,23 @@
       "duration": "24s",
       "status": "reverted",
       "notes": "Replaced Priority 4-6 with BFS navigation to nearest untried-action state. Slightly slower (24s vs 17s). Better algorithmic navigation but no score improvement with 40 actions."
+    },
+    {
+      "id": "006",
+      "idea": "#1",
+      "description": "5-tier click priority + max_actions=200",
+      "avg_score": 0.0,
+      "actions": 600,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "122s",
+      "status": "reverted",
+      "notes": "Color saliency priority (groups 0-3). 200 actions per game. vc33: GAME_OVER after 200 actions (ran out of lives from wrong clicks). Agent clicks objects but wrong sequence/logic. click_results cache prevents re-trying positions in new states."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
