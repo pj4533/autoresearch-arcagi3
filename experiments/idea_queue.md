@@ -2,22 +2,35 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 029): ls20 maze = scrolling view with player at fixed center (20,32). Green density heuristic failed (too greedy for large maze). Need A* pathfinding on visible grid — find path from center to nearest goal object (maroon/gray) through green cells. Also need health management to survive exploration.**
+**PHILOSOPHY (2026-03-29, post exp 030): ls20 has INVISIBLE WALLS — visual green cells ≠ actual walkability. BFS/A* on visual grid fails. The stategraph's empirical trial (try move, observe if blocked) is the correct approach. But it explores too randomly. Need: (1) directional bias toward goal objects, (2) wall memory from failed moves, (3) depth-first exploration instead of breadth-first. Also: health management critical.**
 
 ---
 
-### 1. [Navigation Strategy] LS20 A* pathfinding from fixed center to visible goals
-- **Hypothesis**: Exp 029 showed green density heuristic is too greedy for the large ls20 maze. But the player is at fixed center (20,32) and the view shows walkable paths. A* pathfinding on the visible 64x64 grid from (20,32) to the nearest maroon/gray goal should find multi-step paths. When no goal is visible, A* to the nearest unexplored edge (frontier) to scroll the view toward new territory.
+### 1. [Navigation Strategy] LS20 empirical wall memory + goal-directed bias
+- **Hypothesis**: Exp 030 proved visual pathfinding fails (invisible walls). The stategraph's trial approach is correct but too random. Fix: combine empirical wall testing (stategraph) with directional bias toward visible goal objects. When the agent tries a move and it's blocked (same state hash), record that direction as "wall" at that position. When choosing next move, prefer directions that: (a) are not known walls, (b) point toward visible goals, (c) lead to unvisited states.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. `_astar_path(grid, start, goal)`: A* from player center (20,32) to goal through green cells (walkable). Heuristic = Manhattan distance. Return path as list of (dr, dc) steps.
-  2. `_find_nearest_goal(grid)`: BFS from (20,32) through green cells, return first maroon or gray cell found.
-  3. `_find_frontier(grid)`: If no goal visible, find the nearest edge of the visible green area — moving there will scroll to reveal new maze.
-  4. Store planned path in datastore. Execute one step per action. Re-plan if path becomes blocked (grid changed after scroll).
-  5. After reaching a maroon/gray cell: try `perform` (ACTION5).
-  6. Map direction to action: up=ACTION1, down=ACTION2, left=ACTION3, right=ACTION4.
+  1. `_detect_goal_direction(grid)`: Scan grid for maroon/gray objects. Return relative direction (up/down/left/right) from center (20,32).
+  2. In `_choose_action()` for movement games: instead of trying untried actions in order, try the direction toward the nearest goal FIRST. If blocked, try the perpendicular directions. If all blocked, backtrack.
+  3. Record empirical wall map: `blocked_directions[state_hash] = set(["ACTION1", "ACTION3"])` when a move produces no state change.
+  4. Use wall map to avoid retrying known-blocked directions.
+  5. When a goal object is visible, bias strongly toward it (priority 0). When no goal visible, use DFS-like exploration (go deep before backtracking).
 - **Target game**: ls20
-- **Expected impact**: First ls20 score. A* finds optimal paths through visible maze. Level 1 baseline 29 actions — if goal is visible within ~60 grid cells, A* finds it in ~30 moves.
+- **Expected impact**: Combines correct walkability testing with intelligent direction selection. Fewer wasted moves → survives longer → reaches goals.
+
+### 2. [Navigation Strategy] LS20 depth-first exploration — go deep before backtracking
+- **Hypothesis**: The stategraph tries all directions from each state breadth-first. For a maze, DFS is better: go as deep as possible in one direction, only backtrack when stuck. This covers more ground with fewer total moves and is more likely to find distant goals.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: In `_choose_action()` for movement games: when the last move succeeded (new state), try the SAME direction again. Only change direction when blocked. This creates a DFS-like exploration that follows corridors instead of ping-ponging.
+- **Target game**: ls20
+- **Expected impact**: Faster maze traversal. Follows corridors efficiently.
+
+### 3. [Navigation Strategy] LS20 perform at goal objects — try ACTION5 when near targets
+- **Hypothesis**: ls20 has maroon blocks (keys) and gray boxes (doors/exits). When the player is adjacent to one (visible near center), `perform` (ACTION5) might collect/interact with it. The current agent never uses perform strategically.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: After each move, check if maroon/gray objects are near the center (player position). If so, try ACTION5 (perform). This costs one action but might trigger level completion or item collection.
+- **Target game**: ls20
+- **Expected impact**: Discovers interact mechanic. Even basic perform-at-goals might solve levels.
 
 ### 2. [Puzzle Logic] VC33 level 3: visually inspect the puzzle via arc CLI
 - **Hypothesis**: After 6 experiments (022-027) trying to crack level 3 programmatically, the scoring condition is still unknown. The executor should visually inspect level 3 via `arc state --image` to understand what the ACTUAL goal looks like. The markers, bars, and buttons are known — but what does "solved" look like? Is it bar height equality? A specific pattern? Something else entirely?

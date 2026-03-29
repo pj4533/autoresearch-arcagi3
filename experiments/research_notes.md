@@ -1374,6 +1374,29 @@ Greedy direction selection only looks one step ahead. The ls20 maze requires mul
 **Key finding from exp 028 update**: Player is at FIXED position (20, 32). The view scrolls around the player. This simplifies pathfinding — always start A* from (20, 32).
 
 **Next step**: Implement A* on visible grid from center (20,32) to nearest goal (maroon/gray) through green cells. When no goal is visible, A* to the nearest frontier edge to scroll toward new territory.
+
+### Exp 030: BFS Fails Due to Invisible Walls (2026-03-29)
+
+**Exp 030 (BFS maze solver)**: Score 0.6667 (same, reverted). "BFS said 'go down' but game BLOCKED the move (invisible walls). Visual green cells don't perfectly map to game walkability."
+
+**CRITICAL FINDING**: ls20 has invisible walls. The visual grid shows green cells that LOOK walkable but are actually blocked. This means:
+- Visual pathfinding (BFS/A*) is UNRELIABLE for ls20
+- The stategraph's empirical trial (try direction, observe result) IS the correct method for testing walkability
+- But the stategraph explores too randomly — needs directional bias
+
+**The right approach for ls20**:
+1. Use stategraph's empirical approach (try moves, record if blocked)
+2. Add directional bias toward visible goals (maroon/gray objects)
+3. Build wall memory from blocked moves
+4. Use DFS (follow corridors) instead of BFS (ping-pong)
+5. Try ACTION5 (perform) when near goal objects
+
+**Summary of ls20 attempts (3 experiments)**:
+| Exp | Approach | Why it failed |
+|-----|----------|---------------|
+| 029 | Green density heuristic | Too greedy, maze too large |
+| 030 | BFS on visual grid | Invisible walls, green ≠ walkable |
+| Next | Empirical wall memory + goal bias | Should combine correct walkability with direction |
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**
