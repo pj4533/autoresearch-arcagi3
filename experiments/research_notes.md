@@ -1766,3 +1766,38 @@ Total: ~14 direct moves + maze overhead. Human baseline: 29 moves.
 **Additional note from exp 045**: "Agent oscillates at waypoints without trying ACTION5 (perform)." From source code: ACTION5 is NOT available in ls20 (game constructor line 1339 only enables actions [1,2,3,4]). This is a red herring — perform doesn't help.
 
 **The modifier at (19,30) was likely collected** when the agent passed through (16,28) [since rbt() overlap check passes], but the goal at (34,10) can NEVER be triggered from the (1,53) grid. Only from (39,45) where 34 ≡ 4 mod 5 = 39 mod 5.
+
+### VC33 Level 3 Deep Dive (2026-03-29, from source code)
+
+**Structure:** 52x52 grid, horizontal bar chart with 8 ZGd buttons at y=50 (x-positions: 6, 10, 18, 22, 28, 32, 40, 44). 75 moves allowed.
+
+**Button types:**
+- ZGd (tag "ZGd"+"ACQ"): Instant bar transfer via `ccl()` → `gel()`
+- zHk (tag "zHk"+"ACQ"): Animated transfer via `teu()`
+
+**Bar types:**
+- rDn: Horizontal base segments (foundation)
+- UXg: Vertical height segments (stackable, 2px wide, variable height)
+- fZK: Target markers with colors 11/14/15 indicating desired heights
+
+**Win condition (`gug()`, lines 1925-1944):**
+For EACH HQB button: its target color (bottom-right pixel: `dds.pixels[-1,-1]`) must appear in the corresponding bar's pixels at the correct alignment with an fZK marker. ALL buttons must pass.
+
+**Transfer mechanics (`gel()`):**
+Clicking a button transfers pixels between paired bars. Pixels are removed from source bar and added to destination bar. Buttons can become invalid (colored red) if adjacent rDn sections are missing.
+
+**Key insight for programmatic solving:**
+1. Each button has a target color (11, 14, or 15)
+2. Buttons are paired — clicking one transfers height between two bars
+3. Need to figure out which button controls which bar pair
+4. Click each button the right number of times to match targets
+5. 75 moves is generous (baseline: 31 clicks)
+
+**Approach for level 3:**
+1. Trial each of 8 buttons once → detect which bars change
+2. Map button→bar pairs
+3. Detect current bar heights and target heights (fZK markers)
+4. Compute clicks needed per button
+5. Execute
+
+This is tractable programmatically but requires understanding the pixel-level bar/marker structure. Visual investigation via `arc state --image` would make this much faster.
