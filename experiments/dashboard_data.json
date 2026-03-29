@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-03-29T19:34:12.076911+00:00",
+  "generated_at": "2026-03-29T19:42:04.329684+00:00",
   "summary": {
-    "total": 39,
+    "total": 40,
     "completed": 34,
     "improved": 2,
     "reverted": 31,
@@ -516,6 +516,19 @@
       "duration": "0s",
       "status": "diagnostic",
       "notes": "Iterative deepening WORKS: 33\u219253\u219263 steps across 3 deaths. But R>U>L>D preference with no-backtrack creates R,U,R,U alternation in open areas \u2014 oscillation instead of exploration. Need smarter junction decisions. Also: probing approach got 21 steps vs 15 without probing (probing makes better decisions but costs health)."
+    },
+    {
+      "id": "040",
+      "idea": "#1",
+      "description": "LS20 proper DFS with backtracking",
+      "avg_score": 0.6667,
+      "actions": 0,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "0s",
+      "status": "diagnostic",
+      "notes": "Proper DFS with tried-at-depth tracking. Reached 34 steps (>29 baseline!) on attempt 4. Still scored 0 \u2014 ls20 likely requires collecting modifiers AND reaching goal with correct player state (shape/color/rotation), not just navigation. The maze navigation is SOLVED but the puzzle scoring condition needs items+state matching."
     }
   ],
   "running_best": [
@@ -539,6 +552,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
