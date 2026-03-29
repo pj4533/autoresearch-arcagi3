@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T22:07:59.199484+00:00",
+  "generated_at": "2026-03-29T22:12:18.677892+00:00",
   "summary": {
-    "total": 50,
-    "completed": 41,
+    "total": 51,
+    "completed": 42,
     "improved": 2,
-    "reverted": 38,
+    "reverted": 39,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -659,6 +659,19 @@
       "duration": "13s",
       "status": "reverted",
       "notes": "Hashed center 20\u00d720 pixels instead of full grid minus 2 rows. LS20 changed from GAME_OVER to NOT_FINISHED (possibly better exploration). vc33 no regression. Still score 0 for ls20. Center hashing is a valid improvement but doesn't solve the fundamental maze navigation problem."
+    },
+    {
+      "id": "051",
+      "idea": "#1",
+      "description": "VC33 L3 researcher's exact coords (y=100)",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "18s",
+      "status": "reverted",
+      "notes": "Tried 3 coordinate approaches: (1) source x + y=100 primary, (2) source x + y=100 reversed, (3) BFS x + y=100. Hash verification: click 1 at (100,112) changes hash (e96a\u2192e1aa), click 2 does NOT change hash. First click likely consumes a life (not pressing button). BFS-detected color 9 at y=56 is NOT the actual buttons \u2014 maybe health/score display. Actual button hit area unknown. BLOCKER: click coordinate mapping for L3 is fundamentally broken. 30 experiments at plateau."
     }
   ],
   "running_best": [
@@ -682,6 +695,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
