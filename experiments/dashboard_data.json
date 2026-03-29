@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T21:49:00.447627+00:00",
+  "generated_at": "2026-03-29T21:57:22.290016+00:00",
   "summary": {
-    "total": 47,
-    "completed": 38,
+    "total": 48,
+    "completed": 39,
     "improved": 2,
-    "reverted": 35,
+    "reverted": 36,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -620,6 +620,19 @@
       "duration": "0s",
       "status": "diagnostic",
       "notes": "LEVEL 3 DECODED: Chain-of-bars puzzle. 5 bars (fCG\u2194sro\u2194TKb\u2194nDF\u2194uUB) connected in chain. 8 buttons transfer 2px height between adjacent bars. 3 decorations (ChX/PPS/VAJ) sit on bars \u2014 need to reach specific target y-positions matching goal zones. Win condition: each decoration's bottom pixel color must match a goal zone color, AND y-position must match target. Initial heights: fCG=4, sro=2, TKb=4, nDF=6, uUB=28. Trial-and-lock can't solve this \u2014 needs targeted computation of required heights."
+    },
+    {
+      "id": "048",
+      "idea": "#5",
+      "description": "VC33 level 3 bar chart targeted clicks",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "18s",
+      "status": "reverted",
+      "notes": "Implemented bar chart detection (8 buttons \u2192 level 3). Found markers: color 14 at sro (y=41-53), color 15 at nDF (y=39-51), color 11 at uUB (y=29-47). Tried cascade redistribution (uUB\u2192nDF\u2192TKb\u2192sro) with various click counts (7+6+2, 5+5+4+3) and round-robin. No score change. BLOCKER: exact target bar heights unknown \u2014 need researcher to compute from game source gug() win condition + decoration\u2192goal zone mapping."
     }
   ],
   "running_best": [
@@ -643,6 +656,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
