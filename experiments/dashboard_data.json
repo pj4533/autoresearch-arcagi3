@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T22:05:18.797089+00:00",
+  "generated_at": "2026-03-29T22:07:59.199484+00:00",
   "summary": {
-    "total": 49,
-    "completed": 40,
+    "total": 50,
+    "completed": 41,
     "improved": 2,
-    "reverted": 37,
+    "reverted": 38,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -646,6 +646,19 @@
       "duration": "18s",
       "status": "reverted",
       "notes": "Used researcher's computed decoration\u2192goal mapping (ChX\u2192y=39, PPS\u2192y=33, VAJ\u2192y=31). Tried btn8\u00d79+btn6\u00d73+btn4\u00d75+btn2\u00d71 = 18 clicks. Also tried SWAPPED button direction. KEY FINDING: **bar heights DON'T CHANGE at all** \u2014 all 5 bar columns show 50 non-bg pixels before AND after all 18 clicks. Level 3 buttons are NOT responding to click coordinates. The game processes the clicks (no GAME_OVER) but bars don't move. Either coordinate mapping is wrong for L3, or L3 has completely different click mechanics than L1-2."
+    },
+    {
+      "id": "050",
+      "idea": "#2",
+      "description": "LS20 center-region hashing (fog-of-war aware)",
+      "avg_score": 0.6667,
+      "actions": 1000,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "13s",
+      "status": "reverted",
+      "notes": "Hashed center 20\u00d720 pixels instead of full grid minus 2 rows. LS20 changed from GAME_OVER to NOT_FINISHED (possibly better exploration). vc33 no regression. Still score 0 for ls20. Center hashing is a valid improvement but doesn't solve the fundamental maze navigation problem."
     }
   ],
   "running_best": [
@@ -669,6 +682,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
