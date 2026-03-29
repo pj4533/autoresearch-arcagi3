@@ -918,3 +918,43 @@ The "no visible change" issue is most likely target selection (clicking non-inte
 - Skip movement entirely (vc33 only has ACTION6)
 - After each click that changes state, re-detect objects to find newly-clickable zHk sprites
 - 5-tier priority puts color 9 (ZGd) objects in group 0 → clicked first
+
+### Stategraph Exp 006-008: Programmatic Exploration Ceiling (2026-03-29)
+
+**Exp 006 (5-tier priority + 200 actions)**: Score 0, 122s.
+- vc33: GAME_OVER after 200 actions — **ran out of lives from wrong clicks!**
+- vc33 has a LIFE MECHANIC: wrong clicks consume lives, game ends when lives = 0
+- 5-tier priority is targeting objects but many are decorative, not interactive
+- click_results cache was preventing re-trying positions in new states
+
+**Exp 007 (click cache clear + no LLM + 200 actions)**: Score 0, 6.6s.
+- Cleared click_queue on state change — proper re-detection
+- 600 actions in 6.6s — blazing fast
+- Still 0: "brute-force clicking can't solve vc33 puzzle logic"
+- Lives consumed by wrong clicks before finding winning sequence
+
+**Exp 008 (no LLM + 500 actions)**: Score 0, 20s.
+- 1500 total actions in 20s
+- **ls20: 100 actions = 100 UNIQUE states** — state space is enormous, every move creates a new state
+- State graph can't capture ls20's latent/hidden state mechanics
+- vc33: GAME_OVER from life loss
+- "Pure exploration insufficient for games requiring cognitive understanding"
+
+**CONCLUSION: Pure programmatic exploration has hit its ceiling.**
+
+Three fundamental blockers:
+1. **vc33 life mechanic**: Wrong clicks are penalized. Brute-force kills the agent.
+2. **ls20 state explosion**: 100 unique states in 100 actions. Graph can't help.
+3. **No intelligence**: Agent can click/move but can't understand what it's trying to achieve.
+
+**Strategic Pivot: Need intelligence, not more speed.**
+
+Two highest-priority experiments:
+1. **Cloud model validation (Claude Sonnet)**: Answers THE fundamental question — does any agent architecture work? If Claude + explorer scores > 0 on vc33, the issue is model intelligence and we should invest in better reasoning (code generation, cloud hybrid). If Claude also scores 0, there may be a framework bug.
+2. **LLM-guided targeting**: Instead of LLM every step (slow) or no LLM (dumb), use LLM at KEY moments: initial grid analysis, after state changes, when stuck. One smart LLM call guides many programmatic actions.
+
+**What competition winners had that we don't:**
+- StochasticGoose (12.58%): Trained CNN on thousands of episodes → learned which actions change frames
+- Blind Squirrel (6.71%): Trained ResNet18 value model on many game states
+- 3rd place (training-free): Had 8 HOURS per game (vs our 20-120s)
+- We need to compensate for lack of training data and time with LLM intelligence

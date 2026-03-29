@@ -2,169 +2,128 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 004): Pure programmatic stategraph: 120 actions in 1.4s. vc33 clicks confirmed working (265 cell changes on color 9 blocks). ft09 game version BROKEN (only status bar changes). Focus entirely on vc33 (6 clicks to solve level 1) and ls20 (movement works). Key need: better click targeting for vc33, BFS navigation for ls20.**
+**PHILOSOPHY (2026-03-29, post exp 008): Pure programmatic exploration has hit its ceiling. vc33 has a LIFE MECHANIC — wrong clicks drain lives → GAME_OVER. ls20 state space is enormous (100 actions = 100 unique states). Brute-force won't work — the agent needs INTELLIGENCE. Two paths forward: (1) validate with a strong cloud model (Claude Sonnet) to check if any agent can score, (2) use LLM strategically at key decision points (not every step, but to analyze grid and plan clicks).**
 
 ---
 
-### 1. [Exploration Strategy] VC33-focused: priority clicks + re-detect after state change + 200 actions
-- **Hypothesis**: Deep analysis of vc33 game code reveals level 1 has exactly 2 interactive sprites: both xQZ (tag "ZGd"), color 9 (purple), at grid (30,12) and (30,16) → agent coords (60,24) and (60,32). The game requires a SEQUENCE: (1) click ZGd sprites to trigger ccl() which sets up conditions, (2) click zHk sprites (color 1, blue, 3x12) AFTER conditions are met to trigger level completion via teu() animation. The benchmark shows the agent DID hit one interactive sprite (action 3 at 61,25 ≈ 60,24) but with only 40 actions it doesn't explore enough states to find the complete winning sequence. With 200 actions at 0.012s/action = 2.4s, the agent can exhaustively explore all click combinations.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`, `src/arcagi3/utils/formatting.py`
-- **Changes**: Three changes combined:
-  1. **5-tier click priority**: Group connected components by color saliency + size:
-     - **Group 0**: Salient color ({6-15}) AND medium size (2-32px per dim). VC33's ZGd sprites are color 9, 2-3px → group 0. Movement actions also group 0.
-     - **Group 1**: Non-salient ({0-5}) AND medium size. zHk sprites are color 1, 3x12 → group 1.
-     - **Group 2**: Salient AND wrong size
-     - **Group 3**: Other non-status-bar
-     - **Group 4**: Status bar
-     - Click random pixel within each segment (not center).
-  2. **Re-detect objects after each state change**: The current `_try_click()` populates click_queue once. After clicking ZGd sprites the state changes and NEW objects may become clickable (zHk sprites with krt()=true may change appearance). Ensure re-detection happens in each new state by checking click_queue per state_hash, not globally.
-  3. **Increase max_actions to 200**: At 0.012s/action (no LLM), 200 actions = 2.4s.
+### 1. [Architecture] Cloud model validation — can ANY agent score?
+- **Hypothesis**: After 8 stategraph experiments and 30 explorer experiments all scoring 0, we need to validate whether the FRAMEWORK works at all. Claude Sonnet 4.5 is a proven strong reasoner. Running it on a single game answers: if Claude scores > 0, the issue is model intelligence → focus on better models or code-generation. If Claude also scores 0, there's a framework/game bug that no amount of strategy can fix. This is the single most important experiment to run next — it determines the entire strategic direction.
+- **Files to modify**: None — CLI args only
+- **Changes**: Run `uv run python run_benchmark.py --agent explorer --config claude-sonnet-4-5-20250929-thinking-8k --max-actions 40 --games vc33-9851e02b`. Single game (vc33 since clicks work). Cost: ~$0.50-2.00.
+- **Expected impact**: Either validates framework (Claude scores > 0, meaning we need better reasoning) OR reveals framework bug (Claude also scores 0, meaning the game/API pipeline is broken).
 
-  Run: `uv run python run_benchmark.py --agent stategraph --max-actions 200 --games vc33`
-- **Expected impact**: First non-zero score. With priority targeting, re-detection after state changes, and 200-action budget, the agent should: click ZGd sprites (state changes), re-detect new clickable objects (zHk), click those (level complete). VC33 level 1 needs 6 baseline clicks.
-
-### 2. [Exploration Strategy] VC33 click-only mode — skip all movement
-- **Hypothesis**: VC33 ONLY supports ACTION6 (click). The stategraph currently wastes 4-5 actions per state trying movement (untried non-click Priority 2). For click-only games, movement should be eliminated entirely. This doubles the effective click budget.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: In `_choose_action()`, check `available_actions`. If only ACTION6 is available, skip Priority 2 (untried non-click) entirely. All actions are clicks at detected objects. Also: after learning that movement doesn't work (from action_knowledge showing all movement = "no visible change"), permanently skip movement actions for the rest of the game.
-- **Expected impact**: Doubles effective click budget for vc33. Every action is a meaningful click.
-
-### 3. [Exploration Strategy] 5-tier click priority groups for stategraph (general)
-- **Hypothesis**: Exp 032 shows vc33 "detects click effects but no score" — the agent clicks objects and sees changes but doesn't solve levels. The issue is targeting: current `detect_interactive_objects()` filters to size < 200 which catches structural elements. The 3rd-place solution's 5-tier priority system based on color saliency + size finds interactive buttons in ~5-10 clicks.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`, `src/arcagi3/utils/formatting.py`
-- **Changes**: Based on 3rd-place implementation:
-  - **Group 0 (highest)**: Salient color ({6,7,8,9,10,11,12,13,14,15}) AND medium size (2-32px per dimension). Also: ALL movement/arrow actions.
-  - **Group 1**: Non-salient color ({0,1,2,3,4,5}) AND medium size
-  - **Group 2**: Salient color AND wrong size (too small or too large)
-  - **Group 3**: Not salient, not medium, not status bar
-  - **Group 4 (lowest)**: Status bar segments
-  - Each connected component = one click target. Click a random pixel within the segment.
-  - Process groups sequentially: exhaust all group 0 actions across all states before any group 1.
-- **Expected impact**: Targets interactive buttons first. vc33's interactive sprites have salient colors (9=blue, 11=yellow) and medium sizes — they'd be group 0.
-
-### 4. [Exploration Strategy] BFS shortest-path-to-frontier in stategraph
-- **Hypothesis**: When all actions from the current state are tried, the stategraph does a random walk (Priority 6). The 3rd-place winner used BFS across the entire graph: compute distance from every node to the nearest "frontier" (state with untried actions), then follow the shortest path.
+### 2. [Exploration Strategy] VC33 smart clicking — avoid life-draining clicks
+- **Hypothesis**: Exp 006-008 revealed vc33 has a life mechanic: wrong clicks consume lives and the game ends in GAME_OVER. Brute-force clicking kills the agent before finding the winning sequence. The fix: track which clicks drain lives (score or state changes negatively) and AVOID repeating those patterns. Only click objects that produce "safe" changes (frame changes without life loss).
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. Maintain a reverse graph `_G_rev` (target → source edges)
-  2. Add `_rebuild_distances()`: BFS from all frontier nodes through `_G_rev`, stores `distance` and `next_hop` per node
-  3. Rebuild on node closure (all actions tried)
-  4. In `_choose_action()`: if exhausted, follow `next_hop` chain instead of random walk
-  5. Replace Priority 4-6 entirely
-- **Expected impact**: Eliminates random walks. Agent always takes shortest path to unexplored territory.
+  1. After each click, check if `result_state` indicates GAME_OVER or if a "lives" indicator changed
+  2. If a click at object type X (by color/size) caused life loss, mark that object category as DANGEROUS
+  3. In `_try_click()`, skip objects in dangerous categories
+  4. Track the game's "remaining lives" indicator (probably in the status bar) — if low, only click objects that previously produced positive changes
+  5. If GAME_OVER occurs, record which click sequence led there and avoid it in the next game
+- **Expected impact**: Prevents wasting lives on structural/non-interactive objects. Focuses clicks on objects that produce positive state changes without draining lives.
 
-### 5. [Exploration Strategy] Increase max_actions for stategraph
-- **Hypothesis**: Exp 032 ran 120 actions in 17s (0.14s/action). The stategraph is so fast we can afford 200-500 actions within a few minutes. With pure programmatic (no LLM), even 1000 actions takes ~2 minutes. More actions = more thorough state space coverage.
-- **Files to modify**: None — just change `--max-actions`
-- **Changes**: Run `uv run python run_benchmark.py --agent stategraph --max-actions 200`. At 0.14s/action, 200 actions = 28s.
-- **Expected impact**: More thorough exploration. LS20 level 1 needs 29 baseline moves; with 200 budget the agent can afford extensive exploration.
-
-### 6. [Preprocessing] Rule-based status bar detection for stategraph
-- **Hypothesis**: Our stategraph masks fixed 2 rows top/bottom. The 3rd-place solution detects status bars dynamically via connected component analysis: segments touching edges with elongated aspect ratio (>5:1) OR 3+ "twin" segments along an edge.
+### 3. [Architecture] VC33 LLM-guided first click — use model to analyze grid ONCE
+- **Hypothesis**: Pure programmatic exploration can't solve vc33 because it can't distinguish interactive buttons from decorative objects. But calling the LLM every step is wasteful. The sweet spot: call the LLM ONCE at the start to analyze the grid and identify likely interactive objects. The LLM sees the grid (as text matrix), identifies colored objects, and suggests which to click. Then programmatic exploration tries those targets first.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Add `_detect_status_bar()`, run once per level:
-  1. Find all connected components via flood fill
-  2. Mark as status bar if: touches screen edge (within 3px) AND (aspect ratio > 5:1 OR 3+ twins on same edge)
-  3. Create boolean mask, apply before hashing
-- **Expected impact**: Prevents state space explosion from changing counters/timers.
+- **Changes**:
+  1. At step 0, call LLM with grid + prompt: "This is a click puzzle. Identify the interactive objects. Which objects look like clickable buttons? Describe their positions, colors, and likely function."
+  2. Parse LLM response for suggested click targets
+  3. Add these to front of click_queue with highest priority
+  4. Execute programmatically from there
+  5. If score increases, call LLM again with new grid to identify next set of targets
+- **Expected impact**: One LLM call (~1-2s) gives the agent intelligent targeting. Combines programmatic speed with LLM reasoning for initial analysis. Cost: 1 LLM call per game instead of 40.
 
-### 7. [State Tracking] Suspicious transition handling
-- **Hypothesis**: Some actions trigger animations that revert. 3rd-place requires 3 confirmations before recording a transition back to the level's initial frame.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Track `level_initial_hash`. When transition target equals it AND multiple frames returned, require 3 occurrences before recording.
-- **Expected impact**: Cleaner graphs, fewer false transitions.
-
-### 8. [Architecture] Try Qwen3-32B dense model with stategraph
-- **Hypothesis**: The stategraph only calls LLM every 15 steps, so model speed matters less. Qwen3-32B dense (all 32B params active, KV cache) may produce better hypotheses.
-- **Files to modify**: None — just `--config qwen3-32b-local`
-- **Changes**: Run `uv run python run_benchmark.py --agent stategraph --config qwen3-32b-local --max-actions 40`.
-- **Expected impact**: Better LLM reasoning when called.
-
-### 9. [Architecture] Cloud model validation (Claude Sonnet)
-- **Hypothesis**: Run Claude Sonnet to determine if any agent can score. If Claude + explorer scores > 0, the model is the bottleneck.
-- **Files to modify**: None — CLI args only
-- **Changes**: `uv run python run_benchmark.py --agent explorer --config claude-sonnet-4-5-20250929-thinking-8k --max-actions 40 --games ls20`. Single game, minimize cost.
-- **Expected impact**: Separates model capability from framework issues.
-
-### 10. [Architecture] Code-generation approach (Symbolica-style)
-- **Hypothesis**: Symbolica scored 36.08% by having LLM write Python code to play games. One API call generates strategy, runs for 100+ actions free.
+### 4. [Architecture] Code-generation approach (Symbolica-style)
+- **Hypothesis**: Symbolica scored 36.08% on ARC-AGI-3 by having LLM write Python code to play games, not by choosing actions. One cloud API call generates a strategy function, then the function runs for 100+ actions at zero cost. This fundamentally different approach uses LLM intelligence for STRATEGY (what to do) and programmatic execution (doing it fast). With Claude Sonnet analyzing the grid structure and writing a grid-analysis function, the agent can identify interactive objects programmatically.
 - **Files to modify**: New agent or stategraph modification
-- **Changes**: At step 0, call Claude Sonnet with grid + mechanics. Generate `def choose_action(grid, history) -> action`. Execute for all steps.
-- **Expected impact**: Cloud model intelligence for strategy, zero per-action cost.
+- **Changes**: At step 0, call Claude Sonnet with:
+  - Grid as text matrix
+  - Available actions
+  - Game mechanics description (click puzzle, limited lives)
+  - Ask: "Write a Python function `def analyze_grid(grid) -> list[tuple[int,int]]` that identifies likely interactive objects to click, sorted by priority."
+  - Execute the generated function on each new grid state
+  - Cost: ~$0.05 per game
+- **Expected impact**: Leverages cloud model intelligence for analysis strategy while keeping per-action cost zero.
 
-### 11. [Exploration Strategy] LS20 object detection + pathfinding
+### 5. [Exploration Strategy] VC33 click-effect tracking — learn which objects are interactive
+- **Hypothesis**: In exp 006-007, the agent clicked many objects and some produced 265 cell changes. Instead of treating all clicks equally, track which specific object types (by color, size, position) produce real frame changes vs no change vs life loss. After the first pass, ONLY click objects that are confirmed interactive.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**:
+  1. First pass (Phase 1): Click one object of each color/size category, recording effect
+  2. Categorize each click as: "interactive" (large frame change), "decorative" (no change), or "dangerous" (life loss/game over)
+  3. Second pass (Phase 2): Only click "interactive" objects, trying different combinations
+  4. Track which click SEQUENCES produce score increases
+- **Expected impact**: Reduces wasted clicks from ~90% to ~10%. Focuses remaining life budget on truly interactive objects.
+
+### 6. [Exploration Strategy] LS20 LLM-guided navigation — analyze map structure
+- **Hypothesis**: ls20 has 100 unique states in 100 actions — the state graph is useless. But the LLM CAN analyze the grid to see the map structure: walls, paths, objects, player position. Instead of random exploration, call the LLM every 10-15 steps with the current grid and ask "Where should the player go? What objects are visible? Plan a path." The LLM provides directional guidance, the agent executes 10-15 moves, then re-checks.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: For ls20 (detected by available_actions = ACTION1-5):
+  1. Every 10 steps, send grid to LLM
+  2. LLM identifies: player position, visible objects, wall structure, goal direction
+  3. LLM suggests: "Move right 5 times, then down 3 times to reach the key"
+  4. Execute the plan programmatically
+  5. Re-check with LLM after plan completion
+- **Expected impact**: Purposeful navigation instead of random exploration. The LLM provides the "where to go" intelligence, programmatic execution provides speed.
+
+### 7. [Architecture] Hybrid approach — programmatic speed + LLM at key decision points
+- **Hypothesis**: Pure LLM (explorer) is too slow. Pure programmatic (stategraph) is too dumb. The sweet spot: programmatic exploration for the bulk of actions, LLM called at KEY moments: (a) when a new state type is discovered, (b) when the agent gets stuck, (c) every N actions for strategic guidance. The 3rd-place solution used no LLM and solved 12 levels — but it had 8 hours. We need LLM intelligence to compensate for our smaller time/action budget.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**:
+  1. Run programmatically by default (0.012s/action)
+  2. Call LLM when: (a) first seeing a game, (b) score increases (new level), (c) after 50 actions with no progress, (d) when a click produces a large frame change
+  3. LLM analyzes accumulated state graph + current grid
+  4. LLM suggests: specific targets, strategy shift, or grid analysis
+  5. Resume programmatic execution with LLM guidance
+- **Expected impact**: Best of both worlds: programmatic speed for bulk exploration + LLM intelligence at decision points.
+
+### 8. [Preprocessing] Rule-based status bar detection for stategraph
+- **Hypothesis**: Our stategraph masks fixed 2 rows top/bottom. Dynamic detection via connected components (segments touching edges with >5:1 aspect ratio) would be more robust.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: Detect status bars via flood fill + edge proximity + aspect ratio checks.
+- **Expected impact**: Better state hashing for ls20 where status bar changes create false unique states.
+
+### 9. [Exploration Strategy] VC33 targeted click test — known sprite positions
+- **Hypothesis**: From game code analysis, vc33 level 1 has interactive sprites at grid positions (30,12) and (30,16) → agent coords (60,24) and (60,32). Before implementing complex strategies, test if clicking EXACTLY at these known positions produces a score. If it does, the issue is targeting. If not, the issue is deeper.
+- **Files to modify**: Hardcode test or manual arc CLI test
+- **Changes**: Run `arc start vc33 --max-actions 10` then `arc action click --x 60 --y 24`, `arc action click --x 60 --y 32`, check if score changes. This is a 30-second diagnostic.
+- **Expected impact**: Confirms whether the win sequence is achievable with correct targeting, or if there's a game-level issue.
+
+### 10. [Exploration Strategy] LS20 object detection + pathfinding
 - **Hypothesis**: LS20 has keys, doors, rotators, health. Detect via connected components, implement A* pathfinding to targets.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Identify player, keys, doors by color/size. A* to nearest target. Execute as movement sequence.
+- **Changes**: Identify player, keys, doors by color/size. A* to nearest target.
 - **Expected impact**: Direct navigation vs random exploration.
 
+### 11. [State Tracking] VC33 life counter tracking — preserve lives
+- **Hypothesis**: vc33's life mechanic means the agent needs to conserve clicks. Track the life counter (probably in the status bar) and stop exploring when lives are low. Only use remaining lives on confirmed-interactive objects.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: Detect life counter region in status bar. Parse remaining lives. When lives ≤ 2, switch to conservative mode: only click previously-confirmed interactive objects.
+- **Expected impact**: Prevents GAME_OVER from wasted clicks. Preserves lives for winning sequence.
+
 ### 12. [Exploration Strategy] UCB1 action selection
-- **Hypothesis**: Use UCB1 to balance exploit (frame-changing actions) with explore (untried). `score = reward + C * sqrt(ln(N) / n_i)`.
+- **Hypothesis**: Use UCB1 to balance exploit vs explore. Actions that change frames get higher reward.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**: Track per-action rewards. frame_changed=1, score_increase=10. Pick highest UCB1.
-- **Expected impact**: Smarter exploration/exploitation balance.
-
-### 13. [Action Sequencing] Winning sequence replay with variations
-- **Hypothesis**: After solving a level, try same sequence on next level with ±1 variations.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Offset clicks ±1 cell, add/remove single actions from winning sequences.
-- **Expected impact**: Faster level 2+ completion.
-
-### 14. [State Tracking] Curiosity-driven action prioritization
-- **Hypothesis**: Prioritize actions whose outcomes are most surprising (actual != predicted). Simple lookup table.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Track transition predictions. Weight selection toward high-surprise actions.
-- **Expected impact**: Focuses on most informative actions.
-
-### 15. [Memory Management] Cross-level action knowledge transfer
-- **Hypothesis**: Preserve which action TYPES worked and which click regions were interactive across levels.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Preserve click_results and action effectiveness on level transition.
-- **Expected impact**: Faster exploration on levels 2+.
-
-### 16. [Phase Transitions] Exhaustive-then-exploit transition
-- **Hypothesis**: When state graph has zero untried actions anywhere, switch to exploitation mode.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Track total untried actions. When 0, replay best sequence or try combinations.
-- **Expected impact**: Prevents wasted actions on exhausted state spaces.
+- **Expected impact**: Smarter selection.
 
 ---
 
 ## Completed
 
-- **#1 [Prompt Engineering] Game-type-aware system prompt** — Exp 002: reverted (score=0.0000). Model tried correct actions but JSON output still malformed.
-- **#2 [Exploration Strategy] Fix three hardcoded Move Up fallbacks** — Exp 003: reverted (score=0.0000). ls20 regressed to 0 actions. Root cause is JSON parse failure, not fallback logic.
-- **#3 [Exploration Strategy] Programmatic click probe** — Exp 004: reverted (score=0.0000). 2x faster but all clicks "no visible change" — coordinate mapping wrong.
-- **#4 [Prompt Engineering] Eliminate convert LLM call** — Exp 005: reverted (score=0.0000). Model sometimes produces JSON but truncated by max_tokens.
-- **#27 [Prompt Engineering] Disable Qwen thinking mode** — Exp 006: ACCEPTED (foundational fix). JSON parse 0%→91%, duration 41% faster. Unblocks all other ideas.
-- **#5 [Preprocessing] Click target list in explore prompt** — Exp 007: reverted (score=0.0000). Click targets shown but clicks still don't register visible changes.
-- **#6 [State Tracking] State graph with loop detection** — Exp 008: reverted (score=0.0000). Fastest run (2491s) but no score improvement.
-- **#7 [State Tracking] Enhanced frame change description** — Exp 009: reverted (score=0.0000). New speed record (1949s) but still no score.
-- **#8 [Prompt Engineering] StateAct-style structured prompting** — Exp 010: reverted (score=0.0000). Best JSON parse rate (1 failure) but no score.
-- **#9 [Phase Transitions] Stuck detection + random fallback** — Exp 011: reverted (score=0.0000). Very fast (1003s) but random actions don't score.
-- **#10 [Memory Management] Structured memory** — Exp 012: reverted (score=0.0000). No improvement.
-- **#32 [Exploration Strategy] Brute-force click for VC33** — Exp 013: reverted (score=0.0000). Corrected coords still no visible change. Click issue is NOT coordinate mapping.
-- **#11 [Action Sequencing] Multi-action planning** — Exp 014: reverted (score=0.0000). 85% faster but no score.
-- **#13 [Prompt Engineering] ReflAct-style reflection** — Exp 015: reverted (score=0.0000). No improvement.
-- **#16 [Prompt Engineering] Score change feedback** — Exp 016: reverted (score=0.0000). No score changes ever occur so feedback never triggers.
-- **#20 [Memory Management] Multi-turn conversation context** — Exp 017: reverted (score=0.0000). Slower due to extra tokens.
-- **#1(new) [Exploration Strategy] Hypothesis-driven exploration** — Exp 018: reverted (score=0.0000). Hypotheses formed but no score.
-- **#2(new) [Memory Management] Action-effect journal** — Exp 019: reverted (score=0.0000). Journal tracks but model can't discover scoring mechanics.
-- **#3(new) [State Tracking] State graph with untried actions** — Exp 020: reverted (score=0.0000). Fast but no score.
-- **#6(new) [Exploration Strategy] Systematic probe with clicks** — Exp 021: reverted (score=0.0000). DIAGNOSTIC: found frame comparison timing bug.
-- **fix [Bug Fix] Frame comparison timing** — Exp 022: ACCEPTED. Agent can now see action effects.
-- **#5(new) [State Tracking] Enhanced frame descriptions** — Exp 023: reverted (score=0.0000). Rich descriptions working but no score.
-- **#8(new) [Prompt Engineering] Eliminate convert LLM call** — Exp 024: reverted (score=0.0000). Faster but no score.
-- **#10(new) [Exploration Strategy] Probe undo** — Exp 025: reverted (score=0.0000). Undo not available in these games.
-- **#14(new) [Preprocessing] Grid differencing** — Exp 026: reverted (score=0.0000). Detailed diffs working but no score.
-- **#15(new) [Prompt Engineering] Prompt compression** — Exp 027: reverted (score=0.0000). Fastest ls20 (373s) but no score.
-- **#12(new) [Action Sequencing] Multi-action planning** — Exp 028: reverted (score=0.0000). Fastest benchmark (1390s) but no score.
-- **#15(new) [Architecture] ALL best changes combined** — Exp 029: reverted (score=0.0000). Compound effect still 0. Model lacks reasoning for these games.
-- **#16(new) [Architecture] max_actions=100** — Exp 030: reverted (score=0.0000). 300 actions, still 0. Budget isn't the bottleneck.
-- **#4(old) [Memory Management] Cross-level knowledge transfer** — Exp 031: reverted (score=0.0000). No level transitions occur so feature never activates.
-- **#1(queue) [Architecture] Stategraph baseline** — Exp 032: baseline (score=0.0000). 120 actions in 17s (0.14s/act). Clicks work in vc33. ft09 wastes actions on movement. Establishes programmatic baseline.
-- **#2(queue) [Bug Fix] Click diagnostic** — Exp 033: vc33 clicks work, ft09 broken.
-- **#3(queue) [Architecture] Qwen3-32B** — Exp 003: reverted. 2x slower, same score.
-- **#5(queue) [Exploration Strategy] No LLM calls** — Exp 004: reverted. 12x faster (1.4s) but still 0 score.
-- **#6(queue) [Exploration Strategy] BFS to frontier** — Exp 005: reverted. Better navigation but no score (24s).
-- **#1 [Exploration Strategy] 5-tier click priority + 200 actions** — Exp 006: reverted. GAME_OVER on vc33 (ran out of lives). Agent clicks objects but can't solve puzzle.
+- **#1 [Prompt Engineering] Game-type-aware system prompt** — Exp 002: reverted (score=0.0000).
+- **#2 [Exploration Strategy] Fix three hardcoded Move Up fallbacks** — Exp 003: reverted (score=0.0000).
+- **#3 [Exploration Strategy] Programmatic click probe** — Exp 004: reverted (score=0.0000).
+- **#4 [Prompt Engineering] Eliminate convert LLM call** — Exp 005: reverted (score=0.0000).
+- **#27 [Prompt Engineering] Disable Qwen thinking mode** — Exp 006: ACCEPTED (foundational fix).
+- **#5-#16 (explorer experiments)** — All reverted. See log_archive_explorer.md.
+- **fix [Bug Fix] Frame comparison timing** — Exp 022: ACCEPTED.
+- **Stategraph 001**: Baseline — 120 actions in 17s, score 0.
+- **Stategraph 002**: Click diagnostic — vc33 clicks work, ft09 broken.
+- **Stategraph 003**: Qwen3-32B — 2x slower, same score. Reverted.
+- **Stategraph 004**: No LLM — 12x faster (1.4s), same score. Reverted.
+- **Stategraph 005**: BFS to frontier — better navigation, same score. Reverted.
+- **Stategraph 006**: 5-tier priority + 200 actions — vc33 GAME_OVER from life loss. Reverted.
+- **Stategraph 007**: Click cache clear + no LLM — 600 actions in 6.6s, still 0. Brute-force can't solve puzzle logic. Reverted.
+- **Stategraph 008**: 500 actions deep — 1500 in 20s. ls20: 100 unique states. vc33: GAME_OVER. Pure exploration insufficient. Reverted.
