@@ -12,16 +12,15 @@
 - **Changes**: Run `uv run python run_benchmark.py --agent explorer --config claude-sonnet-4-5-20250929-thinking-8k --max-actions 40 --games vc33-9851e02b`. Single game (vc33 since clicks work). Cost: ~$0.50-2.00.
 - **Expected impact**: Either validates framework (Claude scores > 0, meaning we need better reasoning) OR reveals framework bug (Claude also scores 0, meaning the game/API pipeline is broken).
 
-### 2. [Exploration Strategy] VC33 smart clicking — avoid life-draining clicks
-- **Hypothesis**: Exp 006-008 revealed vc33 has a life mechanic: wrong clicks consume lives and the game ends in GAME_OVER. Brute-force clicking kills the agent before finding the winning sequence. The fix: track which clicks drain lives (score or state changes negatively) and AVOID repeating those patterns. Only click objects that produce "safe" changes (frame changes without life loss).
+### 2. [Exploration Strategy] VC33 targeted click test — click ONLY zHk sprites (color 1/blue)
+- **Hypothesis**: Deep game code analysis reveals vc33 has TWO sprite types that respond to clicks: ZGd (color 9, purple, 2-3px) triggers ccl() which may CORRUPT game state, and zHk (color 1, blue, 3x12px) triggers the win animation via teu(). ALL clicks cost 1 life (50 lives for level 1). The agent's earlier "success" clicking color 9 objects (265 cell changes) was likely CORRUPTING the game state, not making progress. The fix: ONLY click color-1 (blue) objects, avoid color-9 (purple) entirely.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. After each click, check if `result_state` indicates GAME_OVER or if a "lives" indicator changed
-  2. If a click at object type X (by color/size) caused life loss, mark that object category as DANGEROUS
-  3. In `_try_click()`, skip objects in dangerous categories
-  4. Track the game's "remaining lives" indicator (probably in the status bar) — if low, only click objects that previously produced positive changes
-  5. If GAME_OVER occurs, record which click sequence led there and avoid it in the next game
-- **Expected impact**: Prevents wasting lives on structural/non-interactive objects. Focuses clicks on objects that produce positive state changes without draining lives.
+  1. In `_try_click()` or click target detection, filter to ONLY include objects with color 1 (blue/zHk sprites). Exclude color 9 (purple/ZGd sprites) entirely.
+  2. Also try: after filtering to blue objects, if none produce score changes, try clicking blue objects in different STATES (navigate to different states first, then click blue objects there).
+  3. Monitor health bar (row 0: orange=color 7 remaining, yellow=color 4 lost). Parse remaining lives as `round(count_orange_cells / 64 * 50)`.
+  4. Run on vc33 only: `--games vc33-9851e02b --max-actions 100`
+- **Expected impact**: By avoiding purple (ZGd) clicks that corrupt state, and focusing on blue (zHk) clicks that trigger win animation, the agent should be able to solve levels. With 50 lives and 6-click baseline, agent has room for ~50 exploration clicks.
 
 ### 3. [Architecture] VC33 LLM-guided first click — use model to analyze grid ONCE
 - **Hypothesis**: Pure programmatic exploration can't solve vc33 because it can't distinguish interactive buttons from decorative objects. But calling the LLM every step is wasteful. The sweet spot: call the LLM ONCE at the start to analyze the grid and identify likely interactive objects. The LLM sees the grid (as text matrix), identifies colored objects, and suggests which to click. Then programmatic exploration tries those targets first.

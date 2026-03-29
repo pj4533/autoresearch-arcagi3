@@ -958,3 +958,50 @@ Two highest-priority experiments:
 - Blind Squirrel (6.71%): Trained ResNet18 value model on many game states
 - 3rd place (training-free): Had 8 HOURS per game (vs our 20-120s)
 - We need to compensate for lack of training data and time with LLM intelligence
+
+### VC33 Life Mechanic Deep Dive (2026-03-29)
+
+**Source**: `environment_files/vc33/9851e02b/vc33.py`
+
+**CRITICAL: ALL clicks cost 1 life — there are NO safe clicks.**
+- Line 2113: `self.vrr.czh()` is called BEFORE any sprite tag check
+- Even clicking empty space costs 1 life
+- No way to explore without spending lives
+
+**Lives per level:**
+| Level | Lives |
+|-------|-------|
+| 1 | 50 |
+| 2 | 50 |
+| 3 | 75 |
+| 4 | 50 |
+| 5 | 200 |
+| 6 | 50 |
+| 7 | 200 |
+
+**Health Bar (visible in row 0):**
+- Orange (color 7) = remaining health, Yellow (color 4) = lost health
+- Width = 64 cells (full grid width)
+- Remaining = round(64 * (current_lives / max_lives))
+- Can be parsed: count orange cells in row 0 → remaining_lives = count * max / 64
+
+**Two click target types:**
+1. **ZGd tag** (color 9, purple, 2-3px): Triggers `ccl()` → **may CORRUPT game state**. The 265 cell changes the agent saw when clicking color 9 were likely BAD changes.
+2. **zHk tag** (color 1, blue, 3x12px): Triggers `teu()` animation IF `krt()` condition is met → **this is the WINNING click**. krt() checks spatial adjacency relationships.
+
+**GAME_OVER**: When lives reach 0 (line 2137: `elif not self.vrr.olv: self.lose()`)
+
+**Key Insight**: The agent has been clicking the WRONG objects. The large frame changes from color-9 clicks (ZGd sprites) were game state CORRUPTION, not progress. The agent needs to click color-1 objects (zHk sprites) instead.
+
+**Strategy Implications:**
+- With 50 lives and 6-click baseline (18 = 3x baseline for scoring), agent has room for ~50 exploration clicks
+- ONLY click blue (color 1) objects — these are the correct targets
+- AVOID purple (color 9) objects — these corrupt game state
+- Monitor health bar to track remaining lives
+- The win condition requires clicking zHk sprites when krt() adjacency check passes
+
+### Stategraph Exp 009-010 Analysis (2026-03-29)
+
+**Exp 009 (UCB1)**: Score 0, 300 actions in 55s. "Smarter selection doesn't help — exploration strategy isn't the bottleneck." Confirms: the issue is not WHICH order to try actions, but WHAT actions to try.
+
+**Exp 010 (State-aware clicks + priority)**: Score 0, 600 actions in 8s. Per-state re-detection + 5-tier priority. 1000 actions on vc33 only → GAME_OVER. "Wrong clicks consume lives faster than agent finds interactive objects." Confirms: brute-force clicking with 5-tier priority still hits wrong objects (color 9/ZGd) before finding right ones (color 1/zHk).
