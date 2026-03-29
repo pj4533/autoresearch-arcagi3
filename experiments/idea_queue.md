@@ -2,41 +2,36 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 054): Source analysis NOT wrong — executor looked at wrong visual elements. The tall gray "bars" are STATIC UXg columns (never change). Transfers modify INVISIBLE rDn bars (color 0). The visible effect is 3 SMALL COLORED BLOCKS (HQB decorations) moving 2px per click. Look for colors 11/14/15 moving, not gray bars changing height.**
+**PHILOSOPHY (2026-03-29, post exp 055): Button mapping FULLY VERIFIED. fCG is INDEPENDENT (not in chain). SIMPLIFIED 18-click solution: btn(50)×9, btn(38)×3, btn(16)×6. The old 23-click plan had wrong heights AND unnecessary chain transfers.**
 
 ---
 
-### 1. [Diagnostic] VC33 level 3 — PLAY MANUALLY via arc CLI to verify clicks work
-- **Hypothesis**: **Hash changes ≠ button presses!** Source code line 2113: `self.vrr.czh()` consumes a life BEFORE any sprite check. So every click (even a miss) changes the hash. The 22/23 hash changes in exp 052 could ALL be life loss, not bar transfers. Need to verify: do bar heights actually change? Best way: play level 3 manually via arc CLI, click one button, view the frame, check if any bar changed height.
+### 1. [Puzzle Logic] VC33 level 3 — SIMPLIFIED 18-CLICK SOLUTION (using verified buttons)
+- **Hypothesis**: Exp 055 verified all buttons empirically. fCG is independent (not in chain). The old 23-click plan had unnecessary chain transfers. Simplified to 18 clicks using 3 buttons only.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: Implement level-3 specific click sequence using executor's verified display coordinates:
 
-  **CRITICAL DIAGNOSTIC via arc CLI:**
-  ```bash
-  arc start vc33 --max-actions 200
-  # Solve levels 1-2 via existing strategy
-  arc state --image    # View level 3 initial state
-  # Try clicking near each button position:
-  arc action click --x 50 --y 62   # Near game (40,50) → uUB→nDF
-  arc state --image    # DID ANY BAR CHANGE? Compare to initial.
-  arc action click --x 8 --y 62    # Near game (6,50) → sro→fCG
-  arc state --image    # DID LEFT BAR GROW?
   ```
-  **CRITICAL: DON'T look for "bar height changes" — look for COLORED BLOCKS moving!**
+  SOLUTION (18 clicks, verified against source gug() win condition):
 
-  The tall gray columns (UXg, color 5) are STATIC. They NEVER change.
-  The transfers modify INVISIBLE rDn sprites (color 0 = background).
-  The VISIBLE effect is 3 small 3x3 colored blocks (HQB decorations) moving:
-  - Color 11 (cyan) block near display (57,26) = ChX on uUB
-  - Color 14 (red) block near display (3,55) = PPS on fCG
-  - Color 15 (magenta) block near display (43,53) = VAJ on nDF
+  Step 1: btn(50) × 9  — uUB shrinks, nDF grows
+    ChX: y=21 → y=39 ✓ (target: 39)
+    VAJ: y=43 → y=25 (temporary overshoot)
 
-  Each click moves one decoration UP or DOWN by ~2.5 display pixels.
-  After clicking uUB→nDF: cyan block moves DOWN, magenta moves UP.
+  Step 2: btn(38) × 3  — nDF shrinks, TKb grows
+    VAJ: y=25 → y=31 ✓ (target: 31)
 
-  **Exp 054 says "bars don't change" — CORRECT! The gray bars ARE static.**
-  **But the colored decorations SHOULD be moving. Check for those.**
+  Step 3: btn(16) × 6  — fCG grows (independent pair)
+    PPS: y=45 → y=33 ✓ (target: 33)
 
-  If colored blocks DON'T move: coordinates truly wrong.
-  If colored blocks DO move: execute 23-click plan watching blocks reach targets.
+  Total: 18 clicks. Human baseline: 31. Perfect per-level score.
+  ```
+
+  **IMPORTANT:**
+  - Step 2 uses btn(38) = nDF-2/TKb+2. NOT btn(34) which is the opposite direction.
+  - Step 3 uses btn(16) = fCG+2. NOT btn(12) which shrinks fCG.
+  - Order matters: Step 1 MUST come before Step 2 (VAJ overshoots then corrects).
+  - All 3 steps use display y from BFS-detected button row.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
 
