@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 056): Only 4 of 8 buttons work. PPS needs UP but only DOWN button found. Missing button at game x=6 (display ~8) — too close to left edge for BFS. Also: some "non-working" buttons may become valid AFTER other clicks change game state (order-dependent). Need to find PPS-UP button or use order-dependent activation.**
+**PHILOSOPHY (2026-03-29, post exp 057): Exp 057 used WRONG button directions (btn[7] for ChX = UP, needs DOWN via btn[6]). The 4 "non-working" buttons may be at wrong y-coordinate — BFS y=56 maps to game y≈45, but buttons are at game y=50 → display y≈62. Try clicking at MULTIPLE y-values to find the real button y. Missing PPS-UP button at display x≈8 needs y-scan too.**
 
 ---
 
@@ -38,10 +38,25 @@
   Exp 056 found buttons become valid after other clicks. After doing step 1 (btn[6]×10),
   re-test btn[0]=(12,56) — it might now activate as PPS-UP (bar heights changed).
 
-  **Also re-check click counts:** at 1.2 display px/click (not 2.46 as computed):
-  - ChX needs ~10 clicks DOWN (not 9)
-  - VAJ needs ~7 clicks UP (not 6)
-  - PPS needs ~6 clicks UP
+  **DIRECTION REMINDER (exp 057 used wrong directions!):**
+  - ChX DOWN: use **btn[6]=(46,56)** NOT btn[7] (which is UP)
+  - VAJ UP: use **btn[6]** or **btn[5]=(38,56)**
+  - PPS UP: MISSING — need to find button at display x≈8
+
+  **Y-COORDINATE DIAGNOSTIC:**
+  BFS finds buttons at display y=56, but game buttons are at game y=50 → display y≈62.
+  The 4 "non-working" buttons may work at a different y! Try:
+  ```
+  For each x in [8, 12, 24, 28, 34]:
+    Try clicking at y=56, 58, 60, 62
+    Check if any decoration moved
+  ```
+  This finds the correct clickable y AND the missing PPS-UP button (x≈8).
+
+  **Click counts:** at 1.2 display px/click:
+  - ChX: 36.2→48.0 = ~10 clicks DOWN (btn[6])
+  - VAJ: 46.2→38.2 = ~7 clicks UP (btn[6] gives both ChX+VAJ, or btn[5] for VAJ only)
+  - PPS: 48.2→40.6 = ~6 clicks UP (missing button)
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
 
