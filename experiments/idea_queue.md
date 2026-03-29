@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 031 + source analysis): ls20 is MUCH harder than expected. Health = 3 lives (not a bar). Each move without collecting an "iri" pickup costs 1 life → death in 3 moves. Level completion requires visiting goals with correct player state (shape/color/orientation from modifiers). This is a state-matching puzzle inside a maze, not just navigation. The pickup-first strategy is critical for survival. Also: vc33 level 3 still needs visual investigation via arc CLI.**
+**PHILOSOPHY (2026-03-29, post exp 032): 12 consecutive experiments at 0.6667. DFS/BFS/greedy all fail for ls20 (health=3 lives, dies in 3 moves without pickups). THE KEY INSIGHT: ls20 has "iri" pickup items (color 11) that prevent health drain. The agent MUST detect and navigate toward these to survive >3 moves. Without pickup-chaining, no exploration strategy can work. Test #1 (pickup detection) before anything else.**
 
 ---
 
@@ -132,5 +132,10 @@
 
 - **Stategraph 019 (BREAKTHROUGH)**: Balance puzzle → score 0.3333.
 - **Stategraph 021 (IMPROVED)**: Trial-and-lock → score 0.6667.
-- **Stategraph 022-027**: Six experiments on level 3 bar chart. Markers detected (11/14/15), buttons probed, per-column diff done. Scoring condition still unknown. Targeted clicking with gaps=[1,0,1,5] didn't score. "Some pairs require alternation." Moving focus to ls20.
+- **Stategraph 022-027**: Six experiments on vc33 level 3 bar chart. All reverted. Scoring condition still unknown.
+- **Stategraph 028**: ls20 visual investigation — maze game, player=blue cross, green=path, yellow=walls.
+- **Stategraph 029**: Green density heuristic — too greedy for large maze. Reverted.
+- **Stategraph 030**: BFS maze solver — invisible walls break visual pathfinding. Reverted.
+- **Stategraph 031**: Wall-hit avoidance + 5000 actions — still GAME_OVER from health drain. Reverted.
+- **Stategraph 032**: DFS corridor following — corridors don't lead to goals. Reverted. "Score stable at 0.6667 for 12 experiments."
 - **Explorer 001-030**: All score 0. See log_archive_explorer.md.
