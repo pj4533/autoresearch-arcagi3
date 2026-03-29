@@ -6,32 +6,29 @@
 
 ---
 
-### 1. [Puzzle Logic] Detect colored markers (11/14/15) as target height indicators
-- **Hypothesis**: Exp 025 discovered level 3 bars have colored markers (colors 11, 14, 15) indicating target heights. These markers are on the grid and show WHERE each bar should reach. The programmatic agent can detect these: scan each bar's column for pixels of color 11, 14, or 15. The marker's Y position = the target height. Then: compare current bar height to target marker position, click the button that moves the bar toward the marker.
+### 1. [Puzzle Logic] Per-button column-diff probing — determine WHICH bar each button controls
+- **Hypothesis**: Exp 026 detected markers (gaps=[3,0,3,17]) but button→bar mapping was wrong — the agent assumed left buttons control adjacent bars but "clicks may affect different bars than assumed." The fix: click each button ONCE, diff the grid PER COLUMN to find which column changed most. This gives a definitive mapping. With 4 bar pairs and 8 buttons, each pair has a left and right button. The probe determines which is which.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. For bar chart puzzles (8 horizontal buttons at bottom): scan each column region for marker colors (11, 14, 15)
-  2. For each bar column, find the marker's Y position = target height
-  3. Measure current bar height (gray pixels from top or bottom)
-  4. If current height < target → click the button that INCREASES height
-  5. If current height > target → click the button that DECREASES height
-  6. Trial one click to determine which direction each button adjusts (up or down)
-  7. Click each button the exact number of times needed: `|current_height - target_height| / pixels_per_click`
-- **Target game**: vc33 (level 3+)
-- **Expected impact**: Solves level 3 by detecting visible target markers. If each bar needs ~4 clicks and there are 8 bars, that's ~32 clicks + 8 trial clicks = 40 total. Well within 75 lives (level 3).
+  1. Save full grid snapshot before each trial click
+  2. Click button[i], get new grid
+  3. For each column, count changed cells: `column_changes[col] = sum(1 for r if old[r][col] != new[r][col])`
+  4. The column with the MOST changes is the bar controlled by button[i]
+  5. Compare the bar's boundary BEFORE and AFTER: if boundary moved UP → button increases height, if DOWN → button decreases height
+  6. Store mapping: `{button_idx: (bar_col_range, direction, pixels_per_click)}`
+  7. After probing all 8 buttons (8 clicks, 8 lives): compute exact clicks per button using gaps from marker detection
+  8. Execute the plan: click each button the computed number of times
 
-### 2. [Puzzle Logic] Map button-to-bar relationships via trial clicks
-- **Hypothesis**: After detecting targets, the agent needs to know which button controls which bar. Trial each button once (8 clicks), observe which bar changed. Store the mapping: button[i] → bar[j]. Then click each button the computed number of times.
+  **Key difference from exp 026**: Instead of assuming left-button-per-pair, MEASURE which bar each button actually affects. The per-column diff is definitive.
+- **Target game**: vc33 (level 3)
+- **Expected impact**: Solves level 3. Marker gaps already detected ([3,0,3,17]). With correct button→bar mapping, the agent clicks each button the right number of times. Cost: 8 probe clicks + ~23 execution clicks = ~31 total. Within 75 lives.
+
+### 2. [Puzzle Logic] Handle bar direction — measure boundary shift per trial click
+- **Hypothesis**: Each button pair has one that increases and one that decreases bar height. After column-diff probing reveals which bar a button controls, measure the DIRECTION: scan the affected bar before/after the trial click. If the topmost filled cell moved UP → button increases height. If it moved DOWN → button decreases height. Use the direction + gap to pick the correct button and click count.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-  1. Save grid before trial click
-  2. Click button, diff grids
-  3. Find which COLUMN had the most changes → that's the bar this button controls
-  4. Also determine direction: did the bar get TALLER or SHORTER?
-  5. Store mapping: {button_pos → (bar_column, direction, pixels_per_click)}
-  6. Use mapping to plan optimal click sequence
+- **Changes**: During probe phase, for the affected bar column range, find the topmost non-background row before and after. Delta_y = after - before. If delta_y < 0 (bar grew taller), this button INCREASES height. Record direction in mapping.
 - **Target game**: vc33
-- **Expected impact**: Precise button→bar mapping enables exact click planning.
+- **Expected impact**: Correct direction selection prevents clicking the wrong button (which would move AWAY from target).
 
 ### 3. [Action Efficiency] VC33 levels 1-2: solve in minimum clicks
 - **Hypothesis**: Levels 1-2 are solved but may use more clicks than the human baseline (6 and 13). By looking at the image and understanding the exact puzzle state, the executor could solve in fewer clicks, improving per-level scores.
