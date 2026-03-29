@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-03-29T15:58:02.073802+00:00",
+  "generated_at": "2026-03-29T16:10:54.881415+00:00",
   "summary": {
-    "total": 12,
-    "completed": 12,
-    "improved": 0,
+    "total": 13,
+    "completed": 13,
+    "improved": 1,
     "reverted": 11,
     "baselines": 1,
-    "best_score": 0.0,
-    "best_experiment": "none"
+    "best_score": 0.3333,
+    "best_experiment": "019"
   },
   "experiments": [
     {
@@ -165,6 +165,19 @@
       "duration": "155s",
       "status": "reverted",
       "notes": "QwQ-32B chain-of-thought reasoning. Better hypothesis quality (\"manipulating colored objects into configurations\"). vc33: NOT_FINISHED (lives preserved at 40 actions). Still 0. All 3 local models tested (Qwen3.5, Qwen3-32B, QwQ-32B) \u2014 all score 0. No cloud APIs available."
+    },
+    {
+      "id": "019",
+      "idea": "#1",
+      "description": "VC33 balance puzzle strategy",
+      "avg_score": 0.3333,
+      "actions": 300,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 1.0,
+      "duration": "3s",
+      "status": "improved",
+      "notes": "**BREAKTHROUGH**: First non-zero score! Visual investigation revealed vc33 is a balance puzzle: two buttons adjust upper/lower green boundaries. Agent detects boundaries, locks the corrective button, clicks until score. Completed level 1. Level 2 has different layout \u2192 GAME_OVER."
     }
   ],
   "running_best": [
@@ -179,6 +192,7 @@
     0.0,
     0.0,
     0.0,
-    0.0
+    0.0,
+    0.3333
   ]
 }
