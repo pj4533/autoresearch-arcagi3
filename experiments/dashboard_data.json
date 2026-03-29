@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-28T23:31:37.055481+00:00",
+  "generated_at": "2026-03-29T00:36:14.943354+00:00",
   "summary": {
-    "total": 22,
-    "completed": 22,
+    "total": 23,
+    "completed": 23,
     "improved": 2,
-    "reverted": 19,
+    "reverted": 20,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -295,9 +295,23 @@
       "duration": "3525s",
       "status": "improved",
       "notes": "BREAKTHROUGH: Frame changes now detected! ls20 probes show \"52 cells changed\" instead of \"no visible change\". Agent can finally see effects of its actions. Foundational fix like exp_006."
+    },
+    {
+      "id": "023",
+      "idea": "#5(new)",
+      "description": "Enhanced frame change description (colors, region)",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "3418s",
+      "status": "reverted",
+      "notes": "Rich descriptions (color transitions, regions) working but no score improvement yet."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
