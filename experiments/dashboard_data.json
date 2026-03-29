@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T14:32:33.852601+00:00",
+  "generated_at": "2026-03-29T14:33:35.143132+00:00",
   "summary": {
-    "total": 1,
-    "completed": 1,
+    "total": 2,
+    "completed": 2,
     "improved": 0,
-    "reverted": 0,
+    "reverted": 1,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -22,9 +22,23 @@
       "duration": "17s",
       "status": "baseline",
       "notes": "120 actions in 17s \u2014 mostly programmatic. LLM called every 15 steps. ls20: detects grid shifts. ft09: movement fails (click-only game). vc33: detects click effects but no score."
+    },
+    {
+      "id": "003",
+      "idea": "#3",
+      "description": "Qwen3-32B dense model",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "35s",
+      "status": "reverted",
+      "notes": "2x slower than qwen3.5-35b (35s vs 17s) due to dense architecture. Hypothesis quality similar \u2014 generic observations about color manipulation. No improvement in scoring."
     }
   ],
   "running_best": [
+    0.0,
     0.0
   ]
 }
