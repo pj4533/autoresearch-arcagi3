@@ -1209,6 +1209,28 @@ QwQ-32B is the best local model but still can't solve puzzles. The hybrid approa
 
 This is a much better approach than trying to deduce the correct button from geometry alone. The cost is only N extra clicks (one per button candidate) — negligible with 50 lives.
 
+### Exp 021: Score Doubled — Trial-and-Lock with Re-Trialing (2026-03-29)
+
+**avg=0.6667, vc33=2.0. Solved levels 1 AND 2!** Duration: 20s, 1500 actions.
+
+**How it works**: Trial each button, lock the best (most imbalance improvement), click repeatedly. When plateau detected (3 stale steps), re-trial ALL buttons and lock a new one.
+
+**Level 2 solution**: Required button CYCLING — button(1,45) → plateau → switch to (1,25) → plateau → switch back to (1,45) → SCORE. The re-trialing mechanism handled this automatically.
+
+**Level 3 blocker**: 8 horizontal buttons, ALL show improvement=0.
+
+**Root cause**: `_measure_imbalance()` only counts GREEN (color 3) cells. If level 3 uses different fill colors (blue, red, etc.), the green metric reads 0 even though buttons change the frame.
+
+**Fix (idea #1)**: Use TOTAL CELL CHANGE count as the trial metric. Save grid before each trial click, count changed cells after. This is color-agnostic and works for any fill color.
+
+**Level architecture so far:**
+| Level | Buttons | Fill color | Divider | Baseline | Status |
+|-------|---------|-----------|---------|----------|--------|
+| 1 | 2 | Green (3) | Horizontal gray | 6 | SOLVED |
+| 2 | 4 | Green (3), R orientation | Horizontal | 13 | SOLVED (cycling) |
+| 3 | 8 | Unknown (not green) | Horizontal? | 31 | BLOCKED (metric) |
+| 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
+
 **Why QwQ-32B might succeed where others failed:**
 - Qwen3.5-35B (3B active MoE) lacks depth of reasoning
 - Qwen3-32B (dense but not reasoning-trained) has the capacity but not the training
