@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-03-29T17:24:44.650907+00:00",
+  "generated_at": "2026-03-29T17:33:40.262415+00:00",
   "summary": {
-    "total": 27,
+    "total": 28,
     "completed": 26,
     "improved": 2,
     "reverted": 23,
@@ -360,6 +360,19 @@
       "duration": "0s",
       "status": "reverted",
       "notes": "Deep investigation: probed each button individually (per-column change analysis). Found: buttons produce 36-51 cell changes, some pairs require alternation. Targeted clicking with gaps=[1,0,1,5] in both directions didn't score. Level 3's scoring condition remains unknown after 6 experiments (022-027). Moving focus to ls20."
+    },
+    {
+      "id": "028",
+      "idea": "#4",
+      "description": "LS20 visual investigation",
+      "avg_score": 0.6667,
+      "actions": 0,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "0s",
+      "status": "diagnostic",
+      "notes": "FINDINGS: ls20 is a MAZE NAVIGATION game. Player=blue cross, green=walkable path, yellow=walls, maroon block=key/collectible, gray boxes=doors/exits, white bar=health. Movement scrolls the view (52 cells per move). Maze is large \u2014 pathfinding needed. Much more complex than vc33 click puzzles."
     }
   ],
   "running_best": [
@@ -383,6 +396,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
