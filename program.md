@@ -28,11 +28,10 @@ Fewer actions = better score. Every wasted action hurts. The agent plays 3 games
 - **`experiments/idea_queue.md`** — Move tested ideas to the Completed section.
 
 ### Files you MODIFY (agent code):
-- `src/arcagi3/explorer_agent/agent.py` — Main agent logic (Probe → Explore → Exploit phases)
-- `src/arcagi3/explorer_agent/prompts/system.prompt` — System prompt template
-- `src/arcagi3/explorer_agent/prompts/explore.prompt` — Explore phase prompt template
-- `src/arcagi3/explorer_agent/prompts/convert.prompt` — Action conversion prompt template
-- `src/arcagi3/explorer_agent/definition.py` — Agent configuration (rarely)
+- `src/arcagi3/stategraph_agent/agent.py` — Main state graph agent logic
+- `src/arcagi3/stategraph_agent/prompts/system.prompt` — System prompt for LLM hypothesis calls
+- `src/arcagi3/stategraph_agent/prompts/hypothesis.prompt` — Hypothesis request template
+- `src/arcagi3/utils/formatting.py` — Frame description and object detection utilities
 
 **These are the ONLY files you may modify.** Do not change the base framework, adapters, game client, or other agents.
 
@@ -43,11 +42,16 @@ Fewer actions = better score. Every wasted action hurts. The agent plays 3 games
 - **NEVER STOP** — keep running experiments indefinitely.
 - **ONE change at a time.** Each experiment tests exactly one idea.
 - Preserve the `MultimodalAgent` base class interface. The `step(context: SessionContext) -> GameStep` signature must not change.
-- Python code must be syntactically valid. Test with `python -c "import ast; ast.parse(open('src/arcagi3/explorer_agent/agent.py').read())"` before running.
+- Python code must be syntactically valid. Test with `python -c "import ast; ast.parse(open('src/arcagi3/stategraph_agent/agent.py').read())"` before running.
 
 ## CRITICAL: How to Run Benchmarks
 
-**The benchmark takes 60-90 minutes. You MUST run it as a foreground command and WAIT for it to complete.** Do NOT:
+**IMPORTANT: Before running benchmarks, make sure the local game server is running in another terminal:**
+```bash
+uv run python start_local_server.py
+```
+
+**The benchmark takes 5-30 minutes depending on the agent. You MUST run it as a foreground command and WAIT for it to complete.** Do NOT:
 - Poll checkpoint files to check progress
 - Run the benchmark in the background and check on it
 - Sleep-and-poll in a loop
@@ -56,7 +60,7 @@ Fewer actions = better score. Every wasted action hurts. The agent plays 3 games
 Just run the command and wait. It will print results to stdout when done. Example:
 
 ```bash
-uv run python run_benchmark.py --config qwen3.5-35b-local --max-actions 40
+uv run python run_benchmark.py --agent stategraph --config qwen3.5-35b-local --max-actions 100
 ```
 
 This is a BLOCKING call. You run it, you wait, you read the output. That's it. Do NOT waste context tokens on polling. Each token you waste on monitoring is a token you can't use for actual experiments later.
@@ -75,7 +79,7 @@ The experiment number is NOT the idea number. The idea queue has its own numberi
 
 1. Run the benchmark with NO code changes:
    ```bash
-   uv run python run_benchmark.py --config qwen3.5-35b-local --max-actions 40
+   uv run python run_benchmark.py --agent stategraph --config qwen3.5-35b-local --max-actions 100
    ```
 2. Log the result as exp_001 with status `baseline` in `experiments/log.md`.
 3. Commit: `git add experiments/log.md && git commit -m "Exp 001: baseline"`
@@ -107,7 +111,7 @@ python -c "import ast; ast.parse(open('src/arcagi3/explorer_agent/agent.py').rea
 **Run this as a BLOCKING foreground command. Wait for it to finish. Do NOT poll or monitor progress.**
 
 ```bash
-uv run python run_benchmark.py --config qwen3.5-35b-local --max-actions 40
+uv run python run_benchmark.py --agent stategraph --config qwen3.5-35b-local --max-actions 100
 ```
 
 This takes 60-90 minutes. It runs all 3 games (ls20, ft09, vc33) and prints a summary when complete. Just wait for the output — do not check checkpoint files, do not run it in the background, do not sleep-and-poll.
@@ -122,13 +126,13 @@ Compare the **Average Score** to the best previous score from `experiments/log.m
 
 **If ACCEPTED (score improved):**
 ```bash
-git add src/arcagi3/explorer_agent/ experiments/log.md experiments/idea_queue.md experiments/breakthroughs.md
+git add src/arcagi3/stategraph_agent/ src/arcagi3/utils/formatting.py experiments/log.md experiments/idea_queue.md experiments/breakthroughs.md
 git commit -m "Exp NNN: [description] — improved (score=[X.XXXX])"
 ```
 
 **If REJECTED (score same or worse):**
 ```bash
-git checkout -- src/arcagi3/explorer_agent/
+git checkout -- src/arcagi3/stategraph_agent/ src/arcagi3/utils/formatting.py
 git add experiments/log.md experiments/idea_queue.md
 git commit -m "Exp NNN: [description] — reverted ([reason])"
 ```
@@ -204,6 +208,7 @@ The key metric is **Average Score**. Higher is better. Currently baseline is 0.0
 ## Important Notes
 
 - This is a Mac Studio M2 Ultra. The Qwen 3.5-35B model runs locally via MLX at ~60-70 tok/s.
-- Each full benchmark takes ~60-90 minutes (3 games × ~20-30 min each).
-- We're iterating on **agent strategy** — prompts, exploration heuristics, state tracking, phase transitions. Not model weights.
+- The stategraph agent is FAST — most actions are programmatic (no LLM call). LLM is only called every ~15 steps for hypothesis. A full 100-action benchmark may complete in 5-15 minutes.
+- **A local game server must be running** (`uv run python start_local_server.py` in another terminal). This avoids remote API latency.
+- We're iterating on **programmatic exploration strategy** — state graph navigation, click detection, frame hashing, LLM oracle frequency. Not prompts for per-step LLM decisions.
 - Expect most ideas to fail. That's fine. We're looking for the rare ones that improve action efficiency.

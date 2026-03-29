@@ -10,13 +10,14 @@ Usage:
 
 import argparse
 import logging
+import os
 import time
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_GAMES = ["ls20", "ft09", "vc33"]
+DEFAULT_GAMES = ["ls20-9607627b", "ft09-0d8bbf25", "vc33-9851e02b"]
 DEFAULT_CONFIG = "qwen3.5-35b-local"
 DEFAULT_MAX_ACTIONS = 40
 
@@ -29,6 +30,9 @@ def resolve_agent(agent_name: str):
     elif agent_name == "adcr":
         from arcagi3.adcr_agent import ADCRAgent
         return ADCRAgent
+    elif agent_name == "stategraph":
+        from arcagi3.stategraph_agent import StateGraphAgent
+        return StateGraphAgent
     else:
         raise ValueError(f"Unknown agent: {agent_name}")
 
@@ -49,13 +53,14 @@ def run_benchmark(agent_name: str, config: str, games: list[str], max_actions: i
         start = time.time()
 
         try:
+            is_local = os.getenv("ARC_URL_BASE", "").startswith("http://localhost")
             tester = ARC3Tester(
                 config=config,
                 save_results_dir=f"results/benchmark/{game_id}",
                 max_actions=max_actions,
                 num_plays=0,
                 use_vision=False,
-                submit_scorecard=False,
+                submit_scorecard=not is_local,
                 agent_class=agent_class,
             )
 

@@ -1,0 +1,28 @@
+## Exploration Summary
+States visited: {{ num_states }}
+Current state visited {{ current_visits }} times.
+Score: {{ score }}
+Actions taken: {{ action_count }} / {{ max_actions }}
+
+## State Graph (current state)
+{% for action, info in transitions.items() %}
+- {{ action }}: {% if info.same_state %}same state{% else %}different state (visited {{ info.visits }} times){% endif %}{% if info.frame_changed %} [frame changed]{% endif %}
+{% endfor %}
+Untried actions in current state: {{ untried_actions }}
+
+## Frame Description
+{{ frame_description }}
+
+## Action Knowledge
+{% for action_type, effect in action_knowledge.items() %}
+- {{ action_type }}: {{ effect }}
+{% endfor %}
+
+Based on this exploration data, what are the game mechanics? What should be tried next?
+
+Respond with this JSON:
+{
+    "hypothesis": "Your best guess about what this game requires",
+    "suggested_action": "ACTION1-7 code to try next, or 'explore' for systematic exploration",
+    "reasoning": "Why this action"
+}

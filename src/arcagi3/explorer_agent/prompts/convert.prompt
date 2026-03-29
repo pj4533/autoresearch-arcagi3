@@ -12,4 +12,5 @@ Respond with this exact JSON format:
 }
 ```
 Only provide x and y if the action is ACTION6 (click). Otherwise omit them or set to 0.
+For ACTION6 (click), provide x and y in the 0-127 range. To click row R, column C of the 64x64 grid, use x = C * 2, y = R * 2.
 Respond with the JSON, nothing else.

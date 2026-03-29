@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 
 from arcagi3.adcr_agent.definition import agents as adcr_definition
 from arcagi3.explorer_agent.definition import agents as explorer_definition
+from arcagi3.stategraph_agent.definition import agents as stategraph_definition
 from arcagi3.arc3tester import ARC3Tester
 from arcagi3.game_client import GameClient
 from arcagi3.utils import errors
@@ -214,6 +215,7 @@ def _build_default_registry() -> AgentRunner:
     runner = AgentRunner()
     runner.register(adcr_definition)
     runner.register(explorer_definition)
+    runner.register(stategraph_definition)
     return runner
 
 

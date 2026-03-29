@@ -109,16 +109,30 @@ cd experiments && python3 -m http.server 8080
 # Open http://localhost:8080/dashboard.html
 ```
 
+### Local Game Server
+
+Run games locally instead of hitting the remote API:
+
+```bash
+# Start local server (runs on port 5000)
+uv run python start_local_server.py
+```
+
+The `.env` file has `ARC_URL_BASE=http://localhost:5000` which routes all game requests to localhost.
+
 ### Overnight Run Pattern
 ```bash
-# Terminal 1: Dashboard server
-cd experiments && python3 -m http.server 8080
+# Terminal 1: Local game server
+uv run python start_local_server.py
 
-# Terminal 2: Executor (Claude Code session)
+# Terminal 2: Dashboard server
+cd experiments && python3 -m http.server 8080 --bind 0.0.0.0
+
+# Terminal 3: Executor (Claude Code session)
 claude
 # "Read program.md and begin the autoresearch loop."
 
-# Terminal 3: Researcher (Claude Code session)
+# Terminal 4: Researcher (Claude Code session)
 claude
 # "Read research_program.md and begin the research loop."
 ```
@@ -187,7 +201,8 @@ Session state persists in `.arc_session/session.json`. Only one session can be a
 
 ### Agents
 - `src/arcagi3/adcr_agent/` — Reference ADCR agent (Analyze -> Decide -> Convert -> Review)
-- `src/arcagi3/explorer_agent/` — Custom Probe -> Explore -> Exploit agent (primary research target)
+- `src/arcagi3/explorer_agent/` — Custom Probe -> Explore -> Exploit agent (LLM-per-step, original)
+- `src/arcagi3/stategraph_agent/` — Programmatic state-graph explorer (primary research target). Builds directed graph of game states, systematically tries untried actions, calls LLM only every ~15 steps for hypothesis formation. Matches competition-winning approach.
 
 ### Autoresearch System
 - `program.md` — Executor agent instructions (Claude Code reads this)
