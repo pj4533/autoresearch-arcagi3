@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 059): PPS-UP found (btn[0]) but 14% success rate. Balance handler RESETS progress. TWO CRITICAL FIXES: (1) DISABLE balance handler for level 3, (2) test btn[0] STANDALONE (not alternating) — gel() should allow 8 consecutive clicks before blocking.**
+**PHILOSOPHY (2026-03-29, post exp 060): Phase 1-2 WORK (ChX/VAJ near targets). Phase 3 (btn[0]) causes GAME_OVER from life consumption. btn[0] only 14% reliable — probably sprite overlap issue (fCG rDn at same position, get_sprite_at returns wrong sprite). TWO OPTIONS: (A) Play L3 via arc CLI with vision (executor clicks visually), (B) Try btn[0] at SLIGHTLY DIFFERENT coordinates to avoid fCG overlap.**
 
 ---
 
@@ -71,9 +71,35 @@
   Total: 24 effective clicks. With neutrals ~48. Within 75 lives.
   ```
 
-  **LIFE-EFFICIENT ALTERNATION (no neutrals needed):**
-  Alternate REAL buttons: btn[6]+btn[0], btn[6]+btn[0], ... (both need ~similar clicks).
-  Each click hits a real button — 0 wasted lives. Total: ~24 clicks for ~24 lives.
+  **WHY btn[0] FAILS (sprite overlap analysis):**
+  btn[0] = xQZ at game (6,50). fCG rDn bar at game (0-7, 48-51) OVERLAPS completely.
+  get_sprite_at may return fCG (no ZGd tag) instead of xQZ (layer 1, ZGd tag).
+  Other buttons work because their rDn bars don't fully overlap, or layer priority helps.
+
+  **FIX OPTION A — Play via arc CLI with vision:**
+  ```bash
+  arc start vc33 --max-actions 75
+  # Auto-solve L1-2, then on L3:
+  arc state --image   # See level 3
+  # Click each button, view result, identify which moves PPS
+  # Execute corrected plan visually
+  ```
+  The executor (Claude Code with vision) can SEE which pixels move and adjust clicks.
+  This bypasses all coordinate and sprite-overlap issues.
+
+  **FIX OPTION B — Offset btn[0] coordinates:**
+  The xQZ button is 2x2 game pixels at (6-7, 50-51). fCG bar is at (0-7, 48-51).
+  Try clicking at game (7, 51) = display (13, 57) = agent (26, 114).
+  Or game (6, 51) = display (12, 57) = agent (24, 114).
+  Shifting to the bottom-right of the button area might help get_sprite_at
+  find xQZ (layer 1) instead of fCG (layer 0).
+
+  **FIX OPTION C — Two-step PPS via chain (slow but reliable):**
+  If btn[3]=(28,56) or btn[2]=(24,56) become valid after Phase 1-2,
+  we could chain: nDF→TKb→sro→fCG using multiple button pairs.
+  After Phase 1 (btn[6]×12): nDF is very tall. btn[4] transfers nDF→TKb.
+  After Phase 2: TKb is taller. Re-test btn[3] and btn[2] for further chain.
+  This avoids btn[0] entirely.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
 
