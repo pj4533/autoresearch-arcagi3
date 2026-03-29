@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T15:24:57.957140+00:00",
+  "generated_at": "2026-03-29T15:58:02.073802+00:00",
   "summary": {
-    "total": 11,
-    "completed": 11,
+    "total": 12,
+    "completed": 12,
     "improved": 0,
-    "reverted": 10,
+    "reverted": 11,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -152,9 +152,23 @@
       "duration": "64s",
       "status": "reverted",
       "notes": "LLM analyzes grid at step 0, suggests 5 click targets. Qwen3.5 suggests targets but its analysis isn't good enough to identify the correct interactive objects vs decorative ones. LLM reasoning quality is the bottleneck."
+    },
+    {
+      "id": "018",
+      "idea": "#2",
+      "description": "QwQ-32B reasoning model (stategraph)",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "155s",
+      "status": "reverted",
+      "notes": "QwQ-32B chain-of-thought reasoning. Better hypothesis quality (\"manipulating colored objects into configurations\"). vc33: NOT_FINISHED (lives preserved at 40 actions). Still 0. All 3 local models tested (Qwen3.5, Qwen3-32B, QwQ-32B) \u2014 all score 0. No cloud APIs available."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
