@@ -167,3 +167,4 @@
 - **#3(queue) [Architecture] Qwen3-32B** — Exp 003: reverted. 2x slower, same score.
 - **#5(queue) [Exploration Strategy] No LLM calls** — Exp 004: reverted. 12x faster (1.4s) but still 0 score.
 - **#6(queue) [Exploration Strategy] BFS to frontier** — Exp 005: reverted. Better navigation but no score (24s).
+- **#1 [Exploration Strategy] 5-tier click priority + 200 actions** — Exp 006: reverted. GAME_OVER on vc33 (ran out of lives). Agent clicks objects but can't solve puzzle.
