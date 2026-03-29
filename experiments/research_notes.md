@@ -1004,4 +1004,36 @@ Two highest-priority experiments:
 
 **Exp 009 (UCB1)**: Score 0, 300 actions in 55s. "Smarter selection doesn't help — exploration strategy isn't the bottleneck." Confirms: the issue is not WHICH order to try actions, but WHAT actions to try.
 
-**Exp 010 (State-aware clicks + priority)**: Score 0, 600 actions in 8s. Per-state re-detection + 5-tier priority. 1000 actions on vc33 only → GAME_OVER. "Wrong clicks consume lives faster than agent finds interactive objects." Confirms: brute-force clicking with 5-tier priority still hits wrong objects (color 9/ZGd) before finding right ones (color 1/zHk).
+**Exp 010 (State-aware clicks + priority)**: Score 0, 600 actions in 8s. Per-state re-detection + 5-tier priority. 1000 actions on vc33 only → GAME_OVER. "Wrong clicks consume lives faster than agent finds interactive objects."
+
+### Stategraph Exp 011-014: LLM and Color Analysis Both Failed (2026-03-29)
+
+**Exp 011 (Click-effect tracking)**: Score 0, 600 actions in 7s. Agent discovers color 9 = interactive (265 cells changed). Prioritizes interactive colors. "Agent finds right objects but can't solve the puzzle SEQUENCE — needs reasoning about what transformation to produce."
+
+**Exp 012 (LLM-guided first click)**: Score 0, 300 actions in 64s. Qwen3.5 analyzes grid, suggests 5 click targets. "Qwen3.5 reasoning quality is the bottleneck" — can't distinguish interactive vs decorative objects.
+
+**Exp 013 (LS20 LLM-guided navigation)**: Score 0, 100 actions in 41s. Qwen3.5 suggests movement plans. "Qwen3.5 can't analyze 64x64 grid effectively — spatial reasoning too weak."
+
+**Exp 014 (Skip color 9)**: Score 0, 100 actions in 16s. **CRITICAL FINDING**: "Color 1 (win trigger per researcher's game code analysis) doesn't exist in this game instance — each instance has different color mappings."
+
+**CORRECTION TO EARLIER RESEARCH:**
+My analysis of vc33 game code identified ZGd sprites as color 9 (purple, "corrupting") and zHk sprites as color 1 (blue, "winning"). This was based on the generic game class code. **But each game INSTANCE has different color mappings.** The specific instance vc33-9851e02b does NOT use color 1 for zHk sprites. Color 9 IS the interactive color in this instance — the 265 cell changes are legitimate game mechanics, not corruption.
+
+**Implications:**
+- Game code analysis gives GENERIC patterns, not instance-specific colors
+- Cannot hardcode color filters based on game code
+- The agent needs to discover mechanics empirically, not from code
+
+**What we know works:**
+- Agent CAN find interactive objects (color 9 → 265 cell changes)
+- Agent CAN click them and see effects
+- Agent CANNOT solve the puzzle sequence
+- Qwen3.5 CANNOT reason about grids well enough
+
+**What we DON'T know:**
+- Whether ANY agent can score (framework might be broken)
+- Whether Claude Sonnet can reason about these games
+- What the winning click sequence looks like
+
+**#1 remaining unknown: Cloud model validation with Claude Sonnet.**
+This has been #1 in the queue for 6 experiments but hasn't been tested yet. It's the gating experiment that determines the entire strategic direction.
