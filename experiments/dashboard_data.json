@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T17:10:00.237383+00:00",
+  "generated_at": "2026-03-29T17:16:01.970003+00:00",
   "summary": {
-    "total": 25,
-    "completed": 24,
+    "total": 26,
+    "completed": 25,
     "improved": 2,
-    "reverted": 21,
+    "reverted": 22,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -334,6 +334,19 @@
       "duration": "20s",
       "status": "reverted",
       "notes": "Grouped 8 buttons into 4 pairs, round-robin one per pair per round. Tried left-first and right-first. Can't determine correct direction per pair \u2014 both buttons produce similar cell changes. Level 3 bars have colored markers (11/14/15) indicating targets but can't determine target from metrics alone."
+    },
+    {
+      "id": "026",
+      "idea": "#1",
+      "description": "Marker-based bar height targeting",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "20s",
+      "status": "reverted",
+      "notes": "Detected markers on bars (colors 11/14/15), computed gaps=[3,0,3,17]. Clicked LEFT buttons gap/4 times per bar. Plan kept re-creating \u2014 probe showed button-to-bar mapping is uncertain (clicks may affect different bars than assumed). Need precise button\u2192bar mapping via per-button probing."
     }
   ],
   "running_best": [
@@ -357,6 +370,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
