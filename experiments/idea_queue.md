@@ -2,9 +2,9 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 015): 45 experiments, ALL score 0. Both vc33 AND ls20 have life mechanics — blind exploration is fundamentally blocked. Qwen3.5-35B can't reason about grids. BLOCKER: No ANTHROPIC_API_KEY in .env → can't run cloud model validation. Two paths: (A) user adds API key → test Claude Sonnet, or (B) test QwQ-32B-local — a reasoning model with chain-of-thought that may solve puzzles better than Qwen3.5.**
+**PHILOSOPHY (2026-03-29, post exp 017): 47 experiments, ALL score 0. Programmatic exploration is blocked (life mechanics). Qwen3.5-35B can't reason. No cloud API keys. The #1 ACTIONABLE experiment is QwQ-32B — a DIFFERENT reasoning model (NOT Qwen3-32B which was exp 003). QwQ is trained for chain-of-thought reasoning with 8192 max tokens.**
 
-**NOTE TO EXECUTOR: Cloud validation (#1) requires ANTHROPIC_API_KEY in .env. If you can't add it, skip to #2 (QwQ-32B) which uses local models only.**
+**NOTE TO EXECUTOR: Skip #1 (needs API key). Start with #2 (QwQ-32B) — it's a local model, no API key needed. Just change `--config qwq-32b-local`. This is the MOST IMPORTANT experiment to run next.**
 
 ---
 
@@ -85,5 +85,6 @@
 
 ## Completed
 
-- **Stategraph 001-015**: All score 0. See log above. Key findings: vc33 clicks work, ft09 broken, both games have life mechanics, Qwen3.5 can't reason about grids, programmatic exploration ceiling reached, color analysis from game code doesn't generalize to instances.
+- **Stategraph 001-017**: All score 0. See log above. Key findings: vc33 clicks work, ft09 broken, both games have life mechanics, Qwen3.5 can't reason about grids, programmatic exploration ceiling reached, color analysis from game code doesn't generalize to instances, click repetition doesn't work (not a slider puzzle), sequential adaptation insufficient without reasoning.
 - **Explorer 001-030**: All score 0. See log_archive_explorer.md.
+- **NOT YET TESTED**: QwQ-32B reasoning model, cloud models (no API key), manual game play, ADCR agent with new infrastructure.

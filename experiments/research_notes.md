@@ -1070,3 +1070,39 @@ This means blind exploration (programmatic or random) is FUNDAMENTALLY blocked o
 - Cloud models: blocked by missing API key
 - Manual play: not attempted
 - ADCR agent: not tested since infrastructure fixes
+
+### Stategraph Exp 016-017: Click Strategies Exhausted (2026-03-29)
+
+**Exp 016 (Click repetition, 5x per target)**: Score 0, GAME_OVER. "vc33 isn't a slider/toggle puzzle — repeated clicking doesn't accumulate useful effect." Clicking same object multiple times doesn't help.
+
+**Exp 017 (Sequential click learning)**: Score 0, GAME_OVER. "Sequential adaptation doesn't help — agent still consumes lives on wrong clicks before finding the winning sequence. No cloud APIs available for stronger reasoning." The executor explicitly confirms the API key blocker.
+
+**What's been exhausted:**
+- Programmatic exploration (blind, BFS, DFS, UCB1, priority) — blocked by life mechanics
+- Click strategies (brute-force, priority, repetition, sequential, color-filter) — can't solve puzzle logic
+- LLM guidance (Qwen3.5) — spatial reasoning too weak for 64x64 grids
+- More actions/budget — games kill agent through life/health drain
+- Different Qwen model (Qwen3-32B) — no improvement over Qwen3.5
+
+**What HASN'T been tested:**
+1. **QwQ-32B-local** — explicitly designed for reasoning, chain-of-thought, 8192 token budget. Different training objective from Qwen3.5 and Qwen3-32B.
+2. **Cloud models** (blocked by missing API key)
+3. **ADCR agent** — different prompt architecture, might work better with reasoning model
+4. **Manual game play** — human insight into mechanics
+5. **Code-generation approach** — LLM writes analysis function (needs cloud or strong local model)
+
+**QwQ-32B Reasoning Capabilities:**
+- Based on Qwen2.5-32B base but fine-tuned for mathematical and logical reasoning
+- Generates explicit step-by-step reasoning chains (like o1/o3)
+- 8192 max completion tokens (2x other models) — room for extended reasoning
+- Benchmarks: 96.7% on GSM8K, 90.2% on MATH (much stronger than base Qwen)
+- ~20-30 tok/s on Apple Silicon (slower but each token is higher quality reasoning)
+- The chain-of-thought style is exactly what's needed for puzzle analysis:
+  "Step 1: I see colored objects at positions X, Y, Z. Step 2: The orange object at X appears to be a movable piece..."
+- Important: uses thinking mode by default — may need `enable_thinking=False` like Qwen3.5 did (exp 006)
+
+**Why QwQ-32B might succeed where others failed:**
+- Qwen3.5-35B (3B active MoE) lacks depth of reasoning
+- Qwen3-32B (dense but not reasoning-trained) has the capacity but not the training
+- QwQ-32B has BOTH the capacity (32B dense) AND the reasoning training
+- The puzzle-solving task requires: (1) spatial reasoning (grid analysis), (2) sequential planning (click order), (3) goal inference (what state to achieve) — all reasoning capabilities
