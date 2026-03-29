@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T23:33:18.354449+00:00",
+  "generated_at": "2026-03-29T23:43:46.628344+00:00",
   "summary": {
-    "total": 60,
-    "completed": 47,
+    "total": 61,
+    "completed": 48,
     "improved": 2,
-    "reverted": 44,
+    "reverted": 45,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -789,6 +789,19 @@
       "duration": "2s",
       "status": "reverted",
       "notes": "P1 btn[6]\u00d712: ChX 36.2\u219245.8, VAJ 46.2\u219236.6 \u2713. P2 btn[4]\u00d74: VAJ 36.6\u219237.8 (partial). P3 btn[0]\u00d78: **RESET all decorations back to initial!** ChX went from 45.8\u219236.2, VAJ from 37.8\u219246.2. btn[0] neutrals consumed lives \u2192 GAME_OVER \u2192 game reset to L3 initial. Or btn[0] itself reverses changes. PPS barely changed (1 effective press). KEY: Phase 1-2 gets ChX/VAJ close to targets. Phase 3 breaks everything. Need PPS button that doesn't consume too many lives."
+    },
+    {
+      "id": "061",
+      "idea": "#1",
+      "description": "VC33 L3 disabled balance handler + multiple P3",
+      "avg_score": 0.6667,
+      "actions": 600,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "6s",
+      "status": "reverted",
+      "notes": "Disabled balance handler for L3 (critical fix). Tried 3 P3 variants: (1) sequential btn[0]\u00d78 no neutrals \u2014 consecutive clicks don't register; (2) btn[0]+neutral\u00d78 with disabled balance \u2014 P3 still resets; (3) btn[0]+btn[6] alternation \u2014 overshoots ChX/VAJ. The PPS button (btn[0]) remains the blocker: neutrals waste lives, alternation overshoots, consecutive clicks fail. Need completely different PPS approach."
     }
   ],
   "running_best": [
@@ -812,6 +825,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
