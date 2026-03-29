@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T18:12:42.079898+00:00",
+  "generated_at": "2026-03-29T18:24:30.561511+00:00",
   "summary": {
-    "total": 32,
-    "completed": 30,
+    "total": 33,
+    "completed": 31,
     "improved": 2,
-    "reverted": 27,
+    "reverted": 28,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -425,6 +425,19 @@
       "duration": "20s",
       "status": "reverted",
       "notes": "When last move succeeded, try same direction again (follow corridors). Activates but doesn't help \u2014 corridors may not lead toward goal. Maze too large for any undirected exploration strategy within health budget. Score stable at 0.6667 for 12 experiments."
+    },
+    {
+      "id": "033",
+      "idea": "#1",
+      "description": "LS20 pickup-first + strong corridor",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "20s",
+      "status": "reverted",
+      "notes": "KEY FINDING: ls20 health=3 HEARTS (not per-move drain). Agent survives 18+ moves per heart. Death from traps, not movement. Tried: corridor-following with backtrack avoidance. Agent oscillates at maze junctions. Maze too large for undirected exploration \u2014 needs goal-directed pathfinding or map building."
     }
   ],
   "running_best": [
@@ -448,6 +461,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
