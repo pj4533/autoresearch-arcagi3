@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-03-29T14:23:28.555104+00:00",
+  "generated_at": "2026-03-29T14:25:03.325754+00:00",
   "summary": {
-    "total": 31,
-    "completed": 31,
+    "total": 32,
+    "completed": 32,
     "improved": 2,
     "reverted": 28,
-    "baselines": 1,
+    "baselines": 2,
     "best_score": 0.0,
     "best_experiment": "none"
   },
@@ -412,9 +412,23 @@
       "duration": "53s",
       "status": "reverted",
       "notes": "Added mechanics summary on level transitions, action prioritization by effectiveness, level knowledge in LLM hypothesis prompt. No effect \u2014 agent never scores so no level transitions occur. Also fixed game server config (game IDs + scorecard). Stategraph agent: 300 actions in 53s (programmatic)."
+    },
+    {
+      "id": "032",
+      "idea": "#1",
+      "description": "Stategraph baseline (no changes)",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "17s",
+      "status": "baseline",
+      "notes": "Stategraph agent baseline with max_actions=40. 120 actions in 17s \u2014 mostly programmatic. LLM called every 15 steps. ls20: detects grid shifts. ft09: movement fails (click-only game). vc33: detects click effects but no score."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
