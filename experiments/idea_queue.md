@@ -2,12 +2,12 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 034): 14 experiments at 0.6667. Anti-oscillation confirmed: "maze size is the fundamental blocker." Blind exploration CAN'T work. But we HAVE the maze layout from game source code! Idea #1 = known-maze pathfinding: BFS on extracted maze data (player at (1,53), goal at (34,10), walls known, 5 cells/step). This bypasses exploration entirely. TEST THIS NEXT.**
+**PHILOSOPHY (2026-03-29, post exp 036): Maze extracted! DFS explored 42 states in 55 moves. Partial path: R,R,U,U,U,U,L,L,L,U,U,U... Solution is ~29 steps. Need: either (1) complete BFS on extracted wall data to find full path, or (2) iterative deepening across deaths to extend the partial path. Very close to ls20 breakthrough!**
 
 ---
 
-### 1. [Navigation Strategy] LS20 full BFS on known maze — hardcode walls, compute path
-- **Hypothesis**: Exp 035 confirmed directional bias isn't enough — "maze requires specific turns." The solution is FULL pathfinding with exact wall data, not heuristic bias. The executor should read the wall positions from `environment_files/ls20/cb3b57cc/ls20.py` (the level "krg" data section) and implement BFS on a 64x64 grid with these walls. Movement = 5 cells per step (not 1). BFS finds the exact path. NOTE: this is NOT directional bias — this is actual pathfinding that finds the specific sequence of turns.
+### 1. [Navigation Strategy] LS20 complete the path — BFS on extracted maze OR extend partial path
+- **Hypothesis**: Exp 036 extracted the maze and explored 42 states with DFS, finding partial path R,R,U,U,U,U,L,L,L,U,U,U... The solution is ~29 steps. Two approaches to complete it: (A) Run BFS/DFS offline on the extracted wall data to find the FULL path, then hardcode it. (B) Use iterative deepening in the agent: on each death, remember the longest successful prefix and extend it by one step. With ~54 moves per life and many attempts, the agent can discover the complete 29-step path.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
   The executor should do TWO things:
