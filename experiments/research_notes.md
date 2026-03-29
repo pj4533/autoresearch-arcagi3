@@ -1326,7 +1326,7 @@ The programmatic agent could handle levels 1-2 (simple 2-button balance → tria
 |-------|---------|-------------|-----------------|----------|--------|
 | 1 | 2 | Horizontal balance | Green fill convergence | 6 | SOLVED |
 | 2 | 4 | Horizontal balance (cycling) | Green fill convergence | 13 | SOLVED |
-| 3 | 8 | Vertical bar chart | Colored markers (11/14/15) | 31 | CLOSE: markers found, gaps=[3,0,3,17], need button→bar mapping |
+| 3 | 8 | Vertical bar chart | Colored markers (11/14/15) | 31 | STUCK: 6 experiments (022-027), scoring condition unknown. Gaps=[1,0,1,5] tried, per-button probing done, still no score. |
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**

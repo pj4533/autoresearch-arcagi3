@@ -2,33 +2,50 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 025): Level 3 bars have colored markers (colors 11, 14, 15) indicating TARGET HEIGHTS. The targets are right there on the grid. The programmatic agent can detect these marker colors and use their Y positions as targets. For each bar: find the marker → compute current bar height → click button to adjust toward marker. This is solvable programmatically!**
+**PHILOSOPHY (2026-03-29, post exp 027): vc33 level 3 scoring condition unknown after 6 experiments (022-027). Markers detected, buttons probed, targeted clicking tried — still no score. Pivoting to ls20. The arc CLI visual approach should reveal ls20's navigation mechanics. Also: vc33 level 3 may need the executor to visually inspect it via `arc state --image` to understand what the ACTUAL goal is.**
 
 ---
 
-### 1. [Puzzle Logic] Per-button column-diff probing — determine WHICH bar each button controls
-- **Hypothesis**: Exp 026 detected markers (gaps=[3,0,3,17]) but button→bar mapping was wrong — the agent assumed left buttons control adjacent bars but "clicks may affect different bars than assumed." The fix: click each button ONCE, diff the grid PER COLUMN to find which column changed most. This gives a definitive mapping. With 4 bar pairs and 8 buttons, each pair has a left and right button. The probe determines which is which.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-  1. Save full grid snapshot before each trial click
-  2. Click button[i], get new grid
-  3. For each column, count changed cells: `column_changes[col] = sum(1 for r if old[r][col] != new[r][col])`
-  4. The column with the MOST changes is the bar controlled by button[i]
-  5. Compare the bar's boundary BEFORE and AFTER: if boundary moved UP → button increases height, if DOWN → button decreases height
-  6. Store mapping: `{button_idx: (bar_col_range, direction, pixels_per_click)}`
-  7. After probing all 8 buttons (8 clicks, 8 lives): compute exact clicks per button using gaps from marker detection
-  8. Execute the plan: click each button the computed number of times
+### 1. [Navigation Strategy] Investigate ls20 visually — identify player, goals, mechanics
+- **Hypothesis**: The visual investigation approach unlocked vc33 (exp 019). Apply the same approach to ls20. Claude Code can SEE the grid via `arc state --image` and identify: the player character, walls/obstacles, health indicator, goal objects, interactive elements. This understanding is prerequisite for any ls20 strategy. With 29 baseline actions for level 1, even a partially correct strategy could score.
+- **Files to modify**: None initially — investigation. Then `src/arcagi3/stategraph_agent/agent.py` based on findings.
+- **Changes**: Use arc CLI interactively:
+  ```bash
+  arc start ls20 --max-actions 50
+  arc state --image    # See the initial grid — identify player, objects, walls
+  arc action move_right
+  arc state --image    # What moved? Where did the player go?
+  arc action move_down
+  arc state --image    # How does the grid respond to movement?
+  arc action perform
+  arc state --image    # Does perform do anything at the current location?
+  arc end
+  ```
+  Key questions to answer: (1) Where is the player? (2) What does the goal look like? (3) How does health drain work visually? (4) Are there collectible objects? (5) What does `perform` do?
+- **Target game**: ls20
+- **Expected impact**: Understanding ls20 mechanics → targeted strategy. Even level 1 score would increase avg from 0.6667.
 
-  **Key difference from exp 026**: Instead of assuming left-button-per-pair, MEASURE which bar each button actually affects. The per-column diff is definitive.
-- **Target game**: vc33 (level 3)
-- **Expected impact**: Solves level 3. Marker gaps already detected ([3,0,3,17]). With correct button→bar mapping, the agent clicks each button the right number of times. Cost: 8 probe clicks + ~23 execution clicks = ~31 total. Within 75 lives.
+### 2. [Puzzle Logic] VC33 level 3: visually inspect the puzzle via arc CLI
+- **Hypothesis**: After 6 experiments (022-027) trying to crack level 3 programmatically, the scoring condition is still unknown. The executor should visually inspect level 3 via `arc state --image` to understand what the ACTUAL goal looks like. The markers, bars, and buttons are known — but what does "solved" look like? Is it bar height equality? A specific pattern? Something else entirely?
+- **Files to modify**: None initially — investigation
+- **Changes**: Play vc33, solve levels 1-2, then inspect level 3:
+  ```bash
+  arc start vc33 --max-actions 200
+  # Auto-solve levels 1-2 (existing strategy handles these)
+  arc state --image    # SEE level 3 — what's the goal?
+  # Click buttons one at a time and observe
+  arc state --image    # What changed? Is it getting closer to "solved"?
+  arc end
+  ```
+- **Target game**: vc33 level 3
+- **Expected impact**: Visual understanding of what "solved" means for level 3.
 
-### 2. [Puzzle Logic] Handle bar direction — measure boundary shift per trial click
-- **Hypothesis**: Each button pair has one that increases and one that decreases bar height. After column-diff probing reveals which bar a button controls, measure the DIRECTION: scan the affected bar before/after the trial click. If the topmost filled cell moved UP → button increases height. If it moved DOWN → button decreases height. Use the direction + gap to pick the correct button and click count.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: During probe phase, for the affected bar column range, find the topmost non-background row before and after. Delta_y = after - before. If delta_y < 0 (bar grew taller), this button INCREASES height. Record direction in mapping.
-- **Target game**: vc33
-- **Expected impact**: Correct direction selection prevents clicking the wrong button (which would move AWAY from target).
+### 3. [Navigation Strategy] LS20 health-aware exploration — monitor and conserve
+- **Hypothesis**: ls20 has health drain that kills the agent. The health indicator is likely visible (colored bar). The agent should monitor health and switch to conservative mode when health is low — only traverse known-safe paths, don't explore new areas.
+- **Strategy change / Files**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: Add health detection (scan for color-7 orange bar in status area). When health < 30%, stop exploring new states and only use known transitions.
+- **Target game**: ls20
+- **Expected impact**: Prevents GAME_OVER, preserves more actions for purposeful navigation.
 
 ### 3. [Action Efficiency] VC33 levels 1-2: solve in minimum clicks
 - **Hypothesis**: Levels 1-2 are solved but may use more clicks than the human baseline (6 and 13). By looking at the image and understanding the exact puzzle state, the executor could solve in fewer clicks, improving per-level scores.
@@ -94,8 +111,7 @@
 
 ## Completed
 
-- **Stategraph 001-024**: See log. Highlights: vc33 levels 1-2 solved. Level 3 bar chart: buttons detected (36-296 cells changed) but bars need SPECIFIC click counts — "puzzle requires understanding target heights." Uniform clicking doesn't work.
 - **Stategraph 019 (BREAKTHROUGH)**: Balance puzzle → score 0.3333.
 - **Stategraph 021 (IMPROVED)**: Trial-and-lock → score 0.6667.
-- **Stategraph 023-024**: Cell-change metric + 5-click max. Level 3 buttons found but target heights unknown.
+- **Stategraph 022-027**: Six experiments on level 3 bar chart. Markers detected (11/14/15), buttons probed, per-column diff done. Scoring condition still unknown. Targeted clicking with gaps=[1,0,1,5] didn't score. "Some pairs require alternation." Moving focus to ls20.
 - **Explorer 001-030**: All score 0. See log_archive_explorer.md.
