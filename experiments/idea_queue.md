@@ -173,3 +173,4 @@
 - **#4 [Memory Management] Cross-level knowledge transfer** — Exp 031: reverted (score=0.0000). No level transitions occur so transfer never activates.
 - **#1 [Architecture] Stategraph baseline** — Exp 032: baseline (score=0.0000). 120 actions in 17s. LLM detects grid changes but can't score. Establishes programmatic baseline.
 - **#2 [Bug Fix] Click pipeline diagnostic** — Exp 033: diagnostic. vc33 clicks work (color 9 → 265 changes). ft09 broken (all actions = status bar only). vc33 is the scoring target.
+- **#3 [Architecture] Qwen3-32B dense model** — Exp 003: reverted (score=0.0000). 2x slower, same score. Dense model doesn't help stategraph since most actions are programmatic.
