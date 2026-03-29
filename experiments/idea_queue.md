@@ -6,22 +6,22 @@
 
 ---
 
-### 1. [Exploration Strategy] VC33-focused: 5-tier click priority + more actions
-- **Hypothesis**: VC33 is confirmed working (exp 002 diagnostic: color 9 blocks produce 265 cell changes). Level 1 needs only 6 clicks. The agent already detects interactive objects but doesn't prioritize well — it clicks structural elements and background. The 3rd-place solution's priority system finds interactive buttons in ~5-10 clicks. Combined with more actions (agent does 40 in 0.5s with no LLM), this is the clearest path to first score.
+### 1. [Exploration Strategy] VC33-focused: priority clicks + re-detect after state change + 200 actions
+- **Hypothesis**: Deep analysis of vc33 game code reveals level 1 has exactly 2 interactive sprites: both xQZ (tag "ZGd"), color 9 (purple), at grid (30,12) and (30,16) → agent coords (60,24) and (60,32). The game requires a SEQUENCE: (1) click ZGd sprites to trigger ccl() which sets up conditions, (2) click zHk sprites (color 1, blue, 3x12) AFTER conditions are met to trigger level completion via teu() animation. The benchmark shows the agent DID hit one interactive sprite (action 3 at 61,25 ≈ 60,24) but with only 40 actions it doesn't explore enough states to find the complete winning sequence. With 200 actions at 0.012s/action = 2.4s, the agent can exhaustively explore all click combinations.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`, `src/arcagi3/utils/formatting.py`
-- **Changes**: Two changes combined for maximum impact:
+- **Changes**: Three changes combined:
   1. **5-tier click priority**: Group connected components by color saliency + size:
-     - **Group 0**: Salient color ({6-15}) AND medium size (2-32px per dim). VC33's interactive sprites are color 9 (blue) and 11 (yellow) — salient, medium → group 0.
-     - **Group 1**: Non-salient ({0-5}) AND medium size
+     - **Group 0**: Salient color ({6-15}) AND medium size (2-32px per dim). VC33's ZGd sprites are color 9, 2-3px → group 0. Movement actions also group 0.
+     - **Group 1**: Non-salient ({0-5}) AND medium size. zHk sprites are color 1, 3x12 → group 1.
      - **Group 2**: Salient AND wrong size
      - **Group 3**: Other non-status-bar
      - **Group 4**: Status bar
-     - Click random pixel within each segment (not center — ensures hitting the object).
-     - Exhaust all group 0 actions across all states before trying group 1.
-  2. **Increase max_actions to 200**: At 0.012s/action (no LLM), 200 actions = 2.4s. VC33 level 1 needs 6 clicks out of maybe 20-30 group-0 targets. With 200 actions, the agent can exhaustively try every group-0 click across every reachable state.
+     - Click random pixel within each segment (not center).
+  2. **Re-detect objects after each state change**: The current `_try_click()` populates click_queue once. After clicking ZGd sprites the state changes and NEW objects may become clickable (zHk sprites with krt()=true may change appearance). Ensure re-detection happens in each new state by checking click_queue per state_hash, not globally.
+  3. **Increase max_actions to 200**: At 0.012s/action (no LLM), 200 actions = 2.4s.
 
   Run: `uv run python run_benchmark.py --agent stategraph --max-actions 200 --games vc33`
-- **Expected impact**: First non-zero score on vc33. With priority targeting and enough budget, the agent should click all interactive objects within ~50 actions.
+- **Expected impact**: First non-zero score. With priority targeting, re-detection after state changes, and 200-action budget, the agent should: click ZGd sprites (state changes), re-detect new clickable objects (zHk), click those (level complete). VC33 level 1 needs 6 baseline clicks.
 
 ### 2. [Exploration Strategy] VC33 click-only mode — skip all movement
 - **Hypothesis**: VC33 ONLY supports ACTION6 (click). The stategraph currently wastes 4-5 actions per state trying movement (untried non-click Priority 2). For click-only games, movement should be eliminated entirely. This doubles the effective click budget.

@@ -872,3 +872,49 @@ The "no visible change" issue is most likely target selection (clicking non-inte
 - Qwen3-32B: Not better than Qwen3.5-35B for stategraph (slower, same score)
 - ft09 game version 9ab2447a: Broken, don't test
 - LLM calls in stategraph: Don't help (exp 004 vs 001: same score, 12x faster without)
+
+### VC33 Game Mechanics Deep Dive (2026-03-29)
+
+**Source**: `environment_files/vc33/9851e02b/vc33.py` (2140 lines)
+
+**Level 1 Sprites (8 total):**
+- 1 HQB sprite (ChX) — orange object to be repositioned
+- 1 fZK sprite (EtZ) — orange goal barrier
+- 2 rDn sprites (KLo, qAd) — support/foundation blocks
+- 1 UXg sprite (pYt) — black rail/track
+- 2 ZGd sprites (both xQZ) — **purple interactive controls (COLOR 9)**
+
+**Only 4 sprites per level are interactive:**
+1. **ZGd type** (xQZ, MPi): Color 9 (purple), 2x2 or 3x3 pixels. Click triggers `ccl()` which modifies related objects.
+2. **zHk type** (dBq, WfE): Color 1 (blue) → 12 (cyan when active). 3x12 pixels. Click triggers animation IF `krt()` condition is met.
+
+**Level 1 interactive objects: EXACTLY 2 xQZ at grid positions (30,12) and (30,16)**
+- Agent coords: x=60, y=24 and x=60, y=32
+
+**Win Condition Sequence:**
+1. Click ZGd sprites (color 9, purple) → triggers ccl() → modifies associated object states
+2. This sets up conditions for zHk sprites (krt() becomes true)
+3. Click zHk sprites → triggers teu() animation → level completes via next_level()
+
+**Level completion check: `gug()`** verifies:
+- All HQB sprites at goal positions
+- Last pixel color matches expected
+- Position alignment with fZK barriers
+- Support structures properly positioned
+
+**Benchmark Action Analysis (from results):**
+- Action 3 at agent coords (61, 25) ≈ grid (30, 12) — THIS IS an interactive sprite!
+- The agent DID click a correct target but needs the full sequence
+- Other clicks (38,29), (50,46) hit non-interactive objects that change visually but don't score
+
+**Why 40 actions isn't enough:**
+- Agent tries 5 movement actions per state (wasted on vc33 which only has ACTION6)
+- Detects ~7 click targets per state, clicks all
+- With ~12 actions per state and ~3-4 states explored, 40 actions are exhausted
+- Never explores the state AFTER clicking ZGd sprites where zHk becomes clickable
+
+**Solution: 200 max actions + skip movement + re-detect after state change**
+- With 200 actions at 0.012s/action = 2.4s total
+- Skip movement entirely (vc33 only has ACTION6)
+- After each click that changes state, re-detect objects to find newly-clickable zHk sprites
+- 5-tier priority puts color 9 (ZGd) objects in group 0 → clicked first
