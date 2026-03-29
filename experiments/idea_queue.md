@@ -2,11 +2,30 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 046-047): TWO FRONTS. LS20: start position (39,45) CONFIRMED. Position tracking unreliable — DFS must explore naturally. VC33 L3: chain-of-bars decoded — need to compute target heights and click sequence. VC33 is more tractable right now (concrete computation vs unreliable state tracking).**
+**PHILOSOPHY (2026-03-29, post exp 049-050): VC33 L3 buttons DON'T RESPOND because of COORDINATE SCALING BUG. Level 3 is 52x52 in a 64x64 display (non-integer scale 1.23). Floor division in display→game conversion causes ALL clicks to miss by 1 pixel. Fix: use ceil() for display coordinates. The 23-click solution is correct — just needs correct coordinates.**
 
 ---
 
-### 1. [Puzzle Logic] VC33 level 3 — EXACT SOLUTION COMPUTED (23 clicks)
+### 1. [Bug Fix] VC33 level 3 — COORDINATE SCALING FIX (buttons miss by 1 pixel!)
+- **Hypothesis**: Level 3 grid is 52x52 but display is 64x64. Scale = 64/52 = 1.2308 (NON-INTEGER). Levels 1-2 are 32x32 → scale 2.0 (integer, works perfectly). With floor division in display_to_grid(), clicking at display position floor(game_x * 64/52) maps back to game_x - 1. ALL 8 buttons miss by 1 pixel. This is why bars don't change — clicks land on empty space next to buttons.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: For level 3 (detected by 8 buttons), use CORRECTED coordinates:
+  ```
+  CORRECTED AGENT COORDINATES (use these instead of detected display positions):
+  Button at game(6,50):  agent coords (16, 124)
+  Button at game(10,50): agent coords (26, 124)
+  Button at game(18,50): agent coords (46, 124)
+  Button at game(22,50): agent coords (56, 124)
+  Button at game(28,50): agent coords (70, 124)
+  Button at game(32,50): agent coords (80, 124)
+  Button at game(40,50): agent coords (100, 124)
+  Button at game(44,50): agent coords (110, 124)
+  ```
+  These are computed as: agent_x = ceil(game_x * 64/52) * 2, agent_y = ceil(50 * 64/52) * 2 = 124.
+- **Target game**: vc33 level 3
+- **Expected impact**: Buttons actually respond! Then the 23-click solution works.
+
+### 2. [Puzzle Logic] VC33 level 3 — EXACT SOLUTION (23 clicks, after coordinate fix)
 - **Hypothesis**: Solution fully computed from source code. 23 clicks total (baseline 31 → perfect per-level score).
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**: Add level-3-specific click sequence after detecting 8 buttons at y=50.

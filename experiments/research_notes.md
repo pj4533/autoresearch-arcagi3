@@ -1822,6 +1822,47 @@ Chain-of-bars puzzle with concrete win condition:
 
 **Strategic pivot**: VC33 level 3 is now more tractable than ls20. It's a concrete computation problem with known target heights. LS20 needs reliability fixes (state hashing) before DFS can work properly.
 
+### Exp 049: VC33 L3 Buttons Unresponsive — COORDINATE SCALING BUG (2026-03-29)
+
+**ROOT CAUSE FOUND**: Level 3 buttons don't respond because of non-integer coordinate scaling.
+
+**Grid sizes per level:**
+| Level | Grid | Scale (64/grid) | Integer? |
+|-------|------|-----------------|----------|
+| 1 | 32×32 | 2.000 | ✓ Works |
+| 2 | 32×32 | 2.000 | ✓ Works |
+| 3 | 52×52 | 1.231 | ✗ BROKEN |
+| 4 | 64×64 | 1.000 | ✓ Works |
+| 5 | 64×64 | 1.000 | ✓ Works |
+| 6 | 64×64 | 1.000 | ✓ Works |
+| 7 | 48×48 | 1.333 | ✗ May break |
+
+Camera is always 64×64. Levels 1-2 have integer scale (2.0) so display↔game coordinates map exactly. Level 3 (52×52) has non-integer scale (1.231) — floor division causes ALL clicks to miss by 1 pixel.
+
+**Example:** Button at game (44, 50):
+- Rendered at display (54.2, 61.5) → display pixel (54, 61)
+- Agent clicks at display (54, 61)
+- Game converts: 54 × 52 ÷ 64 = 43.875 → floor = **43** (not 44!)
+- Click misses the button by 1 pixel
+
+**Fix:** Use ceil() instead of floor() for display coordinates: display_x = ceil(game_x × 64/52). This ensures the game conversion rounds to the correct game coordinate.
+
+**Corrected coordinates for all 8 buttons:**
+| Game pos | Display (ceil) | Agent coords |
+|----------|---------------|--------------|
+| (6, 50) | (8, 62) | (16, 124) |
+| (10, 50) | (13, 62) | (26, 124) |
+| (18, 50) | (23, 62) | (46, 124) |
+| (22, 50) | (28, 62) | (56, 124) |
+| (28, 50) | (35, 62) | (70, 124) |
+| (32, 50) | (40, 62) | (80, 124) |
+| (40, 50) | (50, 62) | (100, 124) |
+| (44, 50) | (55, 62) | (110, 124) |
+
+### Exp 050: LS20 Center Hashing (2026-03-29)
+
+Center hashing (20×20 region) changed ls20 from GAME_OVER to NOT_FINISHED — the DFS survives longer with better state deduplication. Valid improvement but doesn't solve maze navigation alone.
+
 **LS20 Fog-of-War Discovery:**
 Source code line 1297:
 ```python
