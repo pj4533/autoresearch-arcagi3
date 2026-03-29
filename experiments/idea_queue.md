@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 040): LS20 MAZE NAVIGATION SOLVED (34 steps > 29 baseline). But still score 0! ls20 requires collecting MODIFIERS (shape/color/rotation items) and visiting goals with correct player STATE. The next challenge is: detect modifiers, track player state, visit goals in correct state. This is the same progression as vc33: mechanics solved → now solve the puzzle logic.**
+**PHILOSOPHY (2026-03-29, post exp 041): Navigation DOUBLY CONFIRMED (depth 46 > 29 baseline). Score still 0. "The blocker is game mechanics: state modifiers + goal matching, not maze navigation." The executor must visually investigate modifiers via arc CLI — what do they look like? What happens when you collect one? What state does the goal need? This is the SAME pattern as vc33: visual investigation → understanding → coded strategy → score.**
 
 ---
 
