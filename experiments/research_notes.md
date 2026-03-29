@@ -678,4 +678,5 @@ This means the ROOT CAUSE of 100% Move Up is NOT the game-type awareness or conv
 
 ## Dead Ends
 
-(patterns that don't work)
+- **ACTION7 (Undo)**: Not available in any of the 3 games (ls20, ft09, vc33). Exp 025 confirmed.
+- **Click actions (ACTION6)**: Do not produce visible frame changes in FT09 or VC33 despite correct coordinate delivery. Root cause unknown — game engine/pipeline issue.
