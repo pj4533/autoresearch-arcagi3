@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T05:50:16.124216+00:00",
+  "generated_at": "2026-03-29T08:21:40.306444+00:00",
   "summary": {
-    "total": 29,
-    "completed": 29,
+    "total": 30,
+    "completed": 30,
     "improved": 2,
-    "reverted": 26,
+    "reverted": 27,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -386,9 +386,23 @@
       "duration": "1594s",
       "status": "reverted",
       "notes": "Combined: skip convert, state graph, journal, enhanced frames, hypothesis prompt, compression. Fast (1594s) but still no score. Qwen3.5-35B likely too weak for these games."
+    },
+    {
+      "id": "030",
+      "idea": "#16(new)",
+      "description": "Increase max_actions to 100",
+      "avg_score": 0.0,
+      "actions": 300,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "9017s",
+      "status": "reverted",
+      "notes": "2.5x more actions (300 total). Still 0 score. More actions doesn't help \u2014 the model can't discover game objectives regardless of budget."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
