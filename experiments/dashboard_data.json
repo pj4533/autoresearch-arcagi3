@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T19:13:04.786849+00:00",
+  "generated_at": "2026-03-29T19:22:43.163784+00:00",
   "summary": {
-    "total": 37,
-    "completed": 33,
+    "total": 38,
+    "completed": 34,
     "improved": 2,
-    "reverted": 30,
+    "reverted": 31,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -490,6 +490,19 @@
       "duration": "0s",
       "status": "diagnostic",
       "notes": "Built 64x64 occupancy grid from wall data. Player \"tuv\" is 10x10 HOLLOW frame (border-only collision). Multiple BFS attempts with different collision models all failed \u2014 game engine's collision model is proprietary and can't be replicated from source data alone. Player starts overlapping walls, which means collision checks work differently than expected."
+    },
+    {
+      "id": "038",
+      "idea": "#1",
+      "description": "LS20 hardcoded prefix + stategraph",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "20s",
+      "status": "reverted",
+      "notes": "Hardcoded first 12 verified moves (R,R,U,U,U,U,L,L,L,U,U,U) then stategraph exploration. Prefix gets agent deeper but remaining maze still too large for blind exploration. The 12-step prefix might also be a dead-end branch \u2014 without the complete path, partial knowledge doesn't help."
     }
   ],
   "running_best": [
@@ -513,6 +526,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
