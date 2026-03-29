@@ -28,3 +28,12 @@ Experiments that improved the score. Each entry explains what changed and why it
 - **Delta vs previous best**: 0.0000 → 0.3333 (+0.3333). First non-zero score after 48 experiments.
 - **Why it worked**: Visual investigation revealed vc33 is a balance/volume puzzle with two buttons that adjust upper/lower region boundaries. The key insights were: (1) understanding the puzzle mechanics through visual frame analysis, (2) detecting which button to click based on boundary comparison, (3) locking the button choice to prevent oscillation after boundaries cross.
 - **Code change**: Added `_detect_balance_puzzle()` to `agent.py` — detects gray bar divider, finds two maroon (color 9) buttons above/below it, measures green/black boundary in each region, selects the button that converges boundaries. Locked button persists until score changes (level transition). LLM calls disabled for speed.
+
+## Exp 021: Trial-and-Lock with Re-Trialing (Multi-Level)
+
+- **Category**: Puzzle Logic / Adaptive Strategy
+- **Change**: Replaced fixed boundary analysis with trial-based button discovery. At each level: try each color-9 button once, measure green-count imbalance improvement, lock the best. After 3 consecutive non-improving steps, re-trial with a different button. Handles multi-region puzzles (4+ buttons) by cycling through button assignments.
+- **Results**: avg=0.6667, ls20=0, ft09=0, vc33=2, actions=1500, duration=20s
+- **Delta vs previous best**: 0.3333 → 0.6667 (+0.3333). Solved vc33 levels 1 AND 2.
+- **Why it worked**: Level 2 has 4 buttons affecting 3 regions. No single button fixes all regions. The re-trialing mechanism lets the agent cycle: lock button A → it plateaus → re-trial → lock button B → it plateaus → re-trial → lock button A again → SCORE. This adaptive cycling converges the multi-region puzzle.
+- **Code change**: Rewrote `_detect_balance_puzzle()` with: (1) `_find_color9_buttons()` finds ALL buttons, (2) `_measure_imbalance()` counts green cells per row, (3) trial phase clicks each button once and measures improvement, (4) execution phase clicks locked button, (5) after 3 stale steps re-trials. Level transition resets all state.

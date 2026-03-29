@@ -166,6 +166,8 @@ class StateGraphAgent(MultimodalAgent):
             context.datastore["random_walk_remaining"] = 0
             context.datastore["balance_buttons"] = None
             context.datastore["balance_target_btn"] = None
+            context.datastore["balance_trial_queue"] = None
+            context.datastore["balance_trial_results"] = []
 
             context.datastore["prev_score"] = current_score
             return True
@@ -247,113 +249,134 @@ class StateGraphAgent(MultimodalAgent):
         action = random.choice(available)
         return self._make_action(action, context)
 
-    def _detect_balance_puzzle(self, context: SessionContext) -> Optional[Dict[str, Any]]:
-        """Detect vc33-style balance puzzle and choose the right button.
+    def _find_color9_buttons(self, grid: List[List[int]]) -> List[tuple]:
+        """Find all color 9 button blocks via BFS. Returns list of (cx, cy) centers."""
+        rows = len(grid)
+        cols = len(grid[0]) if rows else 0
+        buttons = []
+        visited = set()
+        for r in range(1, rows - 1):
+            for c in range(cols):
+                if grid[r][c] == 9 and (r, c) not in visited:
+                    component = []
+                    q = [(r, c)]
+                    visited.add((r, c))
+                    while q:
+                        cr, cc = q.pop(0)
+                        component.append((cc, cr))
+                        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                            nr, nc = cr + dr, cc + dc
+                            if 1 <= nr < rows - 1 and 0 <= nc < cols and (nr, nc) not in visited and grid[nr][nc] == 9:
+                                visited.add((nr, nc))
+                                q.append((nr, nc))
+                    cx = sum(p[0] for p in component) // len(component)
+                    cy = sum(p[1] for p in component) // len(component)
+                    buttons.append((cx, cy))
+        return buttons
 
-        Balance puzzles have: two regions (upper/lower) separated by a bar,
-        two buttons that adjust the boundary between regions. Goal: click
-        the button that moves boundaries toward equilibrium.
+    def _measure_imbalance(self, grid: List[List[int]]) -> int:
+        """Measure grid imbalance: variance in green cell count per row.
+
+        Samples rows across the grid (skipping bars/status) and counts green
+        cells. The range (max - min) of green counts represents imbalance.
+        Works regardless of whether green is on left or right.
+        """
+        rows = len(grid)
+        cols = len(grid[0]) if rows else 0
+        green_counts = []
+        for r in range(2, rows - 2, 4):
+            count = sum(1 for c in range(cols) if grid[r][c] == 3)
+            green_counts.append(count)
+        if len(green_counts) < 2:
+            return 0
+        return max(green_counts) - min(green_counts)
+
+    def _detect_balance_puzzle(self, context: SessionContext) -> Optional[Dict[str, Any]]:
+        """Balance puzzle strategy with trial-and-lock.
+
+        Phase 1 (discovery): Try each color-9 button once, measure which one
+        reduces grid imbalance the most.
+        Phase 2 (execution): Keep clicking the best button until score changes.
+        Resets on level transition.
         """
         grid = context.last_frame_grid
         if not grid:
             return None
-
-        rows = len(grid)
-        cols = len(grid[0]) if rows else 0
 
         # Only for click-only games
         available = self._get_available_actions(context)
         if available != ["ACTION6"]:
             return None
 
-        # Find the gray bar (horizontal divider)
-        # Look for rows that are mostly one non-bg color
-        from collections import Counter
-        bar_rows = []
-        for r in range(2, rows - 2):
-            row_colors = Counter(grid[r])
-            # Gray bar: mostly color 5 (or any single non-bg color spanning >60% of row)
-            for color, count in row_colors.items():
-                if color not in (0, 3, 7) and count > cols * 0.4:
-                    bar_rows.append(r)
-                    break
-
-        if len(bar_rows) < 2:
-            return None
-
-        bar_start = min(bar_rows)
-        bar_end = max(bar_rows)
-
-        # Find green/black boundary in upper region (above bar)
-        upper_row = (2 + bar_start) // 2
-        upper_boundary = -1
-        for c in range(cols - 1, -1, -1):
-            if grid[upper_row][c] == 3:
-                upper_boundary = c
-                break
-
-        # Find green/black boundary in lower region (below bar)
-        lower_row = (bar_end + 1 + rows - 2) // 2
-        lower_boundary = -1
-        for c in range(cols - 1, -1, -1):
-            if grid[lower_row][c] == 3:
-                lower_boundary = c
-                break
-
-        if upper_boundary < 0 or lower_boundary < 0:
-            return None
-
-        # Find the two maroon buttons (color 9 blocks)
-        buttons = context.datastore.get("balance_buttons")
-        if not buttons:
-            c9_objects = []
-            visited = set()
-            for r in range(2, rows - 2):
-                for c in range(cols):
-                    if grid[r][c] == 9 and (r, c) not in visited:
-                        # BFS to find connected component
-                        component = []
-                        queue = [(r, c)]
-                        visited.add((r, c))
-                        while queue:
-                            cr, cc = queue.pop(0)
-                            component.append((cc, cr))
-                            for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:
-                                nr, nc = cr+dr, cc+dc
-                                if 2 <= nr < rows-2 and 0 <= nc < cols and (nr,nc) not in visited and grid[nr][nc] == 9:
-                                    visited.add((nr, nc))
-                                    queue.append((nr, nc))
-                        center_x = sum(p[0] for p in component) // len(component)
-                        center_y = sum(p[1] for p in component) // len(component)
-                        c9_objects.append((center_x, center_y))
-
-            if len(c9_objects) >= 2:
-                # Sort by y position: upper button first, lower button second
-                c9_objects.sort(key=lambda p: p[1])
-                buttons = c9_objects[:2]
-                context.datastore["balance_buttons"] = buttons
-                context.datastore["balance_mode"] = True
-                logger.info(f"Balance puzzle detected: buttons at {buttons}, boundaries upper={upper_boundary} lower={lower_boundary}")
-
-        if not buttons or len(buttons) < 2:
-            return None
-
-        # Strategy: click the button that moves boundaries toward each other
-        # Upper button: decreases upper green, increases lower green
-        # Lower button: increases upper green, decreases lower green
-        # Goal: make boundaries converge (or cross)
-
-        # Lock the target button on first detection — don't switch after boundaries cross
+        # Phase 2: Already have a locked button — keep clicking until plateaued
         locked_btn = context.datastore.get("balance_target_btn")
-        if locked_btn is None:
-            if upper_boundary < lower_boundary:
-                locked_btn = buttons[1]  # Lower button: increases upper, decreases lower
-            else:
-                locked_btn = buttons[0]  # Upper button: decreases upper, increases lower
-            context.datastore["balance_target_btn"] = locked_btn
+        if locked_btn is not None:
+            current_imbalance = self._measure_imbalance(grid)
+            last_imbalance = context.datastore.get("balance_last_imbalance", current_imbalance)
 
-        # Convert grid coords (0-63) to agent coords (0-127) since base agent does //2
-        return {"action": "ACTION6", "x": min(locked_btn[0] * 2, 127), "y": min(locked_btn[1] * 2, 127)}
+            if current_imbalance < last_imbalance:
+                # Still improving
+                context.datastore["balance_stale_count"] = 0
+            else:
+                stale = context.datastore.get("balance_stale_count", 0) + 1
+                context.datastore["balance_stale_count"] = stale
+                if stale >= 3:
+                    # Plateaued for 3 steps — re-run trials for a different button
+                    context.datastore["balance_target_btn"] = None
+                    context.datastore["balance_trial_queue"] = None
+                    context.datastore["balance_trial_results"] = []
+                    context.datastore["balance_stale_count"] = 0
+                    logger.info(f"Re-trialing: imbalance={current_imbalance} plateaued for 3 steps")
+                    context.datastore["balance_last_imbalance"] = current_imbalance
+                    # Fall through to Phase 1
+
+            context.datastore["balance_last_imbalance"] = current_imbalance
+
+            if context.datastore.get("balance_target_btn") is not None:
+                return {"action": "ACTION6", "x": min(locked_btn[0] * 2, 127), "y": min(locked_btn[1] * 2, 127)}
+
+        # Phase 1: Discovery — find buttons and queue them for trial
+        trial_queue = context.datastore.get("balance_trial_queue")
+        if trial_queue is None:
+            buttons = self._find_color9_buttons(grid)
+            if len(buttons) < 2:
+                return None
+            context.datastore["balance_trial_queue"] = list(buttons)
+            context.datastore["balance_trial_results"] = []
+            context.datastore["balance_pre_trial_imbalance"] = self._measure_imbalance(grid)
+            context.datastore["balance_mode"] = True
+            trial_queue = context.datastore["balance_trial_queue"]
+            logger.info(f"Balance puzzle: {len(buttons)} buttons found, starting trials")
+
+        # Check result of previous trial click
+        trial_results = context.datastore.get("balance_trial_results", [])
+        pre_imbalance = context.datastore.get("balance_pre_trial_imbalance", 0)
+        if trial_results and trial_results[-1].get("pending"):
+            current_imbalance = self._measure_imbalance(grid)
+            improvement = pre_imbalance - current_imbalance
+            trial_results[-1]["improvement"] = improvement
+            trial_results[-1]["pending"] = False
+            # Update pre-trial for next trial
+            context.datastore["balance_pre_trial_imbalance"] = current_imbalance
+            logger.info(f"Trial button {trial_results[-1]['button']}: improvement={improvement}")
+
+        # Try next button in queue
+        if trial_queue:
+            btn = trial_queue.pop(0)
+            context.datastore["balance_trial_queue"] = trial_queue
+            trial_results.append({"button": btn, "pending": True, "improvement": 0})
+            context.datastore["balance_trial_results"] = trial_results
+            return {"action": "ACTION6", "x": min(btn[0] * 2, 127), "y": min(btn[1] * 2, 127)}
+
+        # All buttons tried — lock the best one
+        if trial_results:
+            best = max(trial_results, key=lambda r: r.get("improvement", 0))
+            locked_btn = best["button"]
+            context.datastore["balance_target_btn"] = locked_btn
+            logger.info(f"Locked best button: {locked_btn} (improvement={best.get('improvement', 0)})")
+            return {"action": "ACTION6", "x": min(locked_btn[0] * 2, 127), "y": min(locked_btn[1] * 2, 127)}
+
+        return None
 
     def _try_click(self, context: SessionContext) -> Optional[Dict[str, Any]]:
         """Try clicking at the next untried interactive object."""
