@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T21:03:25.711965+00:00",
+  "generated_at": "2026-03-29T21:24:29.077611+00:00",
   "summary": {
-    "total": 43,
-    "completed": 36,
+    "total": 44,
+    "completed": 37,
     "improved": 2,
-    "reverted": 33,
+    "reverted": 34,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -568,6 +568,19 @@
       "duration": "20s",
       "status": "reverted",
       "notes": "Fixed premature waypoint switching: use step count (>15) instead of proximity. Score still 0. The 3-cell position drift means agent passes NEAR but not THROUGH modifier/goal positions. Movement step \u2260 5 exactly, causing accumulated tracking error. 43 experiments, 22 at plateau."
+    },
+    {
+      "id": "044",
+      "idea": "#1",
+      "description": "LS20 visual target detection + position bias",
+      "avg_score": 0.6667,
+      "actions": 1000,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "13s",
+      "status": "reverted",
+      "notes": "Tried 3 approaches: (1) Visual scan for color 1/5 sprites \u2014 FALSE POSITIVES from color 1 near player center, biased agent permanently rightward. (2) Position-based only with local search \u2014 oscillation bug at zone boundary. (3) Step-count phase switch \u2014 reaches modifier area by step 14, goal by step 21, but GRID ALIGNMENT BLOCKS exact matching: player moves 5px from (1,53), reachable x={1,6,11,16,21,26,31,36}, never 19 or 34. KEY FINDING: waypoint positions (19,30) and (34,10) are NOT on the player's 5px movement grid. Must use non-direct paths through maze junctions that shift alignment."
     }
   ],
   "running_best": [
@@ -591,6 +604,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,

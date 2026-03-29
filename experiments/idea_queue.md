@@ -117,5 +117,7 @@
 - **Stategraph 038**: Hardcoded prefix — partial path not useful.
 - **Stategraph 039-041**: Iterative deepening / DFS — navigation SOLVED (34-46 steps). Blocker is state matching, not navigation.
 - **Stategraph 042-043**: Waypoint navigation — REACHED both waypoints within ~3 cells! Position drift prevents scoring. 22 experiments at plateau.
+- **Stategraph 044**: Visual target detection — color 1 false positives, grid alignment blocks exact matching. Waypoint positions not on player's 5px movement grid. 23 experiments at plateau.
 - **Explorer 001-030**: All score 0. See log_archive_explorer.md.
 - **TESTED AND REJECTED**: Anti-oscillation (exp 034), goal-direction bias (exp 035), corridor following (exp 032), wall-hit avoidance (exp 031), green density (exp 029), visual BFS (exp 030).
+- **KEY INSIGHT (exp 044)**: From (1,53) moving by 5, reachable positions are {1,6,11,16,21,26,31,36,...} × {53,48,43,38,33,28,23,18,...}. Modifier at (19,30) and goal at (34,10) are NOT on this grid. The maze must have junctions that shift alignment. Need to find the ACTUAL path from game data, not approximate with position tracking.
