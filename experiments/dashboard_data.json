@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T04:14:23.186601+00:00",
+  "generated_at": "2026-03-29T04:39:07.040450+00:00",
   "summary": {
-    "total": 27,
-    "completed": 27,
+    "total": 28,
+    "completed": 28,
     "improved": 2,
-    "reverted": 24,
+    "reverted": 25,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -360,9 +360,23 @@
       "duration": "2944s",
       "status": "reverted",
       "notes": "1 parse failure (best). ls20 fast (373s). But no score \u2014 Qwen3.5-35B may lack reasoning ability to solve these games regardless of prompt."
+    },
+    {
+      "id": "028",
+      "idea": "#12(new)",
+      "description": "Multi-action planning (with frame fix)",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "1390s",
+      "status": "reverted",
+      "notes": "Fastest full benchmark (81% faster). Planning works but no score."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
