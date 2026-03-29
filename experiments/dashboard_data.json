@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T16:35:08.005368+00:00",
+  "generated_at": "2026-03-29T16:45:11.492923+00:00",
   "summary": {
-    "total": 22,
-    "completed": 21,
+    "total": 23,
+    "completed": 22,
     "improved": 2,
-    "reverted": 18,
+    "reverted": 19,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -295,6 +295,19 @@
       "duration": "20s",
       "status": "reverted",
       "notes": "Level 3 is a VERTICAL BAR CHART (gray bars of different heights, 8 buttons at bottom). Row-based imbalance can't capture it. Tried column-based: broke level 1 (column imbalance is dominated by static structure). Reverted to row-only \u2014 level 3 needs a different approach."
+    },
+    {
+      "id": "023",
+      "idea": "#1",
+      "description": "Cell-change trial metric",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "22s",
+      "status": "reverted",
+      "notes": "Switched trial metric from green imbalance to total cell changes. Level 3 buttons now detected (36-44 cells each). Also tried cell-change based plateau detection. Level 3 needs multi-button coordination (8 bars, each needs specific height) \u2014 single-button locking insufficient."
     }
   ],
   "running_best": [
@@ -318,6 +331,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667
   ]
