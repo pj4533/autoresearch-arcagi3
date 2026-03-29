@@ -2,187 +2,53 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 060): Phase 1-2 WORK (ChX/VAJ near targets). Phase 3 (btn[0]) causes GAME_OVER from life consumption. btn[0] only 14% reliable — probably sprite overlap issue (fCG rDn at same position, get_sprite_at returns wrong sprite). TWO OPTIONS: (A) Play L3 via arc CLI with vision (executor clicks visually), (B) Try btn[0] at SLIGHTLY DIFFERENT coordinates to avoid fCG overlap.**
+**PHILOSOPHY (2026-03-29, post exp 061): PIVOT from VC33 L3 (13 experiments, PPS button blocked by sprite overlap). Focus on: (1) VC33 L1-2 optimization — quadratic scoring means fewer clicks = much better scores, (2) LS20 with center hashing + natural DFS, (3) VC33 L3 via arc CLI as a stretch goal.**
 
 ---
 
-### 1. [Puzzle Logic] VC33 level 3 — SIMPLIFIED 18-CLICK SOLUTION (using verified buttons)
-- **Hypothesis**: Exp 055 verified all buttons empirically. fCG is independent (not in chain). The old 23-click plan had unnecessary chain transfers. Simplified to 18 clicks using 3 buttons only.
+### 1. [Action Efficiency] VC33 optimize L1-2 click counts for better per-level scores
+- **Hypothesis**: Scoring formula is QUADRATIC: (human/agent)^2. If level 1 baseline is 6 clicks and agent uses 12, score = (6/12)^2 = 0.25. If agent uses 7, score = (6/7)^2 = 0.73. Current trial-and-lock uses several trial clicks + execution clicks — can be optimized.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Implement level-3 specific click sequence using executor's verified display coordinates:
+- **Changes**:
+  1. Level 1 (2 buttons): 2 trial clicks + measure imbalance change. Lock best. Click exactly `gap / change_per_click` times. Minimize total.
+  2. Level 2 (4 buttons, needs cycling): 4 trial clicks + faster plateau detection + optimal cycling.
+  3. Track per-level click counts and compare to baselines (L1=6, L2=13).
+- **Target game**: vc33
+- **Expected impact**: Better per-level scores on already-solved levels. Even small improvements compound due to quadratic formula.
 
-  ```
-  SOLUTION (18 clicks, verified against source gug() win condition):
+### 2. [Navigation] LS20 natural DFS with center hashing + correct start position
+- **Hypothesis**: Exp 050 showed center hashing (20×20 region) changed ls20 from GAME_OVER to NOT_FINISHED. Combined with the confirmed start position (39,45) and natural DFS exploration (no position-based bias), the agent should explore the maze more effectively. Iterative deepening across deaths (exp 039-041) already reaches 34-46 steps.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**:
+  1. Apply center 20×20 hashing (from exp 050)
+  2. Use correct start position (39,45) for any position logic
+  3. Remove ALL waypoint/position-based directional bias
+  4. Ensure state graph persists across deaths
+  5. Increase max_actions to 2000+
+- **Target game**: ls20
+- **Expected impact**: With reliable hashing and enough exploration budget, DFS should find modifier→goal path.
 
-  Step 1: btn(50) × 9  — uUB shrinks, nDF grows
-    ChX: y=21 → y=39 ✓ (target: 39)
-    VAJ: y=43 → y=25 (temporary overshoot)
-
-  Step 2: btn(38) × 3  — nDF shrinks, TKb grows
-    VAJ: y=25 → y=31 ✓ (target: 31)
-
-  Step 3: btn(16) × 6  — fCG grows (independent pair)
-    PPS: y=45 → y=33 ✓ (target: 33)
-
-  Total: 18 clicks. Human baseline: 31. Perfect per-level score.
-  ```
-
-  **PROBLEM FROM EXP 056:** btn[1]=(16,56) moves PPS DOWN, not UP! PPS needs UP.
-
-  **FIX — find the missing PPS-UP button:**
-  The sro→fCG button at game x=6 → display ~(8, 56-62) is NOT found by BFS (too close to left edge).
-  **Try clicking at display (8, 56) or (7, 62) manually.** This should grow fCG → move PPS UP.
-  If it works: solution = btn[6]×10 + btn[5]×~1 + PPS-UP×~6 = ~17 clicks.
-
-  **Alternative — order-dependent activation:**
-  Exp 056 found buttons become valid after other clicks. After doing step 1 (btn[6]×10),
-  re-test btn[0]=(12,56) — it might now activate as PPS-UP (bar heights changed).
-
-  **DIRECTION REMINDER (exp 057 used wrong directions!):**
-  - ChX DOWN: use **btn[6]=(46,56)** NOT btn[7] (which is UP)
-  - VAJ UP: use **btn[6]** or **btn[5]=(38,56)**
-  - PPS UP: MISSING — need to find button at display x≈8
-
-  **Y-COORDINATE DIAGNOSTIC:**
-  BFS finds buttons at display y=56, but game buttons are at game y=50 → display y≈62.
-  The 4 "non-working" buttons may work at a different y! Try:
-  ```
-  For each x in [8, 12, 24, 28, 34]:
-    Try clicking at y=56, 58, 60, 62
-    Check if any decoration moved
-  ```
-  This finds the correct clickable y AND the missing PPS-UP button (x≈8).
-
-  **CRITICAL FIX #1: DISABLE BALANCE HANDLER FOR LEVEL 3.**
-  The existing trial-and-lock code from levels 1-2 takes over after the level-3 plan finishes
-  and RESETS all decoration progress. Add `return` before balance handler when level 3 detected.
-
-  **CRITICAL FIX #2: TEST btn[0] STANDALONE.**
-  btn[0]=(12,56) had only 14% success when alternated with btn[6]. But gel() allows up to 8
-  consecutive btn[0] clicks (fCG.y goes from 48 down to 32, limit is mud=32). Test: click btn[0]
-  8 times consecutively (no alternation). If all 8 register, PPS moves 8×0.96 = 7.7 px UP. Target
-  needs 7.6 px. EXACTLY right!
-
-  **SOLUTION PLAN (3-step sequential, no alternation needed):**
-  ```
-  Step 1: btn[6]=(46,56) × 12 clicks  — ChX→target, VAJ overshoots
-  Step 2: btn[4]=(34,56) × 4 clicks   — VAJ corrects back to target
-  Step 3: btn[0]=(12,56) × 8 clicks   — PPS→target
-  Total: 24 effective clicks. With neutrals ~48. Within 75 lives.
-  ```
-
-  **WHY btn[0] FAILS (sprite overlap analysis):**
-  btn[0] = xQZ at game (6,50). fCG rDn bar at game (0-7, 48-51) OVERLAPS completely.
-  get_sprite_at may return fCG (no ZGd tag) instead of xQZ (layer 1, ZGd tag).
-  Other buttons work because their rDn bars don't fully overlap, or layer priority helps.
-
-  **FIX OPTION A — Play via arc CLI with vision:**
+### 3. [Stretch] VC33 L3 via arc CLI manual play
+- **Hypothesis**: The stategraph agent can't reliably press the PPS-UP button (btn[0]) due to sprite overlap. But the executor (Claude Code with vision) can play via arc CLI, visually verify each click, and adjust coordinates in real-time.
+- **Changes**: Play L3 manually after auto-solving L1-2:
   ```bash
   arc start vc33 --max-actions 75
-  # Auto-solve L1-2, then on L3:
-  arc state --image   # See level 3
-  # Click each button, view result, identify which moves PPS
-  # Execute corrected plan visually
+  # L1-2 auto-solve, then on L3:
+  arc state --image
+  # Visually identify buttons and decorations
+  # Click btn[6] area, verify ChX/VAJ moved
+  # Click near (12,56) area with slight offsets until PPS moves
+  # Execute plan visually
   ```
-  The executor (Claude Code with vision) can SEE which pixels move and adjust clicks.
-  This bypasses all coordinate and sprite-overlap issues.
-
-  **FIX OPTION B — Offset btn[0] coordinates:**
-  The xQZ button is 2x2 game pixels at (6-7, 50-51). fCG bar is at (0-7, 48-51).
-  Try clicking at game (7, 51) = display (13, 57) = agent (26, 114).
-  Or game (6, 51) = display (12, 57) = agent (24, 114).
-  Shifting to the bottom-right of the button area might help get_sprite_at
-  find xQZ (layer 1) instead of fCG (layer 0).
-
-  **FIX OPTION C — Two-step PPS via chain (slow but reliable):**
-  If btn[3]=(28,56) or btn[2]=(24,56) become valid after Phase 1-2,
-  we could chain: nDF→TKb→sro→fCG using multiple button pairs.
-  After Phase 1 (btn[6]×12): nDF is very tall. btn[4] transfers nDF→TKb.
-  After Phase 2: TKb is taller. Re-test btn[3] and btn[2] for further chain.
-  This avoids btn[0] entirely.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-
-  **VERIFIED BUTTON MAPPING (traced from dzy init source code):**
-  ```
-  LEFT-side buttons (transfer LEFT through chain):
-    game x=40 → uUB→nDF (source=uUB, dest=nDF)
-    game x=28 → nDF→TKb (source=nDF, dest=TKb)
-    game x=18 → TKb→sro (source=TKb, dest=sro)
-    game x=6  → sro→fCG (source=sro, dest=fCG)
-
-  RIGHT-side buttons (transfer RIGHT, REVERSE direction):
-    game x=44 → nDF→uUB
-    game x=32 → TKb→nDF
-    game x=22 → sro→TKb
-    game x=10 → fCG→sro
-  ```
-
-  **SOLUTION: Click LEFT-side buttons only, right-to-left:**
-  ```
-  Step 1: Click game x=40 button 9 times (uUB→nDF)
-  Step 2: Click game x=28 button 3 times (nDF→TKb)
-  Step 3: Click game x=18 button 5 times (TKb→sro)
-  Step 4: Click game x=6  button 6 times (sro→fCG)
-  Total: 23 clicks
-  ```
-
-  Use BFS-detected display positions that the agent already found (exp 052: y≈56 area). The 4 LEFT-side buttons in the BFS list are buttons [0], [2], [4], [6] or similar — identify by x-position order: leftmost pair's LEFT button = sro→fCG, rightmost pair's LEFT button = uUB→nDF.
-
-  **KEY: exp 052 used btn[0-7] but the direction mapping was wrong. Use the LEFT button in each pair, not the RIGHT one.**
-
+- **Known plan (if PPS-UP works):**
+  - Phase 1: btn[6]=(46,56) × 12 — ChX DOWN, VAJ UP
+  - Phase 2: btn[4]=(34,56) × 4 — VAJ correct
+  - Phase 3: PPS-UP × 8 — PPS to target
 - **Target game**: vc33 level 3
-- **Expected impact**: Score improvement from 0.6667. 23 clicks ≤ baseline 31 → perfect per-level score.
+- **Expected impact**: Solves L3 if PPS button can be found visually.
 
-  **VERIFY first:** Click one button, observe which bar changes. If clicking x=88 shrinks uUB (rightmost tall bar), use primary mapping. If it grows nDF instead, use reversed mapping.
-
-  **Implementation:** Detect level 3 (8 buttons in horizontal row at y=50). Execute 23-click sequence. Order matters: must go right-to-left (uUB→nDF first, then chain leftward).
-
-- **Target game**: vc33 level 3
-- **Expected impact**: Score improves from 0.6667. Level 3 solved in 23 clicks (≤ baseline 31) = perfect per-level score.
-
-### 2. [Navigation] LS20 natural DFS exploration — no position bias, fix state hashing
-- **Hypothesis**: Exp 046 confirmed: (1) start at (39,45) ✓, (2) walls block direct LEFT, (3) position tracking unreliable, (4) DFS must explore naturally. The stategraph's DFS already reaches 34-46 steps (exp 039-041) from the correct start position. The problem is that state hashing is unreliable — hash changes without real movement cause false transitions in the graph.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-  1. **Fix state hashing**: The current 2-row mask may not be enough. The game has a fog-of-war circle (source line 1297: pixels > 20.0 distance from player center are set to color 5). This means the EDGES of the grid are always the same color (5), but the CENTER varies. Hash only the center 8x8 or 10x10 region of the 16x16 viewport instead of masking rows.
-  2. **Increase action budget**: Run with 2000+ max_actions. At 0.012s/action, this costs <30s.
-  3. **Persist state graph across deaths**: Ensure iterative deepening works — each death adds explored territory.
-  4. **No directional bias**: Remove any position-based waypoint logic. Let DFS explore all directions equally.
-- **Target game**: ls20
-- **Expected impact**: With reliable state hashing, the DFS explores the actual maze structure. With enough actions and iterative deepening, it should find modifier→goal path.
-
-### 3. [Navigation] LS20 fog-of-war aware hashing — hash center region only
-- **Hypothesis**: LS20 has a fog-of-war circle (source code line 1297: `if math.dist(...) > 20.0: frame[hhe, dcv] = 5`). Pixels beyond 20 units from player center are always color 5. This means the grid EDGES are constant while the CENTER changes based on actual position. The current full-grid hash (minus 2 rows) includes these constant-5 edges, making hashes LESS sensitive to actual position changes. Fix: hash only the center region.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: In `_hash_frame()`, instead of masking top/bottom 2 rows, extract the center 8x8 or 10x10 region and hash only that. This makes the hash sensitive to actual position while ignoring the constant fog-of-war edges.
-- **Target game**: ls20
-- **Expected impact**: Reliable state detection → no false transitions → DFS explores real maze paths.
-
-### 4. [Puzzle Logic] LS20 detect modifier/goal collection from score or frame signature
-- **Hypothesis**: Even without position tracking, the agent can detect key events:
-  - **Modifier collected**: Player sprite rotates (tuv changes). Center pixels at player position change pattern.
-  - **Wrong goal state**: Game flashes red and player doesn't move (source line 1451-1453).
-  - **Level complete**: Score increases.
-  Use these signals to understand progress without position tracking.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: After each move, check for distinctive frame patterns:
-  1. Player rotation change (compare center 5x5 pixels with saved pattern)
-  2. Red flash (color 0 appears in player area)
-  3. Score change (already handled by level transition logic)
-- **Target game**: ls20
-- **Expected impact**: Knows when modifier collected, can avoid revisiting modifier area.
-
-### 5. [Action Efficiency] VC33 optimize levels 1-2 click counts
-- **Hypothesis**: Scoring formula is QUADRATIC: (human/agent)^2. Level 1 baseline 6 clicks, level 2 baseline 13. Minimizing trial clicks improves per-level scores significantly.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: On trial phase: only 2 trial clicks needed (2 buttons in level 1). Lock immediately. Click exact gap count.
-- **Target game**: vc33
-- **Expected impact**: Better per-level scores on already-solved levels.
-
-### 6. [Navigation] LS20 multi-level data — waypoints for levels 2-7
-- **Hypothesis**: Once level 1 is solved, subsequent levels need their own waypoint data. All 7 levels pre-computed from source code.
-- **Per-level data:**
+### 4. [Navigation] LS20 level data for all 7 levels (pre-computed)
+- **Per-level data (from source):**
   | Level | Start | Modifier | Goal(s) |
   |-------|-------|----------|---------|
   | 1 | (39,45) | (19,30) | (34,10) |
@@ -195,10 +61,9 @@
 - **Target game**: ls20
 - **Expected impact**: Immediate multi-level solving once level 1 works.
 
-### 7. [Level Progression] VC33 level 4+ investigation
-- **Hypothesis**: Levels 4-7 may have different mechanics. Low priority until level 3 solved.
+### 5. [Level Progression] VC33 level 4+ investigation
+- **Hypothesis**: Levels 4-7 may have different mechanics. Low priority until L3 solved or bypassed.
 - **Target game**: vc33
-- **Expected impact**: Strategy preparation.
 
 ---
 
@@ -206,13 +71,9 @@
 
 - **Stategraph 019 (BREAKTHROUGH)**: Balance puzzle → score 0.3333.
 - **Stategraph 021 (IMPROVED)**: Trial-and-lock → score 0.6667.
-- **Stategraph 022-027**: Six experiments on vc33 level 3 bar chart. All reverted.
-- **Stategraph 028**: ls20 visual investigation — maze with player=blue cross.
-- **Stategraph 029-035**: Seven ls20 navigation experiments — all reverted.
-- **Stategraph 036-037**: Maze data extraction + offline BFS — collision model proprietary.
-- **Stategraph 038-041**: DFS/iterative deepening — navigation solved (34-46 steps), state matching is blocker.
-- **Stategraph 042-045**: Waypoint navigation attempts — all used wrong start position (1,53). Exp 045 proved goal unreachable from (1,53) grid.
-- **Stategraph 046**: CONFIRMED start position (39,45) via arc CLI. Maze walls block direct LEFT. Position tracking unreliable.
-- **Stategraph 047**: VC33 level 3 DECODED — chain-of-bars, 5 bars, 8 buttons, 3 decorations need target positions.
+- **Stategraph 022-027**: vc33 L3 bar chart — 6 exps, scoring condition found (markers).
+- **Stategraph 028-045**: ls20 navigation — DFS solved (34-46 steps). Start position confirmed (39,45). State matching is blocker. Center hashing helps.
+- **Stategraph 046-047**: ls20 confirmed (39,45), vc33 L3 decoded as chain-of-bars.
+- **Stategraph 048-061**: vc33 L3 — 13 experiments. Phase 1-2 work (ChX/VAJ reach targets). Phase 3 (PPS) BLOCKED: btn[0] at game(6,50) overlaps with fCG rDn bar, get_sprite_at returns wrong sprite ~86% of time. 38 experiments at plateau.
 - **Explorer 001-030**: All score 0.
-- **CONFIRMED**: Player entity is "pca" (tag "caf") at (39,45), not "hep" at (1,53).
+- **KEY INSIGHTS**: Coordinate mapping is display=game+6 (not scaling). Scoring is quadratic (human/agent)^2. VC33 grid sizes: L1-2=32, L3=52, L4-6=64, L7=48.
