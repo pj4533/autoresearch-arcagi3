@@ -1106,6 +1106,32 @@ ADCR agent (line 156) uses `context.frames.previous_grids` for before/after comp
 
 The explorer agent's fix (saving frame to datastore before returning action) was NOT applied to ADCR. If testing ADCR (#8 in queue), the executor should verify that `previous_grids` ≠ `frame_grids` first, or apply the same fix.
 
+### Strategic Pivot: Hybrid Approach (2026-03-29)
+
+**Major change**: The user/executor pivoted to a hybrid approach where:
+- **Claude Code (Opus 4.6)** provides reasoning — analyzes results, makes code changes
+- **Stategraph agent** runs pure programmatic (LLM_INTERVAL=0, finishes in seconds)
+- The `arc` CLI enables interactive investigation of game mechanics
+
+This bypasses the Qwen3.5 reasoning bottleneck entirely. Claude Code can:
+- View frame images via `arc state --image`
+- Reason about puzzle mechanics visually
+- Make targeted code changes based on understanding
+- Run experiments in seconds and iterate fast
+
+**Updated mutation categories:**
+1. State Graph Navigation
+2. Click Target Detection
+3. Action Priority & Selection
+4. Life/Health Management
+5. Cross-Level Transfer
+6. Frame Analysis & Pattern Detection
+7. Puzzle Logic Heuristics
+
+**Key insight**: The bottleneck is no longer "which model to use" but "understanding the puzzle mechanics." The executor needs to visually inspect vc33 to understand what clicks do, what the goal state looks like, and how to encode puzzle-solving logic programmatically.
+
+**Queue refreshed with 15 ideas** covering all 7 mutation categories, with #1 being interactive investigation of vc33 mechanics.
+
 **Why QwQ-32B might succeed where others failed:**
 - Qwen3.5-35B (3B active MoE) lacks depth of reasoning
 - Qwen3-32B (dense but not reasoning-trained) has the capacity but not the training
