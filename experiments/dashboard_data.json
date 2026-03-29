@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T18:32:04.013043+00:00",
+  "generated_at": "2026-03-29T18:43:59.238452+00:00",
   "summary": {
-    "total": 33,
-    "completed": 31,
+    "total": 34,
+    "completed": 32,
     "improved": 2,
-    "reverted": 28,
+    "reverted": 29,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -438,6 +438,19 @@
       "duration": "20s",
       "status": "reverted",
       "notes": "KEY FINDING: ls20 health=3 HEARTS (not per-move drain). Agent survives 18+ moves per heart. Death from traps, not movement. Tried: corridor-following with backtrack avoidance. Agent oscillates at maze junctions. Maze too large for undirected exploration \u2014 needs goal-directed pathfinding or map building."
+    },
+    {
+      "id": "034",
+      "idea": "#1",
+      "description": "LS20 anti-oscillation + direction commit",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "20s",
+      "status": "reverted",
+      "notes": "Detect A,B,A,B oscillation in recent actions, lock to least-visited direction for 3 steps. Doesn't help \u2014 maze size is the fundamental blocker, not oscillation. Score at 0.6667 for 14 consecutive experiments."
     }
   ],
   "running_best": [
@@ -461,6 +474,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
