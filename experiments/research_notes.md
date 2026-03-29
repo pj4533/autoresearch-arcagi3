@@ -1801,3 +1801,31 @@ Clicking a button transfers pixels between paired bars. Pixels are removed from 
 5. Execute
 
 This is tractable programmatically but requires understanding the pixel-level bar/marker structure. Visual investigation via `arc state --image` would make this much faster.
+
+### Exp 046-047 Analysis (2026-03-29)
+
+**Exp 046: LS20 start position CONFIRMED.**
+The executor confirmed via arc CLI that the player entity (color 12+9 block) is at (39,45), modifier at (19,30), goal at (34,10). Key additional findings:
+1. **Maze walls block direct LEFT**: Row 40, cols 24-33. Agent can't go straight from (39,45) to (19,30).
+2. **Position tracking UNRELIABLE**: Stategraph hash changes don't reliably indicate real movement. This is likely caused by the fog-of-war circle (source line 1297: pixels > 20 distance from center set to color 5). Edge pixels are always the same, making hashes insensitive to actual position changes.
+3. **DFS must explore naturally**: No position-based directional bias. Let the DFS find its own path through the maze.
+
+**Exp 047: VC33 Level 3 DECODED.**
+Chain-of-bars puzzle with concrete win condition:
+- 5 bars in chain: fCG(4)↔sro(2)↔TKb(4)↔nDF(6)↔uUB(28)
+- 8 buttons transfer 2px between adjacent bars
+- 3 decorations need specific y-positions matching fZK goal zones:
+  - ChX(y=21, color 11) → target y=39 (needs bar to shrink, Δ+18)
+  - PPS(y=45, color 14) → target y=33 (needs bar to grow, Δ-12)
+  - VAJ(y=43, color 15) → target y=31 (needs bar to grow, Δ-12)
+- uUB has excess height (28) — needs to redistribute through chain
+
+**Strategic pivot**: VC33 level 3 is now more tractable than ls20. It's a concrete computation problem with known target heights. LS20 needs reliability fixes (state hashing) before DFS can work properly.
+
+**LS20 Fog-of-War Discovery:**
+Source code line 1297:
+```python
+if math.dist((hhe, dcv), (self.tuv.mgu.y + nlo, self.tuv.mgu.x + nlo)) > 20.0:
+    frame[hhe, dcv] = 5
+```
+This means a circle of radius 20 from player center is visible, everything outside is color 5. The 16x16 viewport (scaled to 64x64) has most edge pixels as constant color 5. Current hashing (mask 2 rows) still includes these constant edges, making hashes insensitive to position. Fix: hash only center region (8x8 or 10x10).
