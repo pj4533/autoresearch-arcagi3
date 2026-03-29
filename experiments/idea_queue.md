@@ -172,3 +172,4 @@
 - **#16(new) [Architecture] max_actions=100** — Exp 030: reverted (score=0.0000). 300 actions, still 0. Budget isn't the bottleneck.
 - **#4 [Memory Management] Cross-level knowledge transfer** — Exp 031: reverted (score=0.0000). No level transitions occur so transfer never activates.
 - **#1 [Architecture] Stategraph baseline** — Exp 032: baseline (score=0.0000). 120 actions in 17s. LLM detects grid changes but can't score. Establishes programmatic baseline.
+- **#2 [Bug Fix] Click pipeline diagnostic** — Exp 033: diagnostic. vc33 clicks work (color 9 → 265 changes). ft09 broken (all actions = status bar only). vc33 is the scoring target.
