@@ -6,57 +6,41 @@
 
 ---
 
-### 1. [Bug Fix] VC33 level 3 — COORDINATE SCALING FIX (buttons miss by 1 pixel!)
-- **Hypothesis**: Level 3 grid is 52x52 but display is 64x64. Scale = 64/52 = 1.2308 (NON-INTEGER). Levels 1-2 are 32x32 → scale 2.0 (integer, works perfectly). With floor division in display_to_grid(), clicking at display position floor(game_x * 64/52) maps back to game_x - 1. ALL 8 buttons miss by 1 pixel. This is why bars don't change — clicks land on empty space next to buttons.
+### 1. [Puzzle Logic] VC33 level 3 — USE CORRECT BUTTONS + BFS COORDS (exp 052 buttons work!)
+- **Hypothesis**: Exp 052 proved buttons DO respond (22/23 hash changes). The coordinate issue is solved — use BFS-detected button positions. The remaining problem: **my earlier primary button mapping was WRONG**. I traced the dzy initialization code and the CORRECT buttons are the LEFT-side ones (game x=40,28,18,6), NOT the right-side (x=44,32,22,10).
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: For level 3 (detected by 8 buttons), use CORRECTED coordinates:
+- **Changes**:
+
+  **VERIFIED BUTTON MAPPING (traced from dzy init source code):**
   ```
-  CORRECTED AGENT COORDINATES (use these instead of detected display positions):
-  Button at game(6,50):  agent coords (16, 124)
-  Button at game(10,50): agent coords (26, 124)
-  Button at game(18,50): agent coords (46, 124)
-  Button at game(22,50): agent coords (56, 124)
-  Button at game(28,50): agent coords (70, 124)
-  Button at game(32,50): agent coords (80, 124)
-  Button at game(40,50): agent coords (100, 124)
-  Button at game(44,50): agent coords (110, 124)
+  LEFT-side buttons (transfer LEFT through chain):
+    game x=40 → uUB→nDF (source=uUB, dest=nDF)
+    game x=28 → nDF→TKb (source=nDF, dest=TKb)
+    game x=18 → TKb→sro (source=TKb, dest=sro)
+    game x=6  → sro→fCG (source=sro, dest=fCG)
+
+  RIGHT-side buttons (transfer RIGHT, REVERSE direction):
+    game x=44 → nDF→uUB
+    game x=32 → TKb→nDF
+    game x=22 → sro→TKb
+    game x=10 → fCG→sro
   ```
-  These are computed as: agent_x = ceil(game_x * 64/52) * 2, agent_y = ceil(50 * 64/52) * 2 = 124.
+
+  **SOLUTION: Click LEFT-side buttons only, right-to-left:**
+  ```
+  Step 1: Click game x=40 button 9 times (uUB→nDF)
+  Step 2: Click game x=28 button 3 times (nDF→TKb)
+  Step 3: Click game x=18 button 5 times (TKb→sro)
+  Step 4: Click game x=6  button 6 times (sro→fCG)
+  Total: 23 clicks
+  ```
+
+  Use BFS-detected display positions that the agent already found (exp 052: y≈56 area). The 4 LEFT-side buttons in the BFS list are buttons [0], [2], [4], [6] or similar — identify by x-position order: leftmost pair's LEFT button = sro→fCG, rightmost pair's LEFT button = uUB→nDF.
+
+  **KEY: exp 052 used btn[0-7] but the direction mapping was wrong. Use the LEFT button in each pair, not the RIGHT one.**
+
 - **Target game**: vc33 level 3
-- **Expected impact**: Buttons actually respond! Then the 23-click solution works.
-
-### 2. [Puzzle Logic] VC33 level 3 — EXACT SOLUTION (23 clicks, after coordinate fix)
-- **Hypothesis**: Solution fully computed from source code. 23 clicks total (baseline 31 → perfect per-level score).
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Add level-3-specific click sequence after detecting 8 buttons at y=50.
-
-  **SOLUTION (verified mathematically):**
-  ```
-  Step 1: Click uUB→nDF button 9 times
-    → ChX reaches y=39 ✓, VAJ at y=25 (temporary)
-  Step 2: Click nDF→TKb button 3 times
-    → VAJ reaches y=31 ✓
-  Step 3: Click TKb→sro button 5 times
-    → Fills sro as conduit (TKb→0)
-  Step 4: Click sro→fCG button 6 times
-    → PPS reaches y=33 ✓ (sro→0)
-  Total: 9+3+5+6 = 23 clicks
-  ```
-
-  **BUTTON POSITIONS (click coordinates in agent coords = 2x grid):**
-  ```
-  Primary mapping (button on source bar):
-    uUB→nDF: click at x=88, y=100  (grid x=44, y=50)  × 9
-    nDF→TKb: click at x=64, y=100  (grid x=32, y=50)  × 3
-    TKb→sro: click at x=44, y=100  (grid x=22, y=50)  × 5
-    sro→fCG: click at x=20, y=100  (grid x=10, y=50)  × 6
-
-  If above doesn't work (reversed mapping):
-    uUB→nDF: click at x=80, y=100  (grid x=40, y=50)  × 9
-    nDF→TKb: click at x=56, y=100  (grid x=28, y=50)  × 3
-    TKb→sro: click at x=36, y=100  (grid x=18, y=50)  × 5
-    sro→fCG: click at x=12, y=100  (grid x=6, y=50)   × 6
-  ```
+- **Expected impact**: Score improvement from 0.6667. 23 clicks ≤ baseline 31 → perfect per-level score.
 
   **VERIFY first:** Click one button, observe which bar changes. If clicking x=88 shrinks uUB (rightmost tall bar), use primary mapping. If it grows nDF instead, use reversed mapping.
 
