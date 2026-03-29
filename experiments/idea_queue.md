@@ -2,41 +2,62 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, ROOT CAUSE FOUND): Exp 042-043 used WRONG waypoint coordinates! The rbt() collision check requires specific grid-aligned positions. Agent was targeting item positions (19,30)→(34,10) but needs to target COLLECTION positions (16,28)→(31,8). Agent was exactly ONE UP MOVE short both times. Fix: change 2 waypoint coordinates. See research notes for full derivation.**
+**PHILOSOPHY (2026-03-29, CRITICAL FIX): THE PLAYER ENTITY IS NOT "hep" AT (1,53)! Deep source code analysis reveals the movable player is sprite "pca" (tag "caf"), which starts at (39,45) in level 1. The agent has been tracking the WRONG sprite's position and navigating in the WRONG DIRECTION. From (39,45), the modifier at (19,30) is 4 LEFT + 3 UP — not right! Fix: change starting position to (39,45) and recalculate all waypoint directions.**
 
 ---
 
-### 1. [Puzzle Logic] LS20 use COMPUTED COLLECTION POSITIONS as waypoints (root cause fix!)
-- **Hypothesis**: **ROOT CAUSE FOUND.** Source code analysis reveals the `rbt()` collision check is asymmetric: `sprite.x >= target_x AND sprite.x < target_x + 5`. This means the agent must move to a SPECIFIC grid-aligned position to collect items — not just be "near" them. From start (1,53) with 5-cell moves, the ONLY positions that trigger collection are:
-  - Modifier (bgt at 19,30): **collection position = (16, 28)**
-  - Goal (mae at 34,10): **collection position = (31, 8)**
-  - Exp 042 reached (16,33) and (31,13) — both exactly ONE UP MOVE short (y off by 5)!
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Change waypoint targets from item positions to collection positions:
-  ```python
-  # OLD (wrong — these are sprite positions, not reachable collection positions):
-  waypoints = [(19, 30), (34, 10)]
-  # NEW (computed collection positions from rbt() analysis):
-  waypoints = [(16, 28), (31, 8)]
-  ```
-  This is a **2-line change**. The agent already reaches the correct X. It just needs the correct Y target.
-- **Target game**: ls20
-- **Expected impact**: First ls20 score. This directly fixes the root cause — no grid search or calibration needed.
-- **Why this is right**: Movement confirmed ALWAYS exactly 5 cells (source line 1438). No partial moves. The drift isn't from movement calibration — it's from targeting the WRONG coordinates. The agent aims at (19,30) and stops when "close enough" at (16,33). But the collection position is (16,28), one more UP move away.
+### 1. [Puzzle Logic] LS20 CRITICAL: Fix player starting position — it's (39,45) not (1,53)!
+- **Hypothesis**: **THE FUNDAMENTAL BUG.** Source code analysis (line 1350: `self.mgu = self.current_level.get_sprites_by_tag("caf")[0]`) reveals the movable player entity is the sprite with tag "caf" = sprite named "pca". In level 1, "pca" is placed at **(39, 45)** — NOT the "hep" sprite at (1, 53) which is actually a flash overlay (tag "nfq", used as `self.nlo`).
 
-### 2. [Puzzle Logic] LS20 grid-search fallback at waypoint (if fix #1 doesn't work)
-- **Hypothesis**: If the computed collection positions don't fully solve it (e.g., maze routing prevents reaching the exact cell), add a grid search: when within ~8 cells of waypoint, try all 4 directions systematically in a spiral. Guarantees hitting every nearby 5-cell-aligned position within ~16 extra moves.
+  **ALL experiments using position tracking from (1,53) were navigating in the WRONG DIRECTION:**
+  - Modifier (19,30) is to the LEFT of (39,45), not RIGHT of (1,53)
+  - Goal (34,10) is to the LEFT and UP of (39,45)
+  - Exp 042-043 went RIGHT (increasing x from 39→54), moving AWAY from modifier at x=19
+  - The "reaching within 3 cells" was coincidental — true position was ~35 cells away
+
+  **Proof all items are on the same 5-cell grid:**
+  - All 14 items across 7 levels have x≡4 mod 5 and y≡0 mod 5
+  - Goal completion (nje()) requires EXACT position match: `self.mgu.x == ywm.x`
+  - Starting positions per level: L1=(39,45), L2=(29,40), L3=(9,45), L4=(54,5), L5=(54,50), L6=(24,50), L7=(14,10)
+
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: When `abs_distance_to_waypoint < 8` AND waypoint not yet triggered: enter spiral search mode. Try UP first (since exp 042-043 were both one UP short).
+- **Changes**:
+  ```python
+  # OLD (WRONG — hep sprite, which is the flash overlay):
+  abs_x, abs_y = 1, 53
+
+  # NEW (pca sprite, the actual player collision entity):
+  # Level 1 starting position:
+  abs_x, abs_y = 39, 45
+  ```
+
+  **Per-level data (sprite "pca" positions from source code):**
+  | Level | Start | Modifier | Goal(s) | Mod direction |
+  |-------|-------|----------|---------|---------------|
+  | 1 | (39,45) | (19,30) | (34,10) | 4L + 3U |
+  | 2 | (29,40) | (49,45) | (14,40) | 4R + 1D |
+  | 3 | (9,45) | (49,10) | (54,50) | 8R + 7U |
+  | 4 | (54,5) | NONE | (9,5) | — |
+  | 5 | (54,50) | (19,40) | (54,5) | 7L + 2U |
+  | 6 | (24,50) | (19,25) | (54,50),(54,35) | 1L + 5U |
+  | 7 | (14,10) | (54,20) | (29,50) | 8R + 2D |
+
 - **Target game**: ls20
-- **Expected impact**: Robust fallback. At most ~16 extra moves.
+- **Expected impact**: First ls20 score. With correct starting position, the waypoint DFS navigates in the RIGHT direction. Items are exactly reachable (all on same 5-cell grid). Level 1 solution: start(39,45) → 4L+3U → modifier(19,30) → 3R+4U → goal(34,10).
+
+### 2. [Puzzle Logic] LS20 avoid re-collecting modifier after first collection
+- **Hypothesis**: The bgt modifier is NOT removed when collected (stays in the level). Each walk-through cycles tuv by +1 mod 4. Level 1 needs exactly tuv=0 at goal (initial tuv=3, so 1 collection: 3→0). If DFS backtracks through modifier position, tuv corrupts (0→1→2→3...). Fix: after collecting modifier, add its position to a "blocked" list that DFS avoids.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: After reaching modifier position AND frame change detected (player rotation), add modifier position to blocked set. DFS won't try moves that lead to blocked positions.
+- **Target game**: ls20
+- **Expected impact**: Prevents state corruption from multiple modifier collections.
 
 ### 3. [Puzzle Logic] LS20 detect modifier collection from player rotation change
-- **Hypothesis**: Source code confirms the bgt modifier is NOT removed when collected — it stays visible on the grid. So "detect by sprite disappearance" won't work. BUT the player sprite DOES rotate (`nio.set_rotation`). Detect collection by: compare player center pixels before/after moving through modifier area. If the player's visual appearance changed (rotation), the modifier was collected → switch to goal waypoint.
+- **Hypothesis**: The bgt modifier stays visible but the player sprite rotates on collection. Detect collection by comparing player center pixels before/after moving through modifier area. If visual appearance changed (rotation), modifier was collected → switch to goal waypoint.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: After each move near modifier area, compare a small region around player center (20,32) with saved frame. If pixel pattern at center changed shape (not just position shift), modifier was collected.
+- **Changes**: After each move near modifier area, compare player center pixels. If changed, switch waypoint.
 - **Target game**: ls20
-- **Expected impact**: Reliable waypoint switching independent of position tracking.
+- **Expected impact**: Reliable waypoint switching.
 
 ### 4. [Visual Analysis] VC33 level 3 — visual investigation via arc CLI
 - **Hypothesis**: After 6 programmatic experiments (022-027) on vc33 level 3, the scoring condition is still unknown. The executor should visually inspect level 3 via `arc state --image` to see what the bars/markers/buttons look like. This approach unlocked levels 1+2 (exp 019). Level 3 has colored markers (11/14/15) that indicate target heights — the executor needs to SEE them.
@@ -116,8 +137,8 @@
 - **Stategraph 036-037**: Maze data extraction from source + offline BFS. BFS failed (collision model proprietary).
 - **Stategraph 038**: Hardcoded prefix — partial path not useful.
 - **Stategraph 039-041**: Iterative deepening / DFS — navigation SOLVED (34-46 steps). Blocker is state matching, not navigation.
-- **Stategraph 042-043**: Waypoint navigation — REACHED both waypoints within ~3 cells! Position drift prevents scoring. 22 experiments at plateau.
-- **Stategraph 044**: Visual target detection — color 1 false positives, grid alignment blocks exact matching. Waypoint positions not on player's 5px movement grid. 23 experiments at plateau.
+- **Stategraph 042-043**: Waypoint navigation — estimated "near" both waypoints but actually navigating WRONG DIRECTION (true start was (39,45), not (1,53)).
+- **Stategraph 044**: Visual target detection + grid alignment analysis — confirmed items not on (1,53) grid. 24 experiments at plateau.
 - **Explorer 001-030**: All score 0. See log_archive_explorer.md.
 - **TESTED AND REJECTED**: Anti-oscillation (exp 034), goal-direction bias (exp 035), corridor following (exp 032), wall-hit avoidance (exp 031), green density (exp 029), visual BFS (exp 030).
-- **KEY INSIGHT (exp 044)**: From (1,53) moving by 5, reachable positions are {1,6,11,16,21,26,31,36,...} × {53,48,43,38,33,28,23,18,...}. Modifier at (19,30) and goal at (34,10) are NOT on this grid. The maze must have junctions that shift alignment. Need to find the ACTUAL path from game data, not approximate with position tracking.
+- **CORRECTED (exp 044 insight)**: Items NOT on (1,53) grid because **(1,53) is the WRONG starting position!** The "hep" sprite at (1,53) is a flash overlay (tag "nfq" → self.nlo). The actual movable player entity is "pca" sprite (tag "caf") starting at **(39,45)** in level 1 (source line 1350: `self.mgu = get_sprites_by_tag("caf")[0]`). From (39,45), ALL items are perfectly grid-aligned: x≡4 mod 5, y≡0 mod 5. This is a **1-line fix**.

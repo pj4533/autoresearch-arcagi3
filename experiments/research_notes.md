@@ -1696,13 +1696,58 @@ Reduce waypoint proximity threshold from ~8 to ≤3. This forces the agent close
 
 **Recommended: Option A first (2-line change), with Option B as fallback.**
 
-**Exact waypoints for ls20 level 1:**
-| Waypoint | Item Position | Collection Position | Direction from start |
-|----------|--------------|--------------------|--------------------|
-| Modifier (bgt) | (19, 30) | **(16, 28)** | 3 right, 5 up |
-| Goal (mae) | (34, 10) | **(31, 8)** | 6 right, 9 up |
+**~~Exact waypoints for ls20 level 1 (SUPERSEDED — see correction below):~~**
 
-**Level 1 minimum path: start(1,53) → modifier(16,28) → goal(31,8)**
-- Start to modifier: ~8 steps (3R + 5U) + maze overhead
-- Modifier to goal: ~7 steps (3R + 4U) + maze overhead
-- Human baseline: 29 steps
+### MAJOR CORRECTION: Player Entity Is NOT "hep" (2026-03-29)
+
+**PREVIOUS ANALYSIS WAS WRONG.** My earlier analysis assumed the player starts at (1, 53) from the "hep" sprite. This led to wrong conclusions about "collection positions" at (16, 28) and (31, 8).
+
+**TRUE FINDING from deeper source code analysis:**
+
+Line 1350: `self.mgu = self.current_level.get_sprites_by_tag("caf")[0]`
+
+The movable player entity (self.mgu) is the sprite with tag **"caf"** = sprite named **"pca"**. The "hep" sprite at (1, 53) has tag "nfq" and is loaded as `self.nlo` (the flash overlay for wrong-state-at-goal animation).
+
+**Sprite tag mapping (confirmed from source):**
+| Tag | Sprite name | Purpose | Code reference |
+|-----|------------|---------|----------------|
+| "caf" | pca | **PLAYER (movable entity)** | self.mgu (line 1350) |
+| "wex" | ??? | Player visual | self.nio (line 1351) |
+| "nfq" | hep | Flash overlay | self.nlo (line 1352) |
+| "fng" | tuv | Invisible collision box | self.opw (line 1353) |
+| "axa" | rzt | Goal indicators | self.pca (line 1354) |
+| "mae" | lhs | Goal positions | self.qqv (line 1355) |
+| "bgt" | kdy | Rotation modifier | collision check |
+| "jdd" | nlo | Walls | collision check |
+
+**Player starting positions per level (sprite "pca" positions):**
+| Level | Name | Player Start | Modifier | Goal(s) | Mod Direction |
+|-------|------|-------------|----------|---------|---------------|
+| 1 | krg | **(39, 45)** | (19, 30) | (34, 10) | 4 LEFT + 3 UP |
+| 2 | mgu | **(29, 40)** | (49, 45) | (14, 40) | 4 RIGHT + 1 DOWN |
+| 3 | puq | **(9, 45)** | (49, 10) | (54, 50) | 8 RIGHT + 7 UP |
+| 4 | tmx | **(54, 5)** | NONE | (9, 5) | — |
+| 5 | zba | **(54, 50)** | (19, 40) | (54, 5) | 7 LEFT + 2 UP |
+| 6 | lyd | **(24, 50)** | (19, 25) | (54,50), (54,35) | 1 LEFT + 5 UP |
+| 7 | fij | **(14, 10)** | (54, 20) | (29, 50) | 8 RIGHT + 2 DOWN |
+
+**Verified:** ALL items have x≡4 mod 5 and y≡0 mod 5. ALL are exactly reachable from their level's player start position with integer multiples of 5-cell moves.
+
+**Why ALL previous waypoint experiments (042-044) failed:**
+The agent tracked position from (1, 53) and navigated RIGHT toward the modifier at x=19 (since 19 > 1). But the TRUE start is (39, 45), and the modifier is to the LEFT (19 < 39). The agent was navigating in the **opposite direction**, moving from x=39 toward x=54 (away from the modifier at x=19).
+
+The "reaching within 3 cells" in exp 042 was a coincidence from the DFS's random exploration, NOT purposeful waypoint navigation. The estimated position (16, 33) had no relation to the true position.
+
+**Implications:**
+1. The rbt() "collection position" analysis above was WRONG — it was based on the wrong starting position
+2. Items ARE at the exact positions the player can reach from (39, 45) — no "collection position offset" needed
+3. Goal completion requires EXACT position match (nje() checks mgu.x == goal.x), and from (39,45) the items are exactly reachable
+4. The fix is a **1-line change**: set starting position to (39, 45) instead of (1, 53)
+
+**Level 1 solution path (corrected):**
+1. Start at (39, 45)
+2. Navigate LEFT + UP through maze to modifier at (19, 30) — 4L + 3U = 7 direct moves
+3. Collect modifier (tuv: 3→0). Avoid revisiting modifier cell.
+4. Navigate RIGHT + UP through maze to goal at (34, 10) — 3R + 4U = 7 direct moves
+5. Arrive with tuv=0 → level complete!
+Total: ~14 direct moves + maze overhead. Human baseline: 29 moves.
