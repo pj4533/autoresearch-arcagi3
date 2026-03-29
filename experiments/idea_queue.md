@@ -95,11 +95,29 @@
 - **Changes**: After each action, include compact diff: "Changed: (5,3) 4→3, (5,4) 4→3, (6,3) 5→3 [3 cells shifted in bottom-left]"
 - **Expected impact**: Raw data for rule discovery.
 
-### 15. [Prompt Engineering] Aggressive prompt compression for faster iteration
-- **Hypothesis**: Qwen MLX has no KV cache. Every token is re-processed every step. Shorter prompts = faster iterations = more exploration per time budget.
-- **Files to modify**: `src/arcagi3/explorer_agent/prompts/*.prompt`, `src/arcagi3/explorer_agent/agent.py`
-- **Changes**: Compact system prompt, abbreviate after first step, hard limits on memory sections.
-- **Expected impact**: 20-40% faster. More actions per experiment = more learning opportunities.
+### 15. [Architecture] Combine ALL best changes into one experiment
+- **Hypothesis**: 27 experiments tested ideas individually. Each showed partial improvement (better JSON, faster, better frame visibility, better action selection) but none scored. The compound effect of ALL improvements together may cross the threshold. Individual gains don't compound when reverted between experiments.
+- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`, `src/arcagi3/explorer_agent/prompts/*.prompt`
+- **Changes**: Apply simultaneously on the accepted #27+#22 baseline: (1) eliminate convert call, (2) state graph with untried action tracking, (3) action-effect journal in prompt, (4) enhanced frame descriptions, (5) hypothesis-driven prompting, (6) prompt compression. Test all together — the whole is greater than the sum of parts.
+- **Expected impact**: Compound effect of speed + visibility + exploration diversity + memory. If 40 actions at 6s/act = 240s total, the agent gets fast iterations with full feedback.
+
+### 16. [Architecture] Increase max_actions to 100 for exploration budget
+- **Hypothesis**: 40 actions may simply not be enough to both discover rules AND complete a level. LS20 level 1 needs 29 baseline actions — a human who already knows the rules. An agent discovering from scratch likely needs 50-80 exploration actions before it even understands the objective. At 6-9s/action with prompt compression, 100 actions = ~10-15 minutes per game — still fast.
+- **Files to modify**: `run_benchmark.py` or CLI args
+- **Changes**: Run with `--max-actions 100` instead of 40. This gives 2.5x more exploration budget. The agent can afford to spend 60 actions exploring and still have 40 left to execute.
+- **Expected impact**: More exploration budget may be the simplest path to first score on LS20. The agent sees effects, makes diverse actions, but runs out of actions before finding the goal.
+
+### 17. [Architecture] Try Qwen3-32B dense model (has KV cache, potentially better reasoning)
+- **Hypothesis**: Qwen3.5-35B-A3B is a MoE model activating only 3B parameters per forward pass. Qwen3-32B is dense (all 32B params active) with standard attention (KV cache works!). It may have better per-token reasoning quality. With KV cache, repeated prompts are faster. Trade: slower generation (20-30 tok/s vs 60-70) but better thinking per token.
+- **Files to modify**: `run_benchmark.py` or CLI args
+- **Changes**: Run with `--config qwen3-32b-local`. Compare reasoning quality and score to qwen3.5-35b-local.
+- **Expected impact**: If the bottleneck is model reasoning (not prompt engineering), a better model solves it directly. The dense architecture also supports KV cache reuse.
+
+### 18. [Architecture] Programmatic state-graph exploration for LS20 (LLM only for interpretation)
+- **Hypothesis**: Competition winners used programmatic graph exploration, not LLM-per-step. For LS20, implement a BFS/DFS that systematically tries each untried action from each state. The LLM is only called every 10 actions to interpret the accumulated observations and suggest a direction. This is closer to how the 2nd/3rd place winners approached it.
+- **Files to modify**: `src/arcagi3/explorer_agent/agent.py`
+- **Changes**: In explore phase for LS20: (1) hash state, (2) if untried actions exist from this state, pick one (no LLM), (3) record transition, (4) every 10 steps, call LLM with state graph summary to get high-level direction, (5) navigate to frontier states with untried actions. This reduces LLM calls from 40 to ~4 while systematically covering the state space.
+- **Expected impact**: Systematic coverage + reduced LLM dependency. Competition data shows this approach beats pure LLM by 3-4x.
 
 ---
 
