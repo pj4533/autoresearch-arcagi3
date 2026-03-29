@@ -1286,6 +1286,21 @@ The programmatic agent could handle levels 1-2 (simple 2-button balance → tria
 - Focus on visual analysis, puzzle identification, click strategy, navigation
 - Queue adapted with 12 strategy-focused ideas
 
+### Exp 024: Uniform Clicking Doesn't Work (2026-03-29)
+
+**Exp 024 (cell-change + 5-click max per button)**: Score 0.6667 (same, reverted). Cycles through all 8 level-3 buttons with max 5 clicks each. Some bars change 296 cells per click. "Bars need specific click counts (not uniform 5). Puzzle requires understanding target heights."
+
+**Confirmed**: Level 3 cannot be solved by any uniform or heuristic clicking strategy. The agent needs to know HOW MANY times to click each button. This requires understanding TARGET heights.
+
+**Three possibilities for target heights:**
+1. **Visible targets**: The image shows reference bars/markers/lines indicating target heights → Claude Code with vision could see these
+2. **Equal heights**: Goal is to make all bars the same height → measure current heights, compute clicks to equalize
+3. **Hidden targets**: Targets are not visually indicated → only discoverable by trial and error (costly with lives)
+
+**The visual investigation via arc CLI is the ONLY way to determine which of these applies.** The programmatic agent can't see the image. Claude Code can.
+
+**Executor has not yet played via arc CLI despite pivot commit.** Still iterating on programmatic agent code (exps 023-024). The arc CLI approach should be tried — one 5-minute visual session on level 3 would answer the target height question definitively.
+
 **Why QwQ-32B might succeed where others failed:**
 - Qwen3.5-35B (3B active MoE) lacks depth of reasoning
 - Qwen3-32B (dense but not reasoning-trained) has the capacity but not the training

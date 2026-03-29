@@ -2,7 +2,9 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post pivot to arc CLI play): Claude Code (Opus 4.6) now plays games directly via arc CLI with vision. It sees frames as images and reasons about puzzles. We iterate on PLAY STRATEGY. Current best: vc33=0.6667 (levels 1+2 solved programmatically). Level 3 is a bar chart with 8 buttons needing multi-button coordination. The executor's visual reasoning should handle this.**
+**PHILOSOPHY (2026-03-29, post exp 024): Level 3 confirmed: 8 bars needing SPECIFIC click counts (not uniform). "Puzzle requires understanding target heights." The programmatic agent CAN'T determine targets — it needs VISION. The #1 priority is having the executor visually investigate level 3 via `arc state --image` to identify target bar heights. Everything else is premature until we know what the target looks like.**
+
+**NOTE TO EXECUTOR: Level 3 needs vision. Use `arc` CLI to visually inspect level 3 — look for target height indicators (reference bars, markers, colored lines). One 5-minute investigation will unlock the path forward. The programmatic approach has hit its ceiling on level 3.**
 
 ---
 
@@ -82,7 +84,8 @@
 
 ## Completed
 
-- **Stategraph 001-023**: See log. Highlights: vc33 balance puzzle solved (levels 1-2). Level 3 is bar chart needing multi-button coordination. All local models tested (Qwen3.5, Qwen3-32B, QwQ-32B) — insufficient reasoning.
+- **Stategraph 001-024**: See log. Highlights: vc33 levels 1-2 solved. Level 3 bar chart: buttons detected (36-296 cells changed) but bars need SPECIFIC click counts — "puzzle requires understanding target heights." Uniform clicking doesn't work.
 - **Stategraph 019 (BREAKTHROUGH)**: Balance puzzle → score 0.3333.
 - **Stategraph 021 (IMPROVED)**: Trial-and-lock → score 0.6667.
+- **Stategraph 023-024**: Cell-change metric + 5-click max. Level 3 buttons found but target heights unknown.
 - **Explorer 001-030**: All score 0. See log_archive_explorer.md.
