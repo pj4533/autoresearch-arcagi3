@@ -1147,6 +1147,50 @@ QwQ-32B is the best local model but still can't solve puzzles. The hybrid approa
 
 **Status: 48 experiments, all score 0. Next: visual investigation of vc33 via arc CLI.**
 
+### BREAKTHROUGH: Exp 019 — First Non-Zero Score! (2026-03-29)
+
+**avg=0.3333, vc33=1.0, ls20=0, ft09=0. Duration: 3s. 300 actions.**
+
+**What happened**: The executor used `arc state --image` to visually inspect vc33 and discovered it's a **balance puzzle**: two regions (upper/lower) separated by a gray bar, with two maroon (color 9) buttons. Clicking a button adjusts the green/black boundary in each region. The goal is to equalize the boundaries.
+
+**How it works** (`_detect_balance_puzzle()` in agent.py):
+1. Find gray bar (horizontal rows with >40% uniform non-bg color)
+2. Measure green/black boundary in upper region (above bar) and lower region (below bar)
+3. Find two color-9 connected components (maroon buttons) via BFS
+4. If upper_boundary < lower_boundary → click lower button (converges)
+5. If upper_boundary >= lower_boundary → click upper button
+6. **Lock the button choice** to prevent oscillation when boundaries cross
+7. Click locked button until score increases (level transition)
+
+**Why it worked**:
+- Visual investigation revealed the puzzle mechanics (QwQ-32B described it as "manipulating colored objects into configurations" but couldn't act on it)
+- Hardcoded puzzle detection with specific heuristics
+- Button locking prevents oscillation
+- Pure programmatic execution (0.012s/action → 3s total for 300 actions)
+
+**Why level 2 failed**:
+- "Level 2 has different layout → GAME_OVER"
+- The balance detection returns None → falls back to generic clicking → lives consumed → GAME_OVER
+- Need to investigate what level 2 looks like and generalize detection
+
+**Scoring details**:
+- vc33 level 1 baseline: 6 clicks
+- Score formula: per-level score = min(1.0, baseline/agent)^2
+- vc33 reported as score=1, meaning agent solved level 1 efficiently
+- Average over 3 games: (0 + 0 + 1) / 3 = 0.3333
+
+**What this validates**:
+1. **The hybrid approach works**: Claude Code visual reasoning → targeted code → programmatic execution
+2. **The framework is functional**: scoring works correctly when puzzles are solved
+3. **Game-specific heuristics are the path**: not generic LLM reasoning or exploration, but understanding specific puzzle mechanics
+4. **Speed is not the bottleneck**: 3s for 300 actions, puzzle detection is instant
+
+**Next priorities**:
+1. Investigate vc33 level 2 → generalize detection
+2. Investigate ls20 visually → understand navigation mechanics
+3. Optimize level 1 efficiency (fewer clicks = better score)
+4. Add health/life monitoring to prevent GAME_OVER on unsolved levels
+
 **Why QwQ-32B might succeed where others failed:**
 - Qwen3.5-35B (3B active MoE) lacks depth of reasoning
 - Qwen3-32B (dense but not reasoning-trained) has the capacity but not the training
