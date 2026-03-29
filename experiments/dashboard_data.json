@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-03-29T21:42:40.479881+00:00",
+  "generated_at": "2026-03-29T21:49:00.447627+00:00",
   "summary": {
-    "total": 46,
+    "total": 47,
     "completed": 38,
     "improved": 2,
     "reverted": 35,
@@ -607,6 +607,19 @@
       "duration": "13s",
       "status": "diagnostic",
       "notes": "CONFIRMED via arc CLI: player (color 12+9 block) at (39,45), modifier (0+1) at (19,30), goal area at (34,10). MAZE HAS WALLS: row 40 cols 24-33 blocks direct LEFT path. Manual play shows LEFT moves blocked. Position tracking UNRELIABLE: stategraph hash changes DON'T reliably indicate real movement. The maze REQUIRES pathfinding AROUND walls. NO perform action in ls20. Next: need to let stategraph DFS explore naturally and find the actual maze path, not use position-based directional bias."
+    },
+    {
+      "id": "047",
+      "idea": "#4",
+      "description": "VC33 level 3 source code analysis",
+      "avg_score": 0.6667,
+      "actions": 0,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "0s",
+      "status": "diagnostic",
+      "notes": "LEVEL 3 DECODED: Chain-of-bars puzzle. 5 bars (fCG\u2194sro\u2194TKb\u2194nDF\u2194uUB) connected in chain. 8 buttons transfer 2px height between adjacent bars. 3 decorations (ChX/PPS/VAJ) sit on bars \u2014 need to reach specific target y-positions matching goal zones. Win condition: each decoration's bottom pixel color must match a goal zone color, AND y-position must match target. Initial heights: fCG=4, sro=2, TKb=4, nDF=6, uUB=28. Trial-and-lock can't solve this \u2014 needs targeted computation of required heights."
     }
   ],
   "running_best": [
@@ -630,6 +643,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
