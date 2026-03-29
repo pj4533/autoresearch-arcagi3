@@ -2,26 +2,43 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 038): 17 experiments at 0.6667 plateau. ALL programmatic ls20 approaches exhausted (10 experiments: 029-038). Hardcoded prefix, BFS, DFS, direction bias, anti-oscillation — all failed. The ONLY untested approach is arc CLI visual play (which went 0→0.3333→0.6667 on vc33). ALSO: vc33 level 3 needs visual investigation via arc CLI too. The next step is interactive play, not more programmatic changes.**
+**PHILOSOPHY (2026-03-29, post exp 039): Iterative deepening WORKS (33→53→63 steps across deaths). The agent explores enough territory but oscillates at open junctions (R,U,R,U). Fix: smarter junction decisions. Probing helps (21 vs 15 steps) but costs health. The ls20 breakthrough is close — just need to fix direction selection at junctions.**
 
 ---
 
-### 1. [Navigation Strategy] LS20 Claude Code plays via arc CLI — visual maze navigation
-- **Hypothesis**: All programmatic ls20 approaches have failed (exps 029-037). Offline BFS failed because the collision model is proprietary. But Claude Code (Opus 4.6) can SEE the maze frames and reason about navigation visually. This is the same approach that solved vc33 (visual investigation → understanding → strategy). Play ls20 via arc CLI: view frame, decide direction based on visible paths, navigate toward goals. With 29 baseline actions, this is ~29 `arc action` commands = a few minutes.
-- **Files to modify**: None — interactive play via arc CLI
-- **Changes**: Play ls20 interactively:
-  ```bash
-  arc start ls20 --max-actions 100
-  arc state --image    # See the maze
-  arc action move_right
-  arc state --image    # See what happened — did we move? Where are we now?
-  # Repeat: view → decide → act → view
-  # Navigate toward visible goals (maroon blocks, gray exits)
-  arc end
-  ```
-  Claude Code's visual reasoning can identify corridors, dead ends, and goals much better than any programmatic heuristic. If successful, the solved path can be hardcoded into the agent.
+### 1. [Navigation Strategy] LS20 randomize direction preference per death — different paths each attempt
+- **Hypothesis**: Exp 039's R>U>L>D fixed preference creates R,U,R,U oscillation in open areas. Fix: randomize the direction preference order on each death/restart. Death 1 tries R>U>L>D, death 2 tries L>D>R>U, death 3 tries U>L>D>R. Each death explores a DIFFERENT part of the maze, maximizing coverage across deaths.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**:
+  1. On each level start/reset: shuffle the direction preference order randomly
+  2. Use the shuffled order for untried action selection (instead of fixed R>U>L>D)
+  3. The stategraph still tracks visited states across deaths → each death starts from known territory and extends in a NEW random direction
+  4. With 3+ deaths × different direction preferences = much better maze coverage
 - **Target game**: ls20
-- **Expected impact**: First ls20 score via visual reasoning. The approach that went from 0→0.3333→0.6667 on vc33.
+- **Expected impact**: Breaks the oscillation pattern. Each death explores different branches → finds the goal faster.
+
+### 2. [Navigation Strategy] LS20 probe-then-commit at junctions — spend 1 health to decide
+- **Hypothesis**: Exp 039 found probing gets 21 steps vs 15 without (40% more effective exploration). At junctions with 2+ open directions, try each direction once (probe), then commit to the one that led to the most new states. This costs ~2-3 health points per junction but makes much better decisions.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**:
+  1. At a junction (2+ untried directions): try each direction once
+  2. After probing, pick the direction that produced the most cell changes or led to the most unique state
+  3. Commit to that direction for the next 3-5 steps
+  4. Re-probe at the next junction
+  5. Budget: with ~54 moves and ~5 junctions, probing costs ~10 moves, leaving ~44 for travel
+- **Target game**: ls20
+- **Expected impact**: Better junction decisions → deeper exploration → finds goal.
+
+### 3. [Navigation Strategy] LS20 DFS with visited-state avoidance — no oscillation
+- **Hypothesis**: The oscillation happens because the agent revisits recently-visited states. Fix: when choosing a direction, NEVER go to a state that was visited in the last 5 steps (unless all directions lead to visited states). This forces the agent to always move FORWARD through the maze.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**:
+  1. Track last 5 state hashes in a deque
+  2. In `_choose_action()`: filter out actions whose target state is in the recent history
+  3. If all actions lead to recent states: pick the least recently visited
+  4. This prevents A→B→A→B oscillation while still allowing backtracking when truly stuck
+- **Target game**: ls20
+- **Expected impact**: Eliminates oscillation. Agent moves consistently forward through corridors.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
   The executor should do TWO things:
