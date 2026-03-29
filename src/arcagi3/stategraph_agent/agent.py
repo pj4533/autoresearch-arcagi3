@@ -28,8 +28,8 @@ from arcagi3.utils.parsing import extract_json_from_response
 
 logger = logging.getLogger(__name__)
 
-# How often to call the LLM for hypothesis formation
-LLM_INTERVAL = 15
+# How often to call the LLM for hypothesis formation (0 = disabled)
+LLM_INTERVAL = 0
 # Max states before evicting least-visited
 MAX_STATES = 500
 # Status bar rows to mask when hashing frames
@@ -75,6 +75,9 @@ class StateGraphAgent(MultimodalAgent):
             "prev_score": 0,
             "llm_hypothesis": "",
             "random_walk_remaining": 0,
+            "balance_buttons": None,    # Detected balance puzzle buttons [(x,y), (x,y)]
+            "balance_mode": False,      # Whether balance puzzle strategy is active
+            "balance_target_btn": None, # Which button to keep clicking (locked after first detection)
         }
         for key, default in defaults.items():
             if key not in context.datastore:
@@ -161,6 +164,8 @@ class StateGraphAgent(MultimodalAgent):
             context.datastore["click_queue"] = []
             context.datastore["click_results"] = {}
             context.datastore["random_walk_remaining"] = 0
+            context.datastore["balance_buttons"] = None
+            context.datastore["balance_target_btn"] = None
 
             context.datastore["prev_score"] = current_score
             return True
@@ -193,6 +198,11 @@ class StateGraphAgent(MultimodalAgent):
         untried_movement = [a for a in untried if a != "ACTION6"]
         if untried_movement:
             return self._make_action(untried_movement[0], context)
+
+        # Priority 2.5: Balance puzzle strategy (vc33-style)
+        balance_action = self._detect_balance_puzzle(context)
+        if balance_action:
+            return balance_action
 
         # Priority 3: Try clicking at detected interactive objects
         if "ACTION6" in untried or "ACTION6" in available:
@@ -236,6 +246,114 @@ class StateGraphAgent(MultimodalAgent):
         context.datastore["random_walk_remaining"] = random.randint(2, 4)
         action = random.choice(available)
         return self._make_action(action, context)
+
+    def _detect_balance_puzzle(self, context: SessionContext) -> Optional[Dict[str, Any]]:
+        """Detect vc33-style balance puzzle and choose the right button.
+
+        Balance puzzles have: two regions (upper/lower) separated by a bar,
+        two buttons that adjust the boundary between regions. Goal: click
+        the button that moves boundaries toward equilibrium.
+        """
+        grid = context.last_frame_grid
+        if not grid:
+            return None
+
+        rows = len(grid)
+        cols = len(grid[0]) if rows else 0
+
+        # Only for click-only games
+        available = self._get_available_actions(context)
+        if available != ["ACTION6"]:
+            return None
+
+        # Find the gray bar (horizontal divider)
+        # Look for rows that are mostly one non-bg color
+        from collections import Counter
+        bar_rows = []
+        for r in range(2, rows - 2):
+            row_colors = Counter(grid[r])
+            # Gray bar: mostly color 5 (or any single non-bg color spanning >60% of row)
+            for color, count in row_colors.items():
+                if color not in (0, 3, 7) and count > cols * 0.4:
+                    bar_rows.append(r)
+                    break
+
+        if len(bar_rows) < 2:
+            return None
+
+        bar_start = min(bar_rows)
+        bar_end = max(bar_rows)
+
+        # Find green/black boundary in upper region (above bar)
+        upper_row = (2 + bar_start) // 2
+        upper_boundary = -1
+        for c in range(cols - 1, -1, -1):
+            if grid[upper_row][c] == 3:
+                upper_boundary = c
+                break
+
+        # Find green/black boundary in lower region (below bar)
+        lower_row = (bar_end + 1 + rows - 2) // 2
+        lower_boundary = -1
+        for c in range(cols - 1, -1, -1):
+            if grid[lower_row][c] == 3:
+                lower_boundary = c
+                break
+
+        if upper_boundary < 0 or lower_boundary < 0:
+            return None
+
+        # Find the two maroon buttons (color 9 blocks)
+        buttons = context.datastore.get("balance_buttons")
+        if not buttons:
+            c9_objects = []
+            visited = set()
+            for r in range(2, rows - 2):
+                for c in range(cols):
+                    if grid[r][c] == 9 and (r, c) not in visited:
+                        # BFS to find connected component
+                        component = []
+                        queue = [(r, c)]
+                        visited.add((r, c))
+                        while queue:
+                            cr, cc = queue.pop(0)
+                            component.append((cc, cr))
+                            for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:
+                                nr, nc = cr+dr, cc+dc
+                                if 2 <= nr < rows-2 and 0 <= nc < cols and (nr,nc) not in visited and grid[nr][nc] == 9:
+                                    visited.add((nr, nc))
+                                    queue.append((nr, nc))
+                        center_x = sum(p[0] for p in component) // len(component)
+                        center_y = sum(p[1] for p in component) // len(component)
+                        c9_objects.append((center_x, center_y))
+
+            if len(c9_objects) >= 2:
+                # Sort by y position: upper button first, lower button second
+                c9_objects.sort(key=lambda p: p[1])
+                buttons = c9_objects[:2]
+                context.datastore["balance_buttons"] = buttons
+                context.datastore["balance_mode"] = True
+                logger.info(f"Balance puzzle detected: buttons at {buttons}, boundaries upper={upper_boundary} lower={lower_boundary}")
+
+        if not buttons or len(buttons) < 2:
+            return None
+
+        # Strategy: click the button that moves boundaries toward each other
+        # Upper button: decreases upper green, increases lower green
+        # Lower button: increases upper green, decreases lower green
+        # Goal: make boundaries converge (or cross)
+
+        # Lock the target button on first detection — don't switch after boundaries cross
+        locked_btn = context.datastore.get("balance_target_btn")
+        if locked_btn is None:
+            if upper_boundary < lower_boundary:
+                locked_btn = buttons[1]  # Lower button: increases upper, decreases lower
+            else:
+                locked_btn = buttons[0]  # Upper button: decreases upper, increases lower
+            context.datastore["balance_target_btn"] = locked_btn
+
+        # Convert grid coords (0-63) to agent coords (0-127) since base agent does //2
+        return {"action": "ACTION6", "x": min(locked_btn[0] * 2, 127), "y": min(locked_btn[1] * 2, 127)}
 
     def _try_click(self, context: SessionContext) -> Optional[Dict[str, Any]]:
         """Try clicking at the next untried interactive object."""
@@ -283,6 +401,8 @@ class StateGraphAgent(MultimodalAgent):
 
     def _maybe_call_llm(self, context: SessionContext, state_hash: str) -> Optional[str]:
         """Call LLM for hypothesis if it's time."""
+        if LLM_INTERVAL <= 0:
+            return None
         step_counter = context.datastore.get("step_counter", 0)
         if step_counter > 0 and step_counter % LLM_INTERVAL == 0:
             return self._call_llm_hypothesis(context, state_hash)

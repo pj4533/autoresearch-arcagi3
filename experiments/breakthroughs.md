@@ -19,3 +19,12 @@ Experiments that improved the score. Each entry explains what changed and why it
 - **Delta vs previous best**: Score unchanged but frame change detection went from 0% to 100%. All 21 prior experiments were blind — the agent couldn't see what its actions did.
 - **Why it worked**: `context.frames.previous_grids` and `frame_grids` are identical at `step()` time due to the order of operations in `_run_session_loop()`. The context is updated with the SAME frames before calling step(), making the comparison always return "no visible change". By saving the frame ourselves in the datastore before returning, we have a true "before" snapshot to compare against on the next step.
 - **Code change**: Added `_save_current_frame()` method that copies the current grid to `context.datastore["saved_prev_grid"]`. Modified `_describe_frame_change()` to compare this saved grid against the current frame. Called at end of both `_probe_step()` and `_explore_step()`.
+
+## Exp 019: VC33 Balance Puzzle Strategy
+
+- **Category**: Puzzle Logic / Visual Investigation
+- **Change**: Added `_detect_balance_puzzle()` method to stategraph agent. Detects vc33-style balance puzzles (two regions with different green levels, two buttons, gray divider bar). Locks the corrective button and clicks until score increases. Resets on level transition.
+- **Results**: avg=0.3333, ls20=0, ft09=0, vc33=1, actions=300, duration=3s
+- **Delta vs previous best**: 0.0000 → 0.3333 (+0.3333). First non-zero score after 48 experiments.
+- **Why it worked**: Visual investigation revealed vc33 is a balance/volume puzzle with two buttons that adjust upper/lower region boundaries. The key insights were: (1) understanding the puzzle mechanics through visual frame analysis, (2) detecting which button to click based on boundary comparison, (3) locking the button choice to prevent oscillation after boundaries cross.
+- **Code change**: Added `_detect_balance_puzzle()` to `agent.py` — detects gray bar divider, finds two maroon (color 9) buttons above/below it, measures green/black boundary in each region, selects the button that converges boundaries. Locked button persists until score changes (level transition). LLM calls disabled for speed.
