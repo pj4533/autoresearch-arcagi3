@@ -32,3 +32,4 @@ Games: ls20, ft09, vc33. Max actions per experiment: 40.
 | 025 | #10(new) | Probe undo + safe exploration | 0.0000 | 120 | 0 | 0 | 0 | 3074s | reverted | Undo not available in any of the 3 games. No impact. |
 | 026 | #14(new) | Grid differencing with cell-level detail | 0.0000 | 120 | 0 | 0 | 0 | 3561s | reverted | Detailed diffs show exact cell changes (e.g. block of color 12 shifting) but model can't translate to scoring. |
 | 027 | #15(new) | Aggressive prompt compression | 0.0000 | 120 | 0 | 0 | 0 | 2944s | reverted | 1 parse failure (best). ls20 fast (373s). But no score — Qwen3.5-35B may lack reasoning ability to solve these games regardless of prompt. |
+| 028 | #12(new) | Multi-action planning (with frame fix) | 0.0000 | 120 | 0 | 0 | 0 | 1390s | reverted | Fastest full benchmark (81% faster). Planning works but no score. |
