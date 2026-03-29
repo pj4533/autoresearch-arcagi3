@@ -680,3 +680,55 @@ This means the ROOT CAUSE of 100% Move Up is NOT the game-type awareness or conv
 
 - **ACTION7 (Undo)**: Not available in any of the 3 games (ls20, ft09, vc33). Exp 025 confirmed.
 - **Click actions (ACTION6)**: Do not produce visible frame changes in FT09 or VC33 despite correct coordinate delivery. Root cause unknown — game engine/pipeline issue.
+
+### Research Iteration 2026-03-29: Strategic Pivot to Stategraph Agent
+
+**30 Experiments, Zero Score — Time to Change Approach**
+
+After 30 experiments iterating on the explorer agent (LLM-per-step), all scoring 0.0000, the evidence is overwhelming:
+1. Pure LLM approaches scored <1% in competition (best: Tomas Engine 3.70%, crashed often)
+2. Training-free graph exploration (3rd place) beat ALL LLM approaches
+3. Competition winners used programmatic/RL exploration: 12.58% (CNN+RL), 6.71% (state graph+ResNet), training-free graph (12 private levels solved)
+4. Qwen3.5-35B activates only 3B parameters per forward pass (MoE) — may fundamentally lack reasoning for these games
+
+**The stategraph_agent already exists in the codebase and has NEVER been benchmarked.** This is the single most obvious next step.
+
+**New Competition Intelligence (2026-03-29):**
+
+**Symbolica (36.08%, March 2026)**: Used Agentica SDK — LLM agents that write and execute Python code to interact with games. Sub-agents analyze grid examples and write programs. $1,005 total cost vs Opus 4.6's 0.25% at $8,900. Code-as-action paradigm.
+
+**3rd Place Graph Explorer — Detailed Architecture:**
+- Connected component segmentation for click targets
+- 5-tier priority system by segment size, morphology, color salience
+- Hierarchical action selection: exhaust high-priority untested actions before descending
+- BFS navigation to nearest frontier state (state with untested actions)
+- Status bar masking for state hashing
+- ZERO LLM calls — pure programmatic
+- Solved median 17 levels across 6 games
+
+**Key Differences: Our Stategraph vs 3rd Place:**
+| Feature | Our Stategraph | 3rd Place |
+|---------|---------------|-----------|
+| LLM calls | Every 15 steps | Zero |
+| Click prioritization | Size-sorted objects | 5-tier priority |
+| Frontier navigation | Neighbor-only (Priority 4-5) | BFS across entire graph |
+| When fully explored | Random walk (Priority 6) | BFS to nearest frontier |
+| Game-type detection | None | Arrow vs click vs hybrid |
+
+**Updated Strategy:**
+1. Benchmark stategraph as-is (zero code changes)
+2. Debug click pipeline (blocks 2/3 games)
+3. Try Qwen3-32B (better per-token reasoning)
+4. Validate with cloud model (is framework broken?)
+5. Enhance stategraph toward 3rd-place architecture
+6. Consider Symbolica-style code generation for breakthrough
+
+**Category Coverage in New Queue (15 ideas):**
+- Architecture: #1, #3, #4, #9 (4 ideas — emphasis on agent/model selection)
+- Bug Fix: #2 (1 idea — critical blocker)
+- Exploration Strategy: #5, #6, #7, #8, #10 (5 ideas — stategraph improvements)
+- Preprocessing: #11 (1 idea)
+- Action Sequencing: #12 (1 idea)
+- State Tracking: #13 (1 idea)
+- Memory Management: #14 (1 idea)
+- Phase Transitions: #15 (1 idea)
