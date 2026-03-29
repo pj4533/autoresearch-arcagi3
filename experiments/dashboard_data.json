@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T23:43:46.628344+00:00",
+  "generated_at": "2026-03-29T23:52:35.085007+00:00",
   "summary": {
-    "total": 61,
-    "completed": 48,
+    "total": 62,
+    "completed": 49,
     "improved": 2,
-    "reverted": 45,
+    "reverted": 46,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -802,6 +802,19 @@
       "duration": "6s",
       "status": "reverted",
       "notes": "Disabled balance handler for L3 (critical fix). Tried 3 P3 variants: (1) sequential btn[0]\u00d78 no neutrals \u2014 consecutive clicks don't register; (2) btn[0]+neutral\u00d78 with disabled balance \u2014 P3 still resets; (3) btn[0]+btn[6] alternation \u2014 overshoots ChX/VAJ. The PPS button (btn[0]) remains the blocker: neutrals waste lives, alternation overshoots, consecutive clicks fail. Need completely different PPS approach."
+    },
+    {
+      "id": "062",
+      "idea": "#1",
+      "description": "VC33 L3 btn[0] offset coords for sprite overlap",
+      "avg_score": 0.6667,
+      "actions": 400,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "4s",
+      "status": "reverted",
+      "notes": "Researcher identified sprite overlap: fCG bar overlaps btn[0] xQZ. Tried offset clicks at (26,114) and (24,114) to avoid overlap. Neither worked. fCG is independent (no chain path), so btn[0] is the ONLY way to move PPS. 16 experiments on VC33 L3 total. btn[0] remains completely unreliable regardless of coordinates."
     }
   ],
   "running_best": [
@@ -825,6 +838,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
