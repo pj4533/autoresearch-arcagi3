@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 057): Exp 057 used WRONG button directions (btn[7] for ChX = UP, needs DOWN via btn[6]). The 4 "non-working" buttons may be at wrong y-coordinate — BFS y=56 maps to game y≈45, but buttons are at game y=50 → display y≈62. Try clicking at MULTIPLE y-values to find the real button y. Missing PPS-UP button at display x≈8 needs y-scan too.**
+**PHILOSOPHY (2026-03-29, post exp 058): DECORATIONS MOVE! Coordinate mapping is display=game+6 (not scaling). btn[6]×10 moved ChX 36.2→45.8 and VAJ 46.2→36.6. Close to targets! Rate: 0.96 display px/click. Need ~2 more btn[6] + VAJ adjustment + PPS-UP button (btn[0] at display(12,56) = game(6,50)). Life budget: 75, need ~48 total clicks with neutrals.**
 
 ---
 
