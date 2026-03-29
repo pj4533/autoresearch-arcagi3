@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T17:16:01.970003+00:00",
+  "generated_at": "2026-03-29T17:24:44.650907+00:00",
   "summary": {
-    "total": 26,
-    "completed": 25,
+    "total": 27,
+    "completed": 26,
     "improved": 2,
-    "reverted": 22,
+    "reverted": 23,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -347,6 +347,19 @@
       "duration": "20s",
       "status": "reverted",
       "notes": "Detected markers on bars (colors 11/14/15), computed gaps=[3,0,3,17]. Clicked LEFT buttons gap/4 times per bar. Plan kept re-creating \u2014 probe showed button-to-bar mapping is uncertain (clicks may affect different bars than assumed). Need precise button\u2192bar mapping via per-button probing."
+    },
+    {
+      "id": "027",
+      "idea": "#2",
+      "description": "Button probing + targeted clicks",
+      "avg_score": 0.6667,
+      "actions": 0,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "0s",
+      "status": "reverted",
+      "notes": "Deep investigation: probed each button individually (per-column change analysis). Found: buttons produce 36-51 cell changes, some pairs require alternation. Targeted clicking with gaps=[1,0,1,5] in both directions didn't score. Level 3's scoring condition remains unknown after 6 experiments (022-027). Moving focus to ls20."
     }
   ],
   "running_best": [
@@ -370,6 +383,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
