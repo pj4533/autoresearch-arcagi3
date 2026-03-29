@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T01:30:19.388075+00:00",
+  "generated_at": "2026-03-29T02:23:05.896025+00:00",
   "summary": {
-    "total": 24,
-    "completed": 24,
+    "total": 25,
+    "completed": 25,
     "improved": 2,
-    "reverted": 21,
+    "reverted": 22,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -321,9 +321,23 @@
       "duration": "3016s",
       "status": "reverted",
       "notes": "Only 2 parse failures. Faster but no score."
+    },
+    {
+      "id": "025",
+      "idea": "#10(new)",
+      "description": "Probe undo + safe exploration",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "3074s",
+      "status": "reverted",
+      "notes": "Undo not available in any of the 3 games. No impact."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
