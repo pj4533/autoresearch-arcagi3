@@ -1132,6 +1132,21 @@ This bypasses the Qwen3.5 reasoning bottleneck entirely. Claude Code can:
 
 **Queue refreshed with 15 ideas** covering all 7 mutation categories, with #1 being interactive investigation of vc33 mechanics.
 
+### Exp 018: QwQ-32B Results (2026-03-29)
+
+**QwQ-32B tested**: Score 0, 155s (much slower than Qwen3.5's 17s). Better hypothesis quality — "manipulating colored objects into configurations" is a more accurate description of vc33 than anything Qwen3.5 produced. vc33 result was NOT_FINISHED (not GAME_OVER), meaning QwQ preserved lives within 40 actions.
+
+**All 3 local models now tested and failed:**
+| Model | Speed | Hypothesis Quality | vc33 Result |
+|-------|-------|-------------------|-------------|
+| Qwen3.5-35B (MoE, 3B active) | 17s | Poor (generic) | GAME_OVER |
+| Qwen3-32B (dense) | 35s | Poor (same as 3.5) | Score 0 |
+| QwQ-32B (reasoning) | 155s | Better (identifies manipulation) | NOT_FINISHED |
+
+QwQ-32B is the best local model but still can't solve puzzles. The hybrid approach (Claude Code provides reasoning) is the remaining path.
+
+**Status: 48 experiments, all score 0. Next: visual investigation of vc33 via arc CLI.**
+
 **Why QwQ-32B might succeed where others failed:**
 - Qwen3.5-35B (3B active MoE) lacks depth of reasoning
 - Qwen3-32B (dense but not reasoning-trained) has the capacity but not the training

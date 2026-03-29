@@ -128,5 +128,5 @@
 
 ## Completed
 
-- **Stategraph 001-017**: All score 0. See log. Key findings: vc33 clicks work (color 9 interactive), ft09 broken, both games have life mechanics, programmatic exploration ceiling, click strategies exhausted, Qwen3.5 can't reason.
+- **Stategraph 001-018**: All score 0. See log. Key findings: vc33 clicks work (color 9 interactive), ft09 broken, both games have life mechanics, programmatic exploration ceiling, click strategies exhausted. All 3 local models tested (Qwen3.5, Qwen3-32B, QwQ-32B) — all score 0. QwQ-32B best hypothesis quality but still can't solve.
 - **Explorer 001-030**: All score 0. See log_archive_explorer.md.
