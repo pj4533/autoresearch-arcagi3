@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T22:56:33.868751+00:00",
+  "generated_at": "2026-03-29T23:04:25.388395+00:00",
   "summary": {
-    "total": 56,
-    "completed": 45,
+    "total": 57,
+    "completed": 46,
     "improved": 2,
-    "reverted": 42,
+    "reverted": 43,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -737,6 +737,19 @@
       "duration": "4s",
       "status": "diagnostic",
       "notes": "**DECORATION POSITIONS**: initial {11:36.2, 14:48.2, 15:46.2}. Systematic test: only btn[1,5,6,7] move decorations (1.2 display px/click). btn[0,2,3,4] are non-button color-9 sprites. btn[6]=(46,56): deco 11 DOWN +1.2, deco 15 UP -1.2. btn[7]=(50,56): reverses btn[6]. btn[5]=(38,56): deco 15 UP -1.2. btn[1]=(16,56): deco 14 DOWN +1.2. **ONLY 4 REAL BUTTONS**, not 8. Missing buttons for TKb\u2192sro and sro\u2192fCG. Game behavior is ORDER-DEPENDENT: btn[7] works after systematic test but NOT when clicked first. Source-scaled coords (y=124) for missing buttons also don't work."
+    },
+    {
+      "id": "057",
+      "idea": "#1",
+      "description": "VC33 L3 simplified 18-click + direction fix",
+      "avg_score": 0.6667,
+      "actions": 600,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "6s",
+      "status": "reverted",
+      "notes": "Tried 3 variants: (1) btn[7,5,1]\u00d7[9,3,6] = 18 clicks direct, (2) same + neutral interleaving = 36 clicks, (3) corrected dirs btn[6,5,0]\u00d7[9,3,6] + neutral = 36 clicks. None scored. Consecutive same-button clicks may not register (cooldown). The 18-click plan needs correct buttons AND all clicks to register. 36 exp at plateau."
     }
   ],
   "running_best": [
@@ -760,6 +773,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
