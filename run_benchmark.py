@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_GAMES = ["ls20-9607627b", "ft09-0d8bbf25", "vc33-9851e02b"]
+DEFAULT_GAMES = ["ls20-cb3b57cc", "ft09-9ab2447a", "vc33-9851e02b"]
 DEFAULT_CONFIG = "qwen3.5-35b-local"
 DEFAULT_MAX_ACTIONS = 40
 
@@ -53,14 +53,13 @@ def run_benchmark(agent_name: str, config: str, games: list[str], max_actions: i
         start = time.time()
 
         try:
-            is_local = os.getenv("ARC_URL_BASE", "").startswith("http://localhost")
             tester = ARC3Tester(
                 config=config,
                 save_results_dir=f"results/benchmark/{game_id}",
                 max_actions=max_actions,
                 num_plays=0,
                 use_vision=False,
-                submit_scorecard=not is_local,
+                submit_scorecard=True,
                 agent_class=agent_class,
             )
 
