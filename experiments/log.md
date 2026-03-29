@@ -29,3 +29,4 @@ Games: ls20, ft09, vc33. Max actions per experiment: 40.
 | 022 | fix | Fix frame comparison timing bug | 0.0000 | 120 | 0 | 0 | 0 | 3525s | improved | BREAKTHROUGH: Frame changes now detected! ls20 probes show "52 cells changed" instead of "no visible change". Agent can finally see effects of its actions. Foundational fix like exp_006. |
 | 023 | #5(new) | Enhanced frame change description (colors, region) | 0.0000 | 120 | 0 | 0 | 0 | 3418s | reverted | Rich descriptions (color transitions, regions) working but no score improvement yet. |
 | 024 | #8(new) | Eliminate convert LLM call (with frame fix) | 0.0000 | 120 | 0 | 0 | 0 | 3016s | reverted | Only 2 parse failures. Faster but no score. |
+| 025 | #10(new) | Probe undo + safe exploration | 0.0000 | 120 | 0 | 0 | 0 | 3074s | reverted | Undo not available in any of the 3 games. No impact. |
