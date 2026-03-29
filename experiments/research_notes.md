@@ -1443,6 +1443,32 @@ The agent's first priority must be: detect color 11 (iri pickup) objects and nav
 **Exp 031 (wall-hit avoidance + 5000 actions)**: Score 0.6667 (same, reverted). "5000 max_actions (265s) → GAME_OVER from health drain. ls20 maze is too large to explore within health budget."
 
 With 3-move budget between pickups, the agent dies repeatedly. 5000 total actions = ~1500 attempts (3 moves each) + resets. Each attempt explores only 3 moves of new territory. The maze requires 29+ moves for level 1 — the agent needs to chain ~10 pickups to survive that long.
+
+### CORRECTION: LS20 Health Is 3 Hearts, Not Per-Move Drain (2026-03-29)
+
+**Exp 033 CORRECTS my source code analysis.** Key finding: "ls20 health=3 HEARTS (not per-move drain). Agent survives 18+ moves per heart. Death from traps, not movement."
+
+**My analysis was wrong.** The source code's `czh()` health drain doesn't fire on every move — it's conditional on specific events (traps). The agent gets ~18 moves per heart × 3 hearts = ~54 moves before death. This is much more generous than the 3 moves I predicted.
+
+**Corrected ls20 understanding:**
+| Aspect | My Analysis | Actual (Exp 033) |
+|--------|------------|------------------|
+| Health | 3 lives, 1 per move | 3 hearts, ~18 moves each |
+| Death cause | Movement drain | Traps |
+| Moves per game | ~3 without pickups | ~54 |
+| Pickups needed | Essential for survival | Nice-to-have, not critical |
+
+**New blockers for ls20:**
+1. Agent oscillates at maze junctions (wastes moves)
+2. Maze too large for undirected exploration even with 54 moves
+3. Traps kill the agent unexpectedly
+4. No goal-directed navigation
+
+**Updated strategy priorities:**
+1. Anti-oscillation (commit to directions at junctions)
+2. Trap detection + avoidance (record lethal transitions)
+3. Progressive mapping across deaths (build persistent maze map)
+4. Goal-directed movement (navigate toward visible goal objects)
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**

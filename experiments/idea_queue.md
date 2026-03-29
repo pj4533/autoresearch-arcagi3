@@ -2,40 +2,49 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 032): 12 consecutive experiments at 0.6667. DFS/BFS/greedy all fail for ls20 (health=3 lives, dies in 3 moves without pickups). THE KEY INSIGHT: ls20 has "iri" pickup items (color 11) that prevent health drain. The agent MUST detect and navigate toward these to survive >3 moves. Without pickup-chaining, no exploration strategy can work. Test #1 (pickup detection) before anything else.**
+**PHILOSOPHY (2026-03-29, post exp 033): CORRECTION: ls20 health = 3 HEARTS, ~18 moves per heart (~54 total). Death from TRAPS, not movement drain. My source code analysis was wrong. The agent has a decent budget but: (1) oscillates at maze junctions, (2) maze is still too large for undirected exploration, (3) needs trap avoidance + anti-oscillation + committed exploration direction.**
 
 ---
 
-### 1. [Navigation Strategy] LS20 pickup-first survival — detect "iri" items (color 11) within 2 moves
-- **Hypothesis**: Source code analysis reveals ls20 health = 3 lives. Each move WITHOUT collecting an "iri" pickup (color 11, hollow 3x3 square) costs 1 life → death in 3 moves. Collecting a pickup prevents health drain for that move. The agent MUST navigate toward pickups first to survive. Detect color 11 objects near the player center (20,32) and move toward the nearest one within 2 moves. This extends the exploration budget from 3 moves to potentially unlimited (if pickups are chained).
+### 1. [Navigation Strategy] LS20 anti-oscillation — commit to unexplored directions at junctions
+- **Hypothesis**: Exp 033 found the agent "oscillates at maze junctions" — going back and forth between two directions instead of committing. With ~54 moves before death, the agent has budget but wastes it oscillating. Fix: at each junction, commit to the LEAST-VISITED direction and don't reverse for at least 3 steps.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. `_detect_pickups(grid)`: Scan for color 11 objects (hollow 3x3 squares). Return list of (row, col) positions.
-  2. In `_choose_action()` for ls20: ALWAYS prioritize moving toward the nearest pickup over any other action. If no pickup visible within 2 moves, explore toward the direction with the most green cells (might reveal a pickup after scrolling).
-  3. After collecting a pickup (health not drained), the agent gets another 3-move budget to reach the next pickup.
-  4. This creates a "pickup chain" navigation: pickup → pickup → pickup → ... → goal.
+  1. Track `last_N_actions` (last 5 actions). If 2 of the last 3 are opposite (up/down or left/right), detect oscillation.
+  2. On oscillation: pick the direction that leads to the LEAST-VISITED state (or an unvisited state) and lock it for 3 steps.
+  3. Use `context.datastore["move_lock"]` to prevent direction changes during locked moves.
+  4. After 3 locked moves, re-evaluate (check if state changed, new paths visible).
 - **Target game**: ls20
-- **Expected impact**: Extends survival from 3 moves to potentially 20+ moves (if pickups exist). Prerequisite for any ls20 scoring.
+- **Expected impact**: Eliminates wasted moves from oscillation. Agent explores deeper into maze branches.
 
-### 2. [Puzzle Logic] LS20 state modifier tracking — understand shape/color/rotation items
-- **Hypothesis**: ls20 level completion requires visiting goals with the CORRECT player state (shape, color, orientation). State modifiers change these: "gsu" items change shape, "gic" items change color, "bgt" items rotate. The agent should detect these items on the grid and track its current state to know when it matches a goal.
+### 2. [Navigation Strategy] LS20 trap detection + avoidance — identify what kills the agent
+- **Hypothesis**: Exp 033 found death comes from TRAPS, not movement drain. The agent needs to detect which grid cells/states are traps and avoid them. After dying from a trap, record the state and direction that led to death. On the next attempt, avoid that transition.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Track player state: `{shape_index, color_index, rotation}`. When stepping on a modifier (detected by frame change pattern), update state. When near a goal, check if current state matches.
+- **Changes**:
+  1. When GAME_OVER occurs (health loss), record: `{state_hash, last_action}` as a "trap transition"
+  2. Store trap transitions in `context.datastore["trap_map"]`
+  3. In `_choose_action()`: before selecting a direction, check if that direction from the current state is a known trap. If so, skip it.
+  4. This accumulates trap knowledge across deaths (within the same game session).
 - **Target game**: ls20
-- **Expected impact**: Enables goal-matching. Without state tracking, the agent can't know when to visit goals.
+- **Expected impact**: Avoids known traps. With ~54 moves per life and trap avoidance, the agent can explore much further before dying.
 
-### 3. [Navigation Strategy] LS20 death-and-learn — use repeated resets to map the maze
-- **Hypothesis**: With health=3 and frequent deaths, the agent gets many short attempts. Each attempt reveals ~3 moves of information. With 500 max actions, the agent gets ~150 attempts. By recording what it learned from each death (which directions worked, where pickups were, where walls are), it can gradually build a map and eventually find the path.
+### 3. [Navigation Strategy] LS20 progressive maze mapping — build map across deaths
+- **Hypothesis**: Each death reveals ~18 moves of maze information. With 500 max_actions and ~54 moves per life, the agent gets ~9 full lives before max actions. That's ~9 × 18 = ~162 moves of exploration. By building a persistent map across deaths (recording which moves succeeded, which were walls, which were traps), the agent can gradually plan longer paths.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: After GAME_OVER (reset): preserve the wall map and pickup locations from the last attempt. On the next attempt, use this knowledge to plan a better path. Gradually extend explored range with each death.
+- **Changes**:
+  1. Persist `state_graph` across level resets (don't clear on death)
+  2. After each death, the agent already knows all explored transitions + traps
+  3. On restart, use the accumulated graph to plan: follow the longest known-safe path, then explore from the frontier
+  4. This is essentially iterative deepening — each life explores further from the known-safe base
 - **Target game**: ls20
-- **Expected impact**: Turns repeated deaths into a learning signal. Each death contributes to a more complete map.
+- **Expected impact**: Turns ~9 deaths into a complete enough map to find the goal. Level 1 needs 29 moves — with 162 moves of total exploration, the agent should find the path.
 
-### 4. [Navigation Strategy] LS20 ACTION5 not available — remove from strategy
-- **Hypothesis**: Source code confirms ls20 only has ACTION1-4 (directional moves). ACTION5 (perform) is NOT available. Remove it from all ls20 strategies. Items are collected by moving onto them, not by performing.
-- **Files to modify**: Update play_strategy.md, remove ACTION5 references for ls20
-- **Target game**: ls20
-- **Expected impact**: Prevents wasting actions on unavailable perform.
+### 4. [Puzzle Logic] VC33 level 3 — visual investigation via arc CLI (still untested)
+- **Hypothesis**: After 6 programmatic experiments (022-027) on vc33 level 3, the scoring condition is still unknown. The executor should visually inspect level 3 via `arc state --image` to see what "solved" looks like. This approach unlocked levels 1+2 (exp 019).
+- **Files to modify**: None — investigation
+- **Changes**: Play vc33 via arc CLI, solve levels 1+2, then inspect level 3 visually.
+- **Target game**: vc33 level 3
+- **Expected impact**: Understanding what level 3 wants → targeted fix.
 
 ### 2. [Puzzle Logic] VC33 level 3: visually inspect the puzzle via arc CLI
 - **Hypothesis**: After 6 experiments (022-027) trying to crack level 3 programmatically, the scoring condition is still unknown. The executor should visually inspect level 3 via `arc state --image` to understand what the ACTUAL goal looks like. The markers, bars, and buttons are known — but what does "solved" look like? Is it bar height equality? A specific pattern? Something else entirely?
