@@ -723,12 +723,91 @@ After 30 experiments iterating on the explorer agent (LLM-per-step), all scoring
 5. Enhance stategraph toward 3rd-place architecture
 6. Consider Symbolica-style code generation for breakthrough
 
-**Category Coverage in New Queue (15 ideas):**
-- Architecture: #1, #3, #4, #9 (4 ideas — emphasis on agent/model selection)
+**Category Coverage in New Queue (17 ideas):**
+- Architecture: #1, #3, #4, #11 (4 ideas — agent/model selection)
 - Bug Fix: #2 (1 idea — critical blocker)
-- Exploration Strategy: #5, #6, #7, #8, #10 (5 ideas — stategraph improvements)
-- Preprocessing: #11 (1 idea)
-- Action Sequencing: #12 (1 idea)
-- State Tracking: #13 (1 idea)
-- Memory Management: #14 (1 idea)
-- Phase Transitions: #15 (1 idea)
+- Exploration Strategy: #5, #6, #7, #10, #12 (5 ideas — stategraph core improvements)
+- Preprocessing: #8, #13 (2 ideas — status bar detection, game type)
+- State Tracking: #9, #15 (2 ideas — suspicious transitions, curiosity)
+- Action Sequencing: #14 (1 idea)
+- Memory Management: #16 (1 idea)
+- Phase Transitions: #17 (1 idea)
+
+### 3rd Place Graph Explorer Deep Dive (2026-03-29)
+
+**Source**: https://github.com/dolphin-in-a-coma/arc-agi-3-just-explore
+Two files: `graph_explorer.py` (core graph logic) and `agents/heuristic_agent.py` (game loop + frame processing)
+
+**State Hashing:**
+- Blake2B with 16-byte digest, packs two 4-bit pixels per byte
+- Grid shape embedded in `person` tag (different shapes never collide)
+- Status bar pixels replaced with sentinel value 16 before hashing, cleaned up after
+- Status bar detection runs once per level via connected component analysis
+
+**Status Bar Detection Algorithm:**
+- Find all connected components via flood fill
+- Mark as status bar if: touches any screen edge (within 3px threshold) AND (aspect ratio > 5:1 OR has 3+ "twin" segments along same edge)
+- "Twins" = components with identical area, is_rectangle, and color
+- This catches both line-style bars (elongated) and dot-style indicators (3+ identical dots)
+
+**Click Target System:**
+- Every connected component = one click target
+- Click at random pixel within the segment's mask (not center — ensures hitting the object)
+- 5 priority groups based on color saliency and size:
+  - Salient colors: {6,7,8,9,10,11,12,13,14,15}
+  - Medium size: both dimensions 2-32px
+  - Group 0: salient + medium (most likely buttons). ALL arrow actions also in group 0.
+  - Group 1: non-salient + medium
+  - Group 2: salient + wrong size
+  - Group 3: not salient, not medium, not status bar
+  - Group 4: status bar segments
+
+**BFS Frontier Navigation:**
+- Maintains forward graph (`_G`) and reverse graph (`_G_rev`)
+- "Frontier" = states with at least one untested action in the current active group
+- `_rebuild_distances()`: BFS from all frontier nodes through `_G_rev`, stores distance + next_hop per node
+- Rebuild triggered whenever a node becomes "closed" (all actions tried in active group)
+- `get_next_hop(node)`: returns the edge to follow toward nearest frontier
+- When current node exhausted: follow shortest path to any frontier node
+
+**Group Advancement:**
+- All group N edges across the ENTIRE graph must be exhausted before any group N+1 edge
+- `_maybe_advance_group()` called after each node closure
+
+**Suspicious Transitions:**
+- Detects transitions back to level's initial frame when multiple frames returned
+- Requires 3 confirmations before recording as real
+- Prevents animations/resets from poisoning the graph
+
+**Action Selection Flow:**
+1. If `NOT_PLAYED` or `GAME_OVER` → RESET
+2. On score increase → level_up, re-detect status bars, clear ALL state, reset graph explorer
+3. Apply status bar mask, hash frame
+4. Segment frame into connected components
+5. Create action list: click targets (one per segment) + arrow actions
+6. `graph_explorer.choose_edge()` decides action index
+7. Execute action
+
+**Key Differences from Our Stategraph:**
+| Feature | Our Implementation | 3rd Place |
+|---------|-------------------|-----------|
+| Hashing | MD5 of string repr, fixed 2-row mask | Blake2B packed, dynamic status bar detection |
+| Click targets | `detect_interactive_objects()` size < 200 filter | Every connected component, 5-tier priority |
+| When stuck | Random walk 3-5 steps | BFS to nearest frontier via reverse graph |
+| Action scope | Per-state: try untried then neighbors | Per-group: exhaust group N across all states before N+1 |
+| LLM calls | Every 15 steps | Zero |
+| Suspicious transitions | Not handled | 3-confirmation system |
+
+**Click Pipeline Analysis (2026-03-29):**
+
+Traced the complete ACTION6 pipeline:
+- Agent outputs (0-127 range) → base agent clamps to [0,127] and divides by 2 → API receives (0-63) → game engine applies camera.display_to_grid()
+- CLI local backend: coordinates passed AS-IS to arcengine (no //2)
+- CLI API backend: coordinates passed AS-IS to API (no //2)
+- Agent path: //2 applied before API call
+
+The //2 division means: to click grid cell (row, col), agent should output x=col*2, y=row*2. After //2, API gets (col, row). This appears correct.
+
+The "no visible change" issue is most likely target selection (clicking non-interactive cells), NOT coordinate bugs. Evidence: even brute-force clicks at many positions showed no changes, suggesting either the game truly has very few interactive sprites or there's a deeper click-handling issue in the local server.
+
+**Critical diagnostic**: Use `arc` CLI to test clicks at known sprite positions. Compare local backend (arcengine, no //2) vs API backend (with //2) results.

@@ -12,21 +12,23 @@
 - **Changes**: Run `uv run python run_benchmark.py --agent stategraph --max-actions 40`. Compare speed, action diversity, and score to explorer baseline. This is the single highest-priority experiment.
 - **Expected impact**: Dramatically faster (most actions skip LLM). May score on LS20 since it systematically explores all untried actions from each state. Even if score stays 0, establishes the programmatic baseline for all future experiments.
 
-### 2. [Bug Fix] Debug click pipeline — why do clicks produce no frame changes?
-- **Hypothesis**: Experiments 004, 007, 013, 021, 022 all found that ACTION6 (click) produces "no visible change" in ft09 and vc33, even after the frame comparison fix. This blocks 2/3 games entirely. The root cause is unknown — it could be coordinate mapping, camera transforms, or a local server issue.
-- **Files to modify**: Diagnostic only — no code changes until root cause is found
-- **Changes**: Run manual test with arc CLI:
+### 2. [Bug Fix] Debug click pipeline — verify clicks work end-to-end
+- **Hypothesis**: Experiments 004-022 found clicks produce "no visible change." Code tracing reveals the agent coordinate pipeline IS correct: agent outputs 0-127, base agent does //2, API receives 0-63 display coordinates. The issue is likely **target selection** (clicking non-interactive cells). BUT: the arc CLI's local backend passes coordinates AS-IS to arcengine (no //2), while the agent path goes through the API with //2. These may use different coordinate conventions. Need to verify which convention each path expects.
+- **Files to modify**: Diagnostic only — no code changes until root cause confirmed
+- **Changes**: Two diagnostic tests:
+  1. **CLI test** (local backend, coordinates sent as-is to arcengine):
   ```bash
   arc start vc33 --max-actions 40
   arc state --image
-  arc action click --x 68 --y 48   # Known clickable sprite AEF
+  arc action click --x 34 --y 24   # Grid coords for sprite AEF (set_position x=34,y=24)
   arc state --image                 # Did anything change?
-  arc action click --x 32 --y 28   # Known clickable sprite XTW
+  arc action click --x 16 --y 14   # Grid coords for sprite XTW
   arc state --image
   arc end
   ```
-  If manual clicks work but agent clicks don't → bug in action data format. If manual clicks also fail → local server click handling bug. Known clickable sprite positions from VC33 source: AEF(68,48), XTW(32,28), mZh(114,92), WGb(84,50), dkk(0,24).
-- **Expected impact**: Unblocks ft09 and vc33 scoring entirely. VC33 level 1 needs only 6 clicks — easiest path to first non-zero score.
+  Also try with doubled coords (x=68, y=48) in case arcengine expects 0-127. The key question: does `arc action click` expect grid coordinates (0-63) or display coordinates (0-127)?
+  2. **Agent path test**: Run stategraph on vc33 only with verbose logging to see exact x,y values reaching the API.
+- **Expected impact**: Confirms whether click pipeline works and what coordinate convention is needed. Unblocks ft09 and vc33.
 
 ### 3. [Architecture] Try Qwen3-32B dense model
 - **Hypothesis**: Qwen3.5-35B-A3B is a MoE model activating only 3B parameters per forward pass. Qwen3-32B is dense (all 32B params active) with standard attention (KV cache works). It may have fundamentally better reasoning quality. With KV cache reuse, repeated prompts are faster despite slower raw generation (20-30 vs 60-70 tok/s).
@@ -46,61 +48,90 @@
 - **Changes**: Set `LLM_INTERVAL = 0` or add a flag to skip LLM calls entirely. All actions chosen purely by graph exploration logic. This maximizes actions per time budget and tests whether programmatic exploration alone can score.
 - **Expected impact**: ~15x more actions in same time budget. Systematic coverage of entire state space.
 
-### 6. [Exploration Strategy] Shortest-path-to-frontier via BFS in stategraph
-- **Hypothesis**: When all actions from the current state are tried, the stategraph agent currently navigates to neighbors (Priority 4-5) or does a random walk (Priority 6). The 3rd-place winner instead BFS-navigated to the nearest state with untried actions across the entire known graph. This is much more efficient — instead of random walking, it replays a known path to reach unexplored territory.
+### 6. [Exploration Strategy] BFS shortest-path-to-frontier in stategraph
+- **Hypothesis**: When all actions from the current state are tried, the stategraph agent currently navigates to neighbors (Priority 4-5) or does a random walk (Priority 6). The 3rd-place winner used BFS across the entire known graph with a reverse-edge distance map. Each node stores its distance to the nearest frontier (state with untried actions). When current state is exhausted, follow the `next_hop` chain to reach the frontier optimally.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Add `_bfs_to_frontier()` method: BFS from current state through known transitions to find nearest state with untried actions. Return the path. Execute path actions in sequence. Replace Priority 4-6 in `_choose_action()` with this BFS navigation.
-- **Expected impact**: Eliminates random walks entirely. Agent always takes the shortest path to new territory. Critical for LS20 where the state space is large.
+- **Changes**:
+  1. Maintain a reverse graph `_G_rev` (target → source edges) alongside the forward graph
+  2. Add `_rebuild_distances()`: BFS from all frontier nodes through `_G_rev`, computing distance-to-frontier for every known state. Store `distance` and `next_hop` (the action to take) per node
+  3. Rebuild distances whenever a node becomes "closed" (all actions tried)
+  4. In `_choose_action()`: if current state has untried actions, pick one (randomly, like 3rd place does). If exhausted, follow `next_hop` chain — pick any action whose target has `distance == current.distance - 1`
+  5. Replace Priority 4-6 entirely with this BFS navigation
+- **Expected impact**: Eliminates random walks. Agent always takes the optimal path to unexplored territory. The 3rd-place solution's core algorithmic advantage.
 
-### 7. [Exploration Strategy] 5-tier click priority system for stategraph
-- **Hypothesis**: The 3rd-place solution used 5 priority tiers for click targets based on connected component analysis: (1) small button-like objects, (2) colorful distinct objects, (3) medium structural elements, (4) large areas, (5) background. Current stategraph clicks detected objects in size order without prioritization.
+### 7. [Exploration Strategy] 5-tier click priority groups for stategraph
+- **Hypothesis**: The 3rd-place solution groups ALL connected components (not just small ones) into 5 priority tiers. Actions within each tier are exhausted across the ENTIRE graph before moving to the next tier. This ensures interactive buttons are found before clicking background noise.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`, `src/arcagi3/utils/formatting.py`
-- **Changes**: In `_try_click()`, rank detected objects by: (a) size < 50 cells (button-like), (b) color distinctness from background, (c) aspect ratio near 1:1 (square = button), (d) distance from borders. Click high-priority targets first. Skip structural colors (0=white, 5=black, 4=gray).
-- **Expected impact**: Finds interactive objects faster. Critical for vc33 and ft09 where only specific sprites are clickable.
+- **Changes**: Based on exact 3rd-place implementation:
+  - **Group 0 (highest)**: Salient color (6-15) AND medium size (2-32px per dimension). Also: ALL movement/arrow actions go in group 0.
+  - **Group 1**: Non-salient color (0-5) AND medium size
+  - **Group 2**: Salient color AND wrong size (too small or too large)
+  - **Group 3**: Not salient, not medium, not status bar
+  - **Group 4 (lowest)**: Status bar segments
+  - Each connected component = one click target. Click a random pixel within the segment (ensures clicking ON objects, not in empty space).
+  - Process groups sequentially: exhaust ALL group 0 actions across ALL states before any group 1.
+- **Expected impact**: Finds interactive objects in ~5-10 clicks instead of 50+. The 3rd-place solution's targeting advantage.
 
-### 8. [Exploration Strategy] UCB1 action selection for stategraph
+### 8. [Preprocessing] Rule-based status bar detection for stategraph
+- **Hypothesis**: Our stategraph masks a fixed 2 rows top/bottom as status bar. The 3rd-place solution detects status bars dynamically using connected component analysis: segments touching screen edges with elongated aspect ratio (>5:1) OR having 3+ "twin" segments (same color/area/shape) along an edge. Fixed masking misses sidebar counters, dot indicators, and varying-height UI elements — causing the state graph to explode with false-unique states.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: Add `_detect_status_bar()` method, run once per level (on level_up):
+  1. Find all connected components via flood fill
+  2. Mark as status bar if: touches any screen edge (within 3px) AND (aspect ratio > 5:1 OR has 3+ twins along the same edge)
+  3. Create a boolean mask of status bar pixels
+  4. Apply mask before hashing: `grid[mask] = sentinel_value`
+  5. Re-run detection on each level transition (status bar layout may change)
+- **Expected impact**: Prevents state space explosion from changing counters/timers. More reliable state hashing = better graph exploration.
+
+### 9. [State Tracking] Suspicious transition handling
+- **Hypothesis**: Some actions trigger animations or temporary visual changes that revert. The 3rd-place solution marks transitions as "suspicious" when they lead back to the initial frame of the current level. It requires 3 confirmations before recording a suspicious transition as real. This handles non-determinism, animations, and game resets gracefully.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: Track `level_initial_hash` (first frame hash after score increase). When a transition's target equals `level_initial_hash` and multiple frames were returned, mark it suspicious. Only record after 3 occurrences. This prevents the graph from being poisoned by transient states.
+- **Expected impact**: Cleaner state graphs, fewer false transitions, more reliable exploration.
+
+### 10. [Exploration Strategy] UCB1 action selection for stategraph
 - **Hypothesis**: Instead of trying untried actions in arbitrary order, use UCB1 (Upper Confidence Bound): `score = exploitation_value + C * sqrt(ln(total_visits) / action_visits)`. Actions that produce state changes get higher exploitation values. Rarely-tried actions get exploration bonus. This is the core of MCTS and can be implemented in a few lines.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**: Track per-action visit counts and reward (frame_changed = 1, no_change = 0, score_increase = 10). In `_choose_action()`, compute UCB1 score for each action and pick the highest. Still try untried actions first (infinite exploration bonus).
 - **Expected impact**: Smarter action selection. Exploits actions known to produce changes while still exploring untried ones.
 
-### 9. [Architecture] Code-generation approach (Symbolica-style)
+### 11. [Architecture] Code-generation approach (Symbolica-style)
 - **Hypothesis**: Symbolica scored 36.08% on ARC-AGI-3 by having LLM agents write Python code to interact with games, not by choosing individual actions. One cloud API call generates a strategy function, then the function runs for 100+ actions at zero cost. This is fundamentally different from our LLM-per-step or programmatic-per-step approach.
 - **Files to modify**: New agent or modification to stategraph
 - **Changes**: At step 0, call Claude Sonnet with grid description and game mechanics. Ask it to write a Python function: `def choose_action(grid, available_actions, history) -> action`. Execute this function for all subsequent steps. Re-generate if score stalls. Cost: ~$0.05 per game.
 - **Expected impact**: Leverages cloud model intelligence for strategy design while keeping execution cost near zero.
 
-### 10. [Exploration Strategy] LS20 object detection + pathfinding
+### 12. [Exploration Strategy] LS20 object detection + pathfinding
 - **Hypothesis**: LS20 has known mechanics: keys, doors, rotators, health replenishers. The agent can detect these as connected components with distinct colors/shapes. A* or BFS pathfinding from player position to target objects would be far more effective than random exploration. The sequence: find player → find nearest key/door → navigate there.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py` or new LS20-specific logic
 - **Changes**: Add object detection: identify player (unique color/size), keys, doors, rotators by their visual signatures. Implement A* pathfinding on the grid. Plan path to nearest target and execute as movement sequence.
 - **Expected impact**: Direct navigation instead of random exploration. LS20 level 1 needs 29 moves — efficient pathfinding could solve it in under 87 actions (score threshold).
 
-### 11. [Preprocessing] Auto-detect game type from available actions
+### 13. [Preprocessing] Auto-detect game type from available actions
 - **Hypothesis**: The 3 games have radically different mechanics. Auto-detecting game type from available_actions (movement-only vs click-only vs hybrid) and routing to specialized strategies would improve exploration immediately.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**: At init: check `available_actions`. If only ACTION6 → click-only game (vc33), use click-focused strategy. If ACTION1-5 only → movement game (ls20), use graph exploration. If mixed → hybrid (ft09). Adjust click queue size, LLM interval, and priority ordering per game type.
 - **Expected impact**: No more wasting movement actions in click-only games or vice versa.
 
-### 12. [Action Sequencing] Winning sequence replay with variations
+### 14. [Action Sequencing] Winning sequence replay with variations
 - **Hypothesis**: The stategraph agent already replays winning sequences on new levels. But game levels vary, so exact replay rarely works. Adding small variations (±1 position on clicks, ±1 step on movements) around winning sequences could discover the right adaptation faster.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**: After replaying a winning sequence fails (no score increase), try variations: offset click positions by ±1 grid cell, add/remove single actions from the sequence. Track which variations produce progress.
 - **Expected impact**: Faster level completion after first level is solved.
 
-### 13. [State Tracking] Curiosity-driven action prioritization
+### 15. [State Tracking] Curiosity-driven action prioritization
 - **Hypothesis**: Track a simple prediction model: "from state S, action A leads to state S'." When the actual result differs from prediction, that's a "surprise" — prioritize actions with high surprise rate. This implements intrinsic curiosity without neural networks.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**: Maintain transition table. For each (state, action) pair, record expected next state. Compute surprise = 1 if actual != expected, 0 otherwise. Weight action selection toward high-surprise actions in `_choose_action()`.
 - **Expected impact**: Focuses exploration on the most informative actions — the ones that reveal new game mechanics.
 
-### 14. [Memory Management] Cross-level action knowledge transfer
+### 16. [Memory Management] Cross-level action knowledge transfer
 - **Hypothesis**: Currently the stategraph agent clears the state graph on level transition but preserves action_knowledge. We should also preserve: which action TYPES produced state changes, which click regions were interactive, and the general game mechanic model. This bootstraps new levels.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**: On level transition, preserve: `action_knowledge`, `click_results` (which regions had interactive objects), winning action types. On new level, prioritize known-productive action types first.
 - **Expected impact**: Faster exploration on levels 2+ since the agent already knows the game's basic mechanics.
 
-### 15. [Phase Transitions] Exhaustive-then-exploit transition in stategraph
+### 17. [Phase Transitions] Exhaustive-then-exploit transition in stategraph
 - **Hypothesis**: Once the state graph shows that all reachable states have been fully explored (no untried actions anywhere), the agent should switch from exploration to exploitation: replay the sequence that produced the most state changes or the highest score. Currently it random-walks when stuck.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**: Track total untried actions across all known states. When this hits 0, switch to exploitation mode: replay the longest path that produced unique state transitions, or try action sequences that haven't been tried as combinations.
