@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T17:45:09.356500+00:00",
+  "generated_at": "2026-03-29T17:54:08.588348+00:00",
   "summary": {
-    "total": 29,
-    "completed": 27,
+    "total": 30,
+    "completed": 28,
     "improved": 2,
-    "reverted": 24,
+    "reverted": 25,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -386,6 +386,19 @@
       "duration": "20s",
       "status": "reverted",
       "notes": "Detect green density + goal objects in each direction, prefer moves toward walkable areas and targets. Doesn't fundamentally change exploration depth \u2014 maze is too large (100+ states) for greedy heuristics. LS20 needs actual pathfinding (A* on visible grid) or health management to survive longer."
+    },
+    {
+      "id": "030",
+      "idea": "#1",
+      "description": "LS20 BFS maze solver",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "19s",
+      "status": "reverted",
+      "notes": "BFS from player to nearest goal through green cells. Agent got stuck: BFS said \"go down\" (goal below player, green cells between) but game BLOCKED the move (invisible walls). Visual green cells don't perfectly map to game walkability. BFS on visible grid is unreliable for ls20. The stategraph's trial-all-directions approach is actually more correct."
     }
   ],
   "running_best": [
@@ -409,6 +422,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
