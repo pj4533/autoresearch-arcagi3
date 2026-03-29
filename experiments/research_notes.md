@@ -811,3 +811,64 @@ The //2 division means: to click grid cell (row, col), agent should output x=col
 The "no visible change" issue is most likely target selection (clicking non-interactive cells), NOT coordinate bugs. Evidence: even brute-force clicks at many positions showed no changes, suggesting either the game truly has very few interactive sprites or there's a deeper click-handling issue in the local server.
 
 **Critical diagnostic**: Use `arc` CLI to test clicks at known sprite positions. Compare local backend (arcengine, no //2) vs API backend (with //2) results.
+
+### Exp 031-032 Analysis (2026-03-29)
+
+**Exp 031: Cross-level knowledge transfer** — Score 0, 300 actions in 53s. The feature never activates because the agent never completes a level (no score increases). Dead end until first score.
+
+**Exp 032: Stategraph baseline — CRITICAL FINDINGS:**
+- **Speed**: 120 actions in 17s = **0.14s/action** (350x faster than explorer's 50s/action!)
+- **vc33: CLICKS WORK!** Frame changes detected from clicks. This contradicts earlier findings from exp 004/007/013 that said "clicks produce no visible change." The stategraph's `detect_interactive_objects()` + `_try_click()` is finding objects that DO produce visual changes.
+- **ft09: MOVEMENT WASTED** — The game has ACTION1-6 available but only clicks work. The stategraph tries untried movement first (Priority 2 in `_choose_action`), wasting 4-5 actions per state on useless movement.
+- **ls20: Grid shifts detected** — Movement works, agent sees frame changes.
+
+**Why still score 0?**
+1. **ft09**: All 40 actions wasted on movement (Priority 2: untried non-click before clicks). Clicks never get a chance.
+2. **vc33**: Clicks produce changes but agent clicks wrong targets or doesn't click in the right sequence. VC33 is a "volume/height matching" game — need to click specific objects to specific heights.
+3. **ls20**: Movement works but the agent doesn't navigate purposefully. Random graph exploration doesn't find the goal path in 40 actions.
+
+**Immediate priorities (reprioritized based on exp 032):**
+1. **Game-type awareness**: Stop ft09 from trying movement. Learn which action types work from first few observations.
+2. **Remove LLM calls**: Already fast but LLM every 15 steps still slows. Go fully programmatic.
+3. **5-tier click priority**: Target interactive buttons (salient color + medium size) before structural elements.
+4. **BFS to frontier**: Replace random walk with optimal navigation to unexplored states.
+5. **More actions**: 0.14s/action means 200+ actions costs under 30s. Give the agent a bigger budget.
+
+**Key insight**: The click pipeline IS working. The earlier experiments (004, 007, 013) that said clicks produced "no visible change" were affected by the frame comparison timing bug (fixed in exp 022). The stategraph agent correctly saves frames before returning actions, so it sees the actual effects. This means the "debug click pipeline" idea is no longer needed — the fix was already in place.
+
+### Stategraph Exp 002-004 Analysis (2026-03-29)
+
+**Exp 002 (Click diagnostic) — CRITICAL:**
+- **vc33 clicks CONFIRMED WORKING**: Clicking color 9 blocks produces 265 cell changes!
+- **ft09 game version 9ab2447a is BROKEN**: ALL actions (movement + clicks) only change the status bar. The game state never changes. This version appears to be non-functional.
+- **ls20 has no click action** — movement only (expected).
+- Agent object detection finds correct targets. Click coordinates are correct (0-63 grid range).
+- **Conclusion: vc33 is the only viable click-game scoring target.** ft09 should be excluded from benchmarks until a working game version is found.
+
+**Exp 003 (Qwen3-32B)**: 2x slower (35s vs 17s), same score. Dense architecture takes longer but doesn't produce better hypotheses for these games. Hypothesis quality is similar — generic observations. Not worth the slowdown.
+
+**Exp 004 (No LLM, LLM_INTERVAL=0)**:
+- **12x faster**: 1.4s total for 120 actions (0.012s/action!)
+- Pure programmatic exploration. Still no score.
+- Proves that programmatic exploration is working (builds graph, tries untried actions, clicks objects) but the systematic search doesn't find winning sequences with 40 actions per game.
+- **Key question**: Is 40 actions enough? With 0.012s/action, we can afford 1000+ actions in seconds.
+
+**Updated Strategic Focus:**
+1. **vc33 is the #1 target** — clicks work, level 1 needs only 6 clicks, interactive sprites are salient colors (9, 11)
+2. **ft09 is broken** — exclude from benchmarks, focus on vc33 + ls20
+3. **Speed is solved** — 0.012s/action with no LLM. Budget is essentially unlimited.
+4. **The bottleneck is targeting quality** — the agent needs to click the RIGHT objects in vc33
+5. **5-tier click priority is the highest-impact change** — targets salient, medium-size objects (which are exactly vc33's interactive sprites) before structural elements
+
+**vc33 Mechanics Reminder:**
+- "Volume/height adjustment — alternate volume of objects to match target heights"
+- Only ACTION6 (click) available
+- Level 1: 6 baseline clicks
+- Score > 0 if solved in < 18 clicks
+- Interactive sprites: color 9 (blue), 11 (yellow), possibly others
+- Clicking color 9 blocks produces 265 cell changes (large visual effect)
+
+**Dead Ends Updated:**
+- Qwen3-32B: Not better than Qwen3.5-35B for stategraph (slower, same score)
+- ft09 game version 9ab2447a: Broken, don't test
+- LLM calls in stategraph: Don't help (exp 004 vs 001: same score, 12x faster without)
