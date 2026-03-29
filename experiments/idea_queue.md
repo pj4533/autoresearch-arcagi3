@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 055): Button mapping FULLY VERIFIED. fCG is INDEPENDENT (not in chain). SIMPLIFIED 18-click solution: btn(50)×9, btn(38)×3, btn(16)×6. The old 23-click plan had wrong heights AND unnecessary chain transfers.**
+**PHILOSOPHY (2026-03-29, post exp 056): Only 4 of 8 buttons work. PPS needs UP but only DOWN button found. Missing button at game x=6 (display ~8) — too close to left edge for BFS. Also: some "non-working" buttons may become valid AFTER other clicks change game state (order-dependent). Need to find PPS-UP button or use order-dependent activation.**
 
 ---
 
@@ -27,11 +27,21 @@
   Total: 18 clicks. Human baseline: 31. Perfect per-level score.
   ```
 
-  **IMPORTANT:**
-  - Step 2 uses btn(38) = nDF-2/TKb+2. NOT btn(34) which is the opposite direction.
-  - Step 3 uses btn(16) = fCG+2. NOT btn(12) which shrinks fCG.
-  - Order matters: Step 1 MUST come before Step 2 (VAJ overshoots then corrects).
-  - All 3 steps use display y from BFS-detected button row.
+  **PROBLEM FROM EXP 056:** btn[1]=(16,56) moves PPS DOWN, not UP! PPS needs UP.
+
+  **FIX — find the missing PPS-UP button:**
+  The sro→fCG button at game x=6 → display ~(8, 56-62) is NOT found by BFS (too close to left edge).
+  **Try clicking at display (8, 56) or (7, 62) manually.** This should grow fCG → move PPS UP.
+  If it works: solution = btn[6]×10 + btn[5]×~1 + PPS-UP×~6 = ~17 clicks.
+
+  **Alternative — order-dependent activation:**
+  Exp 056 found buttons become valid after other clicks. After doing step 1 (btn[6]×10),
+  re-test btn[0]=(12,56) — it might now activate as PPS-UP (bar heights changed).
+
+  **Also re-check click counts:** at 1.2 display px/click (not 2.46 as computed):
+  - ChX needs ~10 clicks DOWN (not 9)
+  - VAJ needs ~7 clicks UP (not 6)
+  - PPS needs ~6 clicks UP
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
 
