@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-03-29T19:22:43.163784+00:00",
+  "generated_at": "2026-03-29T19:34:12.076911+00:00",
   "summary": {
-    "total": 38,
+    "total": 39,
     "completed": 34,
     "improved": 2,
     "reverted": 31,
@@ -503,6 +503,19 @@
       "duration": "20s",
       "status": "reverted",
       "notes": "Hardcoded first 12 verified moves (R,R,U,U,U,U,L,L,L,U,U,U) then stategraph exploration. Prefix gets agent deeper but remaining maze still too large for blind exploration. The 12-step prefix might also be a dead-end branch \u2014 without the complete path, partial knowledge doesn't help."
+    },
+    {
+      "id": "039",
+      "idea": "#1",
+      "description": "LS20 iterative deepening across deaths",
+      "avg_score": 0.6667,
+      "actions": 0,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "0s",
+      "status": "diagnostic",
+      "notes": "Iterative deepening WORKS: 33\u219253\u219263 steps across 3 deaths. But R>U>L>D preference with no-backtrack creates R,U,R,U alternation in open areas \u2014 oscillation instead of exploration. Need smarter junction decisions. Also: probing approach got 21 steps vs 15 without probing (probing makes better decisions but costs health)."
     }
   ],
   "running_best": [
@@ -526,6 +539,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
