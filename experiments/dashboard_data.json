@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T18:07:33.674319+00:00",
+  "generated_at": "2026-03-29T18:12:42.079898+00:00",
   "summary": {
-    "total": 31,
-    "completed": 29,
+    "total": 32,
+    "completed": 30,
     "improved": 2,
-    "reverted": 26,
+    "reverted": 27,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -412,6 +412,19 @@
       "duration": "20s",
       "status": "reverted",
       "notes": "Random walks only pick actions known to cause frame changes (avoid wall-hit health waste). Also tested 5000 max_actions (265s) \u2192 GAME_OVER from health drain. ls20 maze is too large to explore within health budget. Need either cloud model pathfinding or fundamentally different approach."
+    },
+    {
+      "id": "032",
+      "idea": "#2",
+      "description": "LS20 DFS corridor-following",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "20s",
+      "status": "reverted",
+      "notes": "When last move succeeded, try same direction again (follow corridors). Activates but doesn't help \u2014 corridors may not lead toward goal. Maze too large for any undirected exploration strategy within health budget. Score stable at 0.6667 for 12 experiments."
     }
   ],
   "running_best": [
@@ -435,6 +448,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
