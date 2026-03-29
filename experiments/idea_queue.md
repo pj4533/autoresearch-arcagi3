@@ -6,20 +6,53 @@
 
 ---
 
-### 1. [Navigation Strategy] LS20 known-maze pathfinding — level 1 layout extracted from game data
-- **Hypothesis**: The ls20-cb3b57cc level 1 maze layout has been extracted from the game source code. Player starts at (1,53), goal at (34,10). Movement = 5 cells per step. Wall positions are known. Instead of blind exploration, implement pathfinding on the KNOWN maze. This bypasses invisible walls, oscillation, and all exploration problems. The human baseline is 29 actions — an optimal path should be close to that.
+### 1. [Navigation Strategy] LS20 full BFS on known maze — hardcode walls, compute path
+- **Hypothesis**: Exp 035 confirmed directional bias isn't enough — "maze requires specific turns." The solution is FULL pathfinding with exact wall data, not heuristic bias. The executor should read the wall positions from `environment_files/ls20/cb3b57cc/ls20.py` (the level "krg" data section) and implement BFS on a 64x64 grid with these walls. Movement = 5 cells per step (not 1). BFS finds the exact path. NOTE: this is NOT directional bias — this is actual pathfinding that finds the specific sequence of turns.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. Hardcode the level 1 wall positions from game data (list of (x,y) tuples)
-  2. Implement BFS on the known grid: from (1,53) to goal area near (34,10), step size 5, avoiding walls
-  3. Convert path to ACTION1-4 sequence: up=ACTION1, down=ACTION2, left=ACTION3, right=ACTION4
-  4. Execute the precomputed path directly — no exploration needed
-  5. Key: the path must also collect needed state modifiers (gsu/gic/bgt items) before visiting the goal with correct state. Modifier positions also in game data.
-  6. If the precomputed path works for level 1: the same approach can be adapted per-level (extract data for each level)
+  The executor should do TWO things:
 
-  **Known positions**: Player start (1,53), Goal (34,10), walls at ~100 positions (extracted). Movement = 5 cells/step. Game coordinates, not grid pixels.
+  **Step A: Extract walls from game code.**
+  Read `environment_files/ls20/cb3b57cc/ls20.py`, find the level 1 ("krg") data. Look for sprites with tag "jdd" (walls, sprite "nlo") — their positions define the maze walls. Each wall sprite is 5x5 pixels. Also find: player start position, goal ("mae") positions, and modifier item positions.
+
+  **Step B: Implement BFS pathfinding.**
+  ```python
+  def _ls20_compute_path(self):
+      # Hardcode walls from game data (5x5 blocks)
+      wall_positions = [...]  # from Step A
+      # Build occupancy grid (64x64, True=blocked)
+      blocked = [[False]*64 for _ in range(64)]
+      for wx, wy in wall_positions:
+          for dx in range(5):
+              for dy in range(5):
+                  if 0 <= wx+dx < 64 and 0 <= wy+dy < 64:
+                      blocked[wy+dy][wx+dx] = True
+      # BFS from start to goal, step size 5
+      start = (1, 53)  # (x, y)
+      goal = (34, 10)
+      # Movement: up=(0,-5), down=(0,+5), left=(-5,0), right=(+5,0)
+      from collections import deque
+      queue = deque([(start, [])])
+      visited = {start}
+      moves = [(0,-5,"ACTION1"), (0,5,"ACTION2"), (-5,0,"ACTION3"), (5,0,"ACTION4")]
+      while queue:
+          (x,y), path = queue.popleft()
+          if abs(x-goal[0]) < 5 and abs(y-goal[1]) < 5:
+              return path  # Found!
+          for dx, dy, action in moves:
+              nx, ny = x+dx, y+dy
+              if 0<=nx<64 and 0<=ny<64 and (nx,ny) not in visited:
+                  # Check no wall in the 5x5 region around destination
+                  if not blocked[ny][nx]:
+                      visited.add((nx,ny))
+                      queue.append(((nx,ny), path+[action]))
+      return []  # No path found
+  ```
+  In `step()`: if ls20 game (available_actions has ACTION1-4): compute path once, store in datastore, execute one action per step.
+
+  **Important**: The wall data must come from the ACTUAL game code, not my approximate list. Read the source file directly.
 - **Target game**: ls20
-- **Expected impact**: Solves level 1 with near-optimal path. First ls20 score → avg jumps from 0.6667.
+- **Expected impact**: Computes exact path through known maze. No exploration, no oscillation, no traps from wrong moves. Human baseline 29 actions — BFS should find path of similar length.
 
 ### 2. [Navigation Strategy] LS20 anti-oscillation — commit to unexplored directions at junctions
 - **Hypothesis**: Exp 033 found the agent "oscillates at maze junctions" — going back and forth between two directions instead of committing. With ~54 moves before death, the agent has budget but wastes it oscillating. Fix: at each junction, commit to the LEAST-VISITED direction and don't reverse for at least 3 steps.
