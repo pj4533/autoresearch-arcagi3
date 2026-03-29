@@ -2,22 +2,22 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 028): ls20 visual investigation done! It's a MAZE: player=blue cross, green=walkable, yellow=walls, maroon=key, gray=door/exit, white bar=health. View scrolls 52 cells per move. Need: player detection + pathfinding toward goals. vc33 level 3 still stuck (6 experiments). Focus on ls20 maze solving.**
+**PHILOSOPHY (2026-03-29, post exp 029): ls20 maze = scrolling view with player at fixed center (20,32). Green density heuristic failed (too greedy for large maze). Need A* pathfinding on visible grid — find path from center to nearest goal object (maroon/gray) through green cells. Also need health management to survive exploration.**
 
 ---
 
-### 1. [Navigation Strategy] LS20 maze solver — detect player + BFS toward goals
-- **Hypothesis**: Exp 028 revealed ls20 is a maze: blue cross=player, green=walkable, yellow=walls, maroon=key/collectible, gray=door/exit, white bar=health. The view scrolls 52 cells per move. The programmatic agent can: (1) detect the blue cross position, (2) detect green walkable cells, (3) BFS from player to nearest maroon/gray target, (4) execute the path as movement actions. Level 1 baseline is 29 actions — a simple BFS solve should be achievable.
+### 1. [Navigation Strategy] LS20 A* pathfinding from fixed center to visible goals
+- **Hypothesis**: Exp 029 showed green density heuristic is too greedy for the large ls20 maze. But the player is at fixed center (20,32) and the view shows walkable paths. A* pathfinding on the visible 64x64 grid from (20,32) to the nearest maroon/gray goal should find multi-step paths. When no goal is visible, A* to the nearest unexplored edge (frontier) to scroll the view toward new territory.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. `_detect_player(grid)`: scan for blue cross (unique color, small ~2-4px cluster). Return (row, col).
-  2. `_detect_goals(grid)`: scan for maroon blocks and gray boxes. Return list of (row, col, type).
-  3. `_bfs_path(grid, start, goal)`: BFS through green cells from player to nearest goal. Return list of directions (up/down/left/right).
-  4. `_execute_path(path)`: convert path to ACTION1-4 sequence.
-  5. In `step()`: if movement game (ACTION1-5 available): detect player → detect goals → BFS → execute. If path is blocked or goal not visible: move toward unexplored edges to scroll the view.
-  6. After reaching a goal: try `perform` (ACTION5) to interact with it.
+  1. `_astar_path(grid, start, goal)`: A* from player center (20,32) to goal through green cells (walkable). Heuristic = Manhattan distance. Return path as list of (dr, dc) steps.
+  2. `_find_nearest_goal(grid)`: BFS from (20,32) through green cells, return first maroon or gray cell found.
+  3. `_find_frontier(grid)`: If no goal visible, find the nearest edge of the visible green area — moving there will scroll to reveal new maze.
+  4. Store planned path in datastore. Execute one step per action. Re-plan if path becomes blocked (grid changed after scroll).
+  5. After reaching a maroon/gray cell: try `perform` (ACTION5).
+  6. Map direction to action: up=ACTION1, down=ACTION2, left=ACTION3, right=ACTION4.
 - **Target game**: ls20
-- **Expected impact**: First ls20 score. BFS through visible maze should solve level 1 in ~30-40 actions. Would increase avg from 0.6667 to potentially 0.8+.
+- **Expected impact**: First ls20 score. A* finds optimal paths through visible maze. Level 1 baseline 29 actions — if goal is visible within ~60 grid cells, A* finds it in ~30 moves.
 
 ### 2. [Puzzle Logic] VC33 level 3: visually inspect the puzzle via arc CLI
 - **Hypothesis**: After 6 experiments (022-027) trying to crack level 3 programmatically, the scoring condition is still unknown. The executor should visually inspect level 3 via `arc state --image` to understand what the ACTUAL goal looks like. The markers, bars, and buttons are known — but what does "solved" look like? Is it bar height equality? A specific pattern? Something else entirely?

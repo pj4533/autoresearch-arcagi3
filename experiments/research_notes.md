@@ -1362,6 +1362,18 @@ The programmatic agent could handle levels 1-2 (simple 2-button balance → tria
 - vc33: click puzzle (solved levels 1-2, level 3 stuck)
 - ls20: maze navigation (solvable with pathfinding if player/goals detected)
 - ls20 is potentially MORE tractable programmatically — maze solving is a well-understood problem
+
+### Exp 029: Green Density Heuristic Insufficient (2026-03-29)
+
+**Exp 029 (grid-aware movement)**: Score 0.6667 (same, reverted). Tried: detect green density + goal objects in each of 4 directions, prefer moves toward green/goals.
+
+**Why it failed**: "Doesn't fundamentally change exploration depth — maze is too large (100+ states) for greedy heuristics."
+
+Greedy direction selection only looks one step ahead. The ls20 maze requires multi-step planning to navigate around dead ends and find the path to goals. The agent needs actual pathfinding (A* or BFS on the visible grid).
+
+**Key finding from exp 028 update**: Player is at FIXED position (20, 32). The view scrolls around the player. This simplifies pathfinding — always start A* from (20, 32).
+
+**Next step**: Implement A* on visible grid from center (20,32) to nearest goal (maroon/gray) through green cells. When no goal is visible, A* to the nearest frontier edge to scroll toward new territory.
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**
