@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T22:12:18.677892+00:00",
+  "generated_at": "2026-03-29T22:18:33.857914+00:00",
   "summary": {
-    "total": 51,
-    "completed": 42,
+    "total": 52,
+    "completed": 43,
     "improved": 2,
-    "reverted": 39,
+    "reverted": 40,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -672,6 +672,19 @@
       "duration": "18s",
       "status": "reverted",
       "notes": "Tried 3 coordinate approaches: (1) source x + y=100 primary, (2) source x + y=100 reversed, (3) BFS x + y=100. Hash verification: click 1 at (100,112) changes hash (e96a\u2192e1aa), click 2 does NOT change hash. First click likely consumes a life (not pressing button). BFS-detected color 9 at y=56 is NOT the actual buttons \u2014 maybe health/score display. Actual button hit area unknown. BLOCKER: click coordinate mapping for L3 is fundamentally broken. 30 experiments at plateau."
+    },
+    {
+      "id": "052",
+      "idea": "#1",
+      "description": "VC33 L3 BFS coords + btn[0] fix + hash verify",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "18s",
+      "status": "reverted",
+      "notes": "BREAKTHROUGH FINDING: buttons DO work! 22/23 clicks produce CHANGED hashes. Fixed step 4 to use btn[0] (sro\u2192fCG) instead of btn[1] (fCG\u2192sro). Also tried +1 compensation per step for no-op clicks. Still no score change \u2014 the click counts or button-to-bar mapping must be wrong. Key data: buttons at BFS (12,56)-(50,56) in 4 pairs. Click 2 at same position is always no-op (1 lost click per button group). Need researcher to verify exact bar heights and button mapping empirically."
     }
   ],
   "running_best": [
@@ -695,6 +708,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
