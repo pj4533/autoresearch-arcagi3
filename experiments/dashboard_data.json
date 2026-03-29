@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-03-29T19:05:29.931665+00:00",
+  "generated_at": "2026-03-29T19:13:04.786849+00:00",
   "summary": {
-    "total": 36,
+    "total": 37,
     "completed": 33,
     "improved": 2,
     "reverted": 30,
@@ -477,6 +477,19 @@
       "duration": "0s",
       "status": "diagnostic",
       "notes": "Extracted maze from ls20.py source: walls are 5x5 \"nlo\" sprites, player is 10x10 \"hep\" at (1,53). DFS on actual game explored 42 unique states in ~55 moves (path: R,R,U,U,U,U,L,L,L,U,U,U...). Maze is navigable but large \u2014 solution path ~29 steps but requires precise turns. Iterative deepening across deaths needed."
+    },
+    {
+      "id": "037",
+      "idea": "#1",
+      "description": "LS20 hardcoded BFS pathfinding",
+      "avg_score": 0.6667,
+      "actions": 0,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "0s",
+      "status": "diagnostic",
+      "notes": "Built 64x64 occupancy grid from wall data. Player \"tuv\" is 10x10 HOLLOW frame (border-only collision). Multiple BFS attempts with different collision models all failed \u2014 game engine's collision model is proprietary and can't be replicated from source data alone. Player starts overlapping walls, which means collision checks work differently than expected."
     }
   ],
   "running_best": [
@@ -500,6 +513,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
