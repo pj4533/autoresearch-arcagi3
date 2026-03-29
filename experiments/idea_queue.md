@@ -2,23 +2,36 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 024): Level 3 confirmed: 8 bars needing SPECIFIC click counts (not uniform). "Puzzle requires understanding target heights." The programmatic agent CAN'T determine targets — it needs VISION. The #1 priority is having the executor visually investigate level 3 via `arc state --image` to identify target bar heights. Everything else is premature until we know what the target looks like.**
-
-**NOTE TO EXECUTOR: Level 3 needs vision. Use `arc` CLI to visually inspect level 3 — look for target height indicators (reference bars, markers, colored lines). One 5-minute investigation will unlock the path forward. The programmatic approach has hit its ceiling on level 3.**
+**PHILOSOPHY (2026-03-29, post exp 025): Level 3 bars have colored markers (colors 11, 14, 15) indicating TARGET HEIGHTS. The targets are right there on the grid. The programmatic agent can detect these marker colors and use their Y positions as targets. For each bar: find the marker → compute current bar height → click button to adjust toward marker. This is solvable programmatically!**
 
 ---
 
-### 1. [Visual Analysis] VC33 level 3: identify target bar heights from the image
-- **Hypothesis**: Level 3 is a vertical bar chart with 8 gray bars and 8 buttons. The programmatic agent couldn't determine target heights, but Claude Code can SEE the image and reason about it. Likely the game shows a "target" pattern somewhere (reference bars, colored indicators, or numeric labels). Finding the target tells you exactly how many times to click each button.
-- **Strategy change**: Add to vc33 strategy: "On bar chart levels, look for target indicators — reference lines, colored markers, or a second set of bars showing the goal state. Each button adjusts one bar's height. Click each button the right number of times to match the target."
+### 1. [Puzzle Logic] Detect colored markers (11/14/15) as target height indicators
+- **Hypothesis**: Exp 025 discovered level 3 bars have colored markers (colors 11, 14, 15) indicating target heights. These markers are on the grid and show WHERE each bar should reach. The programmatic agent can detect these: scan each bar's column for pixels of color 11, 14, or 15. The marker's Y position = the target height. Then: compare current bar height to target marker position, click the button that moves the bar toward the marker.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**:
+  1. For bar chart puzzles (8 horizontal buttons at bottom): scan each column region for marker colors (11, 14, 15)
+  2. For each bar column, find the marker's Y position = target height
+  3. Measure current bar height (gray pixels from top or bottom)
+  4. If current height < target → click the button that INCREASES height
+  5. If current height > target → click the button that DECREASES height
+  6. Trial one click to determine which direction each button adjusts (up or down)
+  7. Click each button the exact number of times needed: `|current_height - target_height| / pixels_per_click`
 - **Target game**: vc33 (level 3+)
-- **Expected impact**: Solving level 3 would push vc33 score from 2 to 3+ levels.
+- **Expected impact**: Solves level 3 by detecting visible target markers. If each bar needs ~4 clicks and there are 8 bars, that's ~32 clicks + 8 trial clicks = 40 total. Well within 75 lives (level 3).
 
-### 2. [Click Strategy] VC33 level 3: one-click-per-button probe, then systematic adjustment
-- **Hypothesis**: With 8 buttons and 50 lives, the executor can afford to click each button once (8 lives) to understand the mechanic. After observing what each button does (which bar it adjusts and by how much), plan the optimal click sequence. This is the visual equivalent of trial-and-lock.
-- **Strategy change**: Add to vc33 strategy: "For bar chart levels: (1) Click each button once, view frame after each click to see which bar changed and by how much. (2) Map button→bar relationships. (3) Calculate how many clicks each bar needs. (4) Execute the plan — clicking each button the calculated number of times."
+### 2. [Puzzle Logic] Map button-to-bar relationships via trial clicks
+- **Hypothesis**: After detecting targets, the agent needs to know which button controls which bar. Trial each button once (8 clicks), observe which bar changed. Store the mapping: button[i] → bar[j]. Then click each button the computed number of times.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**:
+  1. Save grid before trial click
+  2. Click button, diff grids
+  3. Find which COLUMN had the most changes → that's the bar this button controls
+  4. Also determine direction: did the bar get TALLER or SHORTER?
+  5. Store mapping: {button_pos → (bar_column, direction, pixels_per_click)}
+  6. Use mapping to plan optimal click sequence
 - **Target game**: vc33
-- **Expected impact**: Systematic approach to multi-button puzzles.
+- **Expected impact**: Precise button→bar mapping enables exact click planning.
 
 ### 3. [Action Efficiency] VC33 levels 1-2: solve in minimum clicks
 - **Hypothesis**: Levels 1-2 are solved but may use more clicks than the human baseline (6 and 13). By looking at the image and understanding the exact puzzle state, the executor could solve in fewer clicks, improving per-level scores.

@@ -1299,7 +1299,35 @@ The programmatic agent could handle levels 1-2 (simple 2-button balance → tria
 
 **The visual investigation via arc CLI is the ONLY way to determine which of these applies.** The programmatic agent can't see the image. Claude Code can.
 
-**Executor has not yet played via arc CLI despite pivot commit.** Still iterating on programmatic agent code (exps 023-024). The arc CLI approach should be tried — one 5-minute visual session on level 3 would answer the target height question definitively.
+**Executor has not yet played via arc CLI despite pivot commit.** Still iterating on programmatic agent code (exps 023-025).
+
+### Exp 025: Target Markers Discovered! (2026-03-29)
+
+**Exp 025 (round-robin bar chart pairs)**: Score 0.6667 (same, reverted). Key discovery: "Level 3 bars have colored markers (11/14/15) indicating targets but can't determine target from metrics alone."
+
+**CRITICAL**: The target heights ARE visible as colored markers on the bars. Colors 11, 14, and 15 mark where each bar should reach. The programmatic agent CAN detect these:
+
+1. Scan each bar column for pixels of color 11, 14, or 15
+2. The marker's Y position = target height for that bar
+3. Compare current bar height to marker position
+4. Trial one click per button to determine direction (up/down)
+5. Click each button the exact number of times to match the target
+
+**This is solvable programmatically!** No vision needed — just detect marker colors and positions. The metrics-based approach (cell changes, imbalance) couldn't work because it doesn't know WHERE to aim. But the markers are explicit targets.
+
+**Level 3 strategy:**
+- 8 buttons, 8 bars, 75 lives (level 3)
+- 8 trial clicks (determine which button controls which bar + direction)
+- ~32 execution clicks (average 4 per bar to reach target)
+- Total: ~40 clicks. Well within 75 lives.
+
+**Level architecture updated:**
+| Level | Buttons | Puzzle type | Target indicator | Baseline | Status |
+|-------|---------|-------------|-----------------|----------|--------|
+| 1 | 2 | Horizontal balance | Green fill convergence | 6 | SOLVED |
+| 2 | 4 | Horizontal balance (cycling) | Green fill convergence | 13 | SOLVED |
+| 3 | 8 | Vertical bar chart | Colored markers (11/14/15) | 31 | SOLVABLE (markers found) |
+| 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**
 - Qwen3.5-35B (3B active MoE) lacks depth of reasoning
