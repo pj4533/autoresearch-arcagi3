@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 053): Solution math is VERIFIED CORRECT (checked 3x against source). 22/23 hash changes ≠ button presses — EVERY click consumes a life (source line 2113: czh() before sprite check). Hash changes could all be life consumption, not bar transfers. Need DIAGNOSTIC: check BAR HEIGHTS after clicks, not just hashes. Best approach: play manually via arc CLI.**
+**PHILOSOPHY (2026-03-29, post exp 054): Source analysis NOT wrong — executor looked at wrong visual elements. The tall gray "bars" are STATIC UXg columns (never change). Transfers modify INVISIBLE rDn bars (color 0). The visible effect is 3 SMALL COLORED BLOCKS (HQB decorations) moving 2px per click. Look for colors 11/14/15 moving, not gray bars changing height.**
 
 ---
 
@@ -20,8 +20,23 @@
   arc action click --x 8 --y 62    # Near game (6,50) → sro→fCG
   arc state --image    # DID LEFT BAR GROW?
   ```
-  If bars DON'T change: coordinates are still wrong. Try nearby positions.
-  If bars DO change: map all 8 buttons, then execute 23-click plan.
+  **CRITICAL: DON'T look for "bar height changes" — look for COLORED BLOCKS moving!**
+
+  The tall gray columns (UXg, color 5) are STATIC. They NEVER change.
+  The transfers modify INVISIBLE rDn sprites (color 0 = background).
+  The VISIBLE effect is 3 small 3x3 colored blocks (HQB decorations) moving:
+  - Color 11 (cyan) block near display (57,26) = ChX on uUB
+  - Color 14 (red) block near display (3,55) = PPS on fCG
+  - Color 15 (magenta) block near display (43,53) = VAJ on nDF
+
+  Each click moves one decoration UP or DOWN by ~2.5 display pixels.
+  After clicking uUB→nDF: cyan block moves DOWN, magenta moves UP.
+
+  **Exp 054 says "bars don't change" — CORRECT! The gray bars ARE static.**
+  **But the colored decorations SHOULD be moving. Check for those.**
+
+  If colored blocks DON'T move: coordinates truly wrong.
+  If colored blocks DO move: execute 23-click plan watching blocks reach targets.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
 
