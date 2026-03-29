@@ -1191,6 +1191,24 @@ QwQ-32B is the best local model but still can't solve puzzles. The hybrid approa
 3. Optimize level 1 efficiency (fewer clicks = better score)
 4. Add health/life monitoring to prevent GAME_OVER on unsolved levels
 
+### Exp 020: Level 2 Generalization Attempt (2026-03-29)
+
+**Exp 020 (generalize balance for multi-region)**: Score 0.3333 (same as 019, reverted). Level 2 detected successfully: 4 buttons, green going RIGHT, bounds 52/12. But button SELECTION was wrong → GAME_OVER.
+
+**What we now know about level 2:**
+- 4 buttons (not 2 like level 1)
+- Green grows from the RIGHT (not LEFT like level 1)
+- Bounds are 52 and 12 (large gap)
+- The detection found the structure but couldn't pick the right button
+
+**The solution is empirical button mapping:**
+1. Click each of 4 buttons once (4 life cost)
+2. Measure which one moves boundaries closer (convergent)
+3. Lock that button and click repeatedly
+4. This works for ANY number of buttons, ANY orientation
+
+This is a much better approach than trying to deduce the correct button from geometry alone. The cost is only N extra clicks (one per button candidate) — negligible with 50 lives.
+
 **Why QwQ-32B might succeed where others failed:**
 - Qwen3.5-35B (3B active MoE) lacks depth of reasoning
 - Qwen3-32B (dense but not reasoning-trained) has the capacity but not the training

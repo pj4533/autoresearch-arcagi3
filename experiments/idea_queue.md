@@ -6,39 +6,46 @@
 
 ---
 
-### 1. [Puzzle Logic] Investigate vc33 level 2 — what's different?
-- **Hypothesis**: Exp 019 solved level 1 but level 2 has a "different layout" → GAME_OVER. The executor should visually investigate level 2 to understand how it differs. Does it have the same balance puzzle structure with different parameters? Different colors? Different orientation (vertical vs horizontal)? Different number of buttons? Understanding level 2 is the key to extending the score.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py` (after investigation)
-- **Changes**: Use arc CLI to reach level 2 and inspect it:
-  ```bash
-  arc start vc33 --max-actions 100
-  # First, solve level 1 using the known strategy
-  # (click the correct button repeatedly)
-  arc state --image    # See level 2 layout
-  # Try different clicks and observe
-  arc end
-  ```
-  Or: temporarily add debug logging to `_detect_balance_puzzle()` to print what it sees on level 2. Does it find the gray bar? Does it find buttons? What are the boundaries?
-
-  Based on findings, generalize the detection to handle level 2's layout.
-- **Expected impact**: If level 2 is a variation of the same puzzle (different positions/sizes), a single generalization could solve it → vc33 score jumps from level-1-only to multi-level.
-
-### 2. [Puzzle Logic] Generalize balance detection — handle different divider colors/positions
-- **Hypothesis**: The current detection hardcodes gray bar detection (color 5, >40% of row). Level 2+ may have: different divider color, different position (not horizontal), different bar width, or the divider might be a different structure entirely. Making the detection more flexible would handle variations.
+### 1. [Puzzle Logic] Empirical button mapping for level 2 — click each, measure effect
+- **Hypothesis**: Exp 020 found level 2 has 4 buttons and different green orientation (green_R, bounds 52/12). The detection found the buttons but selected the WRONG one. Instead of guessing which button to click, try each of the 4 buttons ONCE and measure which one moves the boundaries in the convergent direction. Then lock that button. This costs only 4 lives to determine the correct button — much better than guessing wrong and wasting 50.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. Instead of looking for a specific color bar, look for ANY horizontal band of uniform non-background color that spans >30% of the row
-  2. Handle dividers at any position (not just the middle)
-  3. Support different boundary colors (not just green=3 vs black=0)
-  4. Auto-detect the "adjustable" colors by finding which colors change when buttons are clicked
-  5. Support more than 2 buttons (level 2+ might have 3 or 4)
-- **Expected impact**: Handles vc33 level variations → multi-level solving.
+  1. When balance puzzle is detected with >2 buttons: enter "calibration" phase
+  2. Click each button once, recording {boundary_before, boundary_after} for each
+  3. Select the button that moved boundaries CLOSER to each other (convergent)
+  4. Lock that button and click repeatedly until score increases
+  5. This generalizes to ANY number of buttons — always try all, pick the convergent one
+  6. For 2-button puzzles (level 1), this also works but costs 2 extra clicks
+- **Expected impact**: Solves level 2 by empirically determining the correct button. Generalizes to any button count. Cost: N extra clicks (one per button) for calibration.
 
-### 3. [Puzzle Logic] Add fallback: if balance detection fails, click ALL color-9 objects once
-- **Hypothesis**: When `_detect_balance_puzzle()` returns None (can't detect the pattern), the agent falls back to generic click exploration which wastes lives. A better fallback: click each color-9 object exactly once and observe effects. Since color 9 is confirmed interactive (exp 002), this at least triggers the puzzle mechanic. The agent can then decide based on which click produced the most useful change.
+### 2. [Puzzle Logic] Handle green_R orientation — boundary measurement goes both ways
+- **Hypothesis**: Level 1 has green growing from the LEFT, level 2 has green growing from the RIGHT. The current boundary detection scans right-to-left looking for green. For green_R levels, it needs to also scan left-to-right. Auto-detecting the orientation means measuring from both sides and using the correct one.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: In `_choose_action()`, when balance_mode is False and it's a click-only game: find all color-9 connected components, click each center once (ordered by size, smallest first). After each click, if >50 cells changed, attempt to detect the balance pattern again.
-- **Expected impact**: Smart fallback that doesn't waste lives. Triggers the puzzle mechanic and may re-enable balance detection.
+- **Changes**: In `_detect_balance_puzzle()`:
+  1. Scan for green boundary from RIGHT side (current) → `boundary_R`
+  2. Also scan from LEFT side → `boundary_L`
+  3. Use whichever gives a meaningful measurement (boundary > 0)
+  4. The convergent direction depends on orientation: green_L wants boundaries moving right, green_R wants boundaries moving left
+- **Expected impact**: Handles both orientations → solves both level 1 and level 2.
+
+### 3. [Puzzle Logic] Investigate level 2 visually — see what the 4-button layout looks like
+- **Hypothesis**: The executor's exp 020 logs say "4 buttons, green_R, bounds 52/12" but the visual structure may reveal more. Seeing level 2 visually would clarify: where are the 4 buttons relative to the divider? Are they in pairs (2 upper, 2 lower)? Are some buttons redundant? What do the boundaries actually look like?
+- **Files to modify**: None initially — investigation
+- **Changes**: Use arc CLI to reach level 2:
+  ```bash
+  arc start vc33 --max-actions 100
+  # Solve level 1 (click correct button ~6 times)
+  arc state --image    # See level 2 layout
+  # Click each of the 4 buttons and observe
+  arc end
+  ```
+- **Expected impact**: Visual understanding of level 2 → targeted fix for button selection.
+
+### 4. [Puzzle Logic] Add fallback: if balance detection fails, try each color-9 object once
+- **Hypothesis**: When `_detect_balance_puzzle()` returns None (can't detect the pattern), the agent falls back to generic click exploration which wastes lives. A better fallback: click each color-9 object exactly once and observe effects. Then re-attempt balance detection in the new state.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: In `_choose_action()`, when balance_mode is False and it's a click-only game: find all color-9 connected components, click each center once (ordered by size, smallest first). After each click, if >50 cells changed, re-run `_detect_balance_puzzle()`.
+- **Expected impact**: Smart fallback that costs only N clicks (one per button candidate) then re-detects.
 
 ### 4. [Puzzle Logic] Investigate vc33 levels 3-7 — are they all balance puzzles?
 - **Hypothesis**: vc33 has 7 levels with baselines [6, 13, 31, 59, 92, 24, 82]. If ALL levels are balance puzzles (just with different parameters), the same strategy generalizes. If some levels are fundamentally different puzzle types, we need different strategies.
