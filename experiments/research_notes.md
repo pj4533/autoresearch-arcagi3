@@ -1580,3 +1580,63 @@ Walls are at regular intervals (x=4,9,14,19,24,29,34,39,44,49,54,59) with varyin
 - Qwen3-32B (dense but not reasoning-trained) has the capacity but not the training
 - QwQ-32B has BOTH the capacity (32B dense) AND the reasoning training
 - The puzzle-solving task requires: (1) spatial reasoning (grid analysis), (2) sequential planning (click order), (3) goal inference (what state to achieve) — all reasoning capabilities
+
+### Research Iteration: Post Exp 043 Analysis (2026-03-29)
+
+**Queue cleanup performed.** The idea queue had become messy with duplicate numbering and stale ideas. Cleaned up to 10 prioritized ideas with clear rationale.
+
+**Competition Research Update (March 2026):**
+
+ARC-AGI-3 is now live (launched March 25, 2026). Key updates:
+- Frontier model baselines: Gemini 3.1 Pro = 0.37%, GPT 5.4 = 0.26%, Opus 4.6 = 0.25%
+- Preview competition top 3 were ALL non-LLM: CNN+RL (12.58%), state graphs + value models (6.71%), graph-based brute-force (3.64%)
+- Prize pool: $850K for ARC-AGI-3 track
+- Scoring formula confirmed: RHAE = min(1.0, human_actions/agent_actions)^2 — the SQUARING means 2x human actions yields only 25% score, not 50%
+
+**CRITICAL SCORING INSIGHT**: The formula is QUADRATIC, not linear!
+| Agent Actions | vs Human Baseline | Score |
+|--------------|-------------------|-------|
+| = human | 1x | 100% |
+| 1.5x human | 50% over | 44% |
+| 2x human | 100% over | 25% |
+| 3x human | 200% over | 11% |
+| >3x human | — | 0% |
+
+This changes priorities:
+1. **Solving levels matters more than action count** — 0% for unsolved vs any positive score for solved
+2. **But within solved levels, efficiency is huge** — going from 2x to 1.5x baseline DOUBLES the score
+3. **Current vc33 scores should be optimized** once new levels are unlocked
+
+**VC33 Level 4+ Warning (from HN discussion):**
+Level 4+ has a reported bug/design issue where precise clicking is required on very small blue squares. Models fail because they don't get cursor feedback (don't know where they actually clicked). Rendering at 1024x1024 and providing cursor preview helps. This is a potential dead end for the programmatic agent on vc33 beyond level 3.
+
+**LS20 Position Drift Analysis:**
+
+Exp 042-043 are the most promising in the entire history of the project. Both waypoints REACHED within ~3 cells. The core issue is position tracking drift.
+
+Three hypotheses for why the agent misses by ~3 cells:
+1. **Movement is not always 5 cells** — near walls, the game engine may only move the player partially (e.g., 3 cells instead of 5 if a wall is 3 cells away). Accumulated over many moves, this creates drift.
+2. **Successful move detection is wrong** — the agent might count a blocked move as successful (frame changed due to animation/status bar but position didn't change).
+3. **The modifier/goal requires walking THROUGH the exact cell, not adjacent** — even 1 cell off means no collection.
+
+**Proposed fix priorities (ranked by simplicity):**
+1. **Grid search at waypoint** — when within ~8 cells, try all directions in a spiral. Guarantees hitting exact cell. Simple to implement, no calibration needed. ~16 extra moves worst case.
+2. **Frame-based sprite detection** — detect modifier visually on grid, trigger collection based on sprite disappearance. Eliminates position tracking entirely. Medium complexity.
+3. **Cross-correlation displacement measurement** — compare frames to measure actual pixel shift. Most accurate but most complex.
+
+**Strategy Focus (updated 2026-03-29):**
+- **#1 priority: Fix ls20 position drift** — grid search is the simplest approach
+- **#2 priority: VC33 level 3 visual investigation** — still blocked on understanding
+- **#3 priority: Optimize action counts** — scoring formula is quadratic, efficiency matters
+- **Long-term: VC33 levels 4+ may be a dead end** (precision clicking issue)
+
+**Dead Ends Updated:**
+- Anti-oscillation: maze size is the blocker, not oscillation (exp 034)
+- Goal-direction bias: maze requires specific turns (exp 035)
+- Offline BFS: collision model proprietary (exp 037)
+- Green density heuristic: too greedy (exp 029)
+- Visual BFS: invisible walls (exp 030)
+- All 3 local Qwen models for puzzle reasoning: insufficient spatial reasoning
+- ft09: game version broken, skip entirely
+- Brute-force clicking vc33: life mechanic kills agent (exp 006-008)
+- Uniform clicking vc33 level 3: needs per-button exact counts (exp 024)
