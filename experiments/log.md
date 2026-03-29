@@ -34,3 +34,4 @@ Games: ls20, ft09, vc33. Max actions per experiment: 40.
 | 027 | #15(new) | Aggressive prompt compression | 0.0000 | 120 | 0 | 0 | 0 | 2944s | reverted | 1 parse failure (best). ls20 fast (373s). But no score — Qwen3.5-35B may lack reasoning ability to solve these games regardless of prompt. |
 | 028 | #12(new) | Multi-action planning (with frame fix) | 0.0000 | 120 | 0 | 0 | 0 | 1390s | reverted | Fastest full benchmark (81% faster). Planning works but no score. |
 | 029 | #15(new) | ALL best changes combined | 0.0000 | 120 | 0 | 0 | 0 | 1594s | reverted | Combined: skip convert, state graph, journal, enhanced frames, hypothesis prompt, compression. Fast (1594s) but still no score. Qwen3.5-35B likely too weak for these games. |
+| 030 | #16(new) | Increase max_actions to 100 | 0.0000 | 300 | 0 | 0 | 0 | 9017s | reverted | 2.5x more actions (300 total). Still 0 score. More actions doesn't help — the model can't discover game objectives regardless of budget. |
