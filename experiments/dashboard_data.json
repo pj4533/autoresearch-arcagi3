@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T20:44:52.441487+00:00",
+  "generated_at": "2026-03-29T21:03:25.711965+00:00",
   "summary": {
-    "total": 42,
-    "completed": 35,
+    "total": 43,
+    "completed": 36,
     "improved": 2,
-    "reverted": 32,
+    "reverted": 33,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -555,6 +555,19 @@
       "duration": "20s",
       "status": "reverted",
       "notes": "BREAKTHROUGH APPROACH: Track absolute position, bias DFS toward waypoints. Both waypoints REACHED: modifier area (16,33)\u2248(19,30) and goal area (31,13)\u2248(34,10). But score still 0 \u2014 position tracking drifts ~3 units, OR game requires exact position/state matching beyond proximity."
+    },
+    {
+      "id": "043",
+      "idea": "#1",
+      "description": "LS20 step-based waypoint switch",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "20s",
+      "status": "reverted",
+      "notes": "Fixed premature waypoint switching: use step count (>15) instead of proximity. Score still 0. The 3-cell position drift means agent passes NEAR but not THROUGH modifier/goal positions. Movement step \u2260 5 exactly, causing accumulated tracking error. 43 experiments, 22 at plateau."
     }
   ],
   "running_best": [
@@ -578,6 +591,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
