@@ -2,12 +2,26 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 049-050): VC33 L3 buttons DON'T RESPOND because of COORDINATE SCALING BUG. Level 3 is 52x52 in a 64x64 display (non-integer scale 1.23). Floor division in display→game conversion causes ALL clicks to miss by 1 pixel. Fix: use ceil() for display coordinates. The 23-click solution is correct — just needs correct coordinates.**
+**PHILOSOPHY (2026-03-29, post exp 053): Solution math is VERIFIED CORRECT (checked 3x against source). 22/23 hash changes ≠ button presses — EVERY click consumes a life (source line 2113: czh() before sprite check). Hash changes could all be life consumption, not bar transfers. Need DIAGNOSTIC: check BAR HEIGHTS after clicks, not just hashes. Best approach: play manually via arc CLI.**
 
 ---
 
-### 1. [Puzzle Logic] VC33 level 3 — USE CORRECT BUTTONS + BFS COORDS (exp 052 buttons work!)
-- **Hypothesis**: Exp 052 proved buttons DO respond (22/23 hash changes). The coordinate issue is solved — use BFS-detected button positions. The remaining problem: **my earlier primary button mapping was WRONG**. I traced the dzy initialization code and the CORRECT buttons are the LEFT-side ones (game x=40,28,18,6), NOT the right-side (x=44,32,22,10).
+### 1. [Diagnostic] VC33 level 3 — PLAY MANUALLY via arc CLI to verify clicks work
+- **Hypothesis**: **Hash changes ≠ button presses!** Source code line 2113: `self.vrr.czh()` consumes a life BEFORE any sprite check. So every click (even a miss) changes the hash. The 22/23 hash changes in exp 052 could ALL be life loss, not bar transfers. Need to verify: do bar heights actually change? Best way: play level 3 manually via arc CLI, click one button, view the frame, check if any bar changed height.
+
+  **CRITICAL DIAGNOSTIC via arc CLI:**
+  ```bash
+  arc start vc33 --max-actions 200
+  # Solve levels 1-2 via existing strategy
+  arc state --image    # View level 3 initial state
+  # Try clicking near each button position:
+  arc action click --x 50 --y 62   # Near game (40,50) → uUB→nDF
+  arc state --image    # DID ANY BAR CHANGE? Compare to initial.
+  arc action click --x 8 --y 62    # Near game (6,50) → sro→fCG
+  arc state --image    # DID LEFT BAR GROW?
+  ```
+  If bars DON'T change: coordinates are still wrong. Try nearby positions.
+  If bars DO change: map all 8 buttons, then execute 23-click plan.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
 
