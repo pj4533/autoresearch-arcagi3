@@ -1517,6 +1517,34 @@ Walls are at regular intervals (x=4,9,14,19,24,29,34,39,44,49,54,59) with varyin
 1. **Claude Code plays via arc CLI** — visual reasoning for each move (like vc33 breakthrough)
 2. **Stategraph iterative deepening** — ensure graph persists across deaths, increase max_actions
 3. **vc33 level 3** — pivot back, still unsolved but different approach might work
+
+### Exp 040: MAZE NAVIGATION SOLVED — Scoring Needs State Matching (2026-03-29)
+
+**Exp 040 (proper DFS with backtracking)**: Reached **34 steps** (>29 baseline!) on attempt 4. Still scored 0.
+
+**CRITICAL**: "ls20 likely requires collecting modifiers AND reaching goal with correct player state (shape/color/rotation), not just navigation. The maze navigation is SOLVED but the puzzle scoring condition needs items+state matching."
+
+**This changes the ls20 problem completely:**
+- Navigation: SOLVED (DFS reaches 34 steps, beyond baseline)
+- Remaining challenge: state-matching puzzle (collect modifiers, visit goals with correct state)
+
+**ls20 is a 2-part puzzle:**
+1. **Maze navigation** ✅ — DFS with backtracking reaches beyond baseline
+2. **State matching** ❌ — must collect shape/color/rotation modifiers and visit goals with correct state
+
+**Modifier items (from source code):**
+| Item | Tag | Effect |
+|------|-----|--------|
+| gsu | "gsu" | Cycles player shape |
+| gic | "gic" | Cycles player color |
+| bgt | "bgt" | Rotates player (0/90/180/270°) |
+| iri | "iri" | Pickup/collectible |
+
+**Next steps:**
+1. Investigate modifiers visually (what do they look like on the grid?)
+2. Track player state changes after stepping on modifiers
+3. Determine what state each goal requires
+4. Plan a route: collect correct modifiers → visit goals
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**

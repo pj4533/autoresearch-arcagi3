@@ -2,43 +2,50 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 039): Iterative deepening WORKS (33→53→63 steps across deaths). The agent explores enough territory but oscillates at open junctions (R,U,R,U). Fix: smarter junction decisions. Probing helps (21 vs 15 steps) but costs health. The ls20 breakthrough is close — just need to fix direction selection at junctions.**
+**PHILOSOPHY (2026-03-29, post exp 040): LS20 MAZE NAVIGATION SOLVED (34 steps > 29 baseline). But still score 0! ls20 requires collecting MODIFIERS (shape/color/rotation items) and visiting goals with correct player STATE. The next challenge is: detect modifiers, track player state, visit goals in correct state. This is the same progression as vc33: mechanics solved → now solve the puzzle logic.**
 
 ---
 
-### 1. [Navigation Strategy] LS20 randomize direction preference per death — different paths each attempt
-- **Hypothesis**: Exp 039's R>U>L>D fixed preference creates R,U,R,U oscillation in open areas. Fix: randomize the direction preference order on each death/restart. Death 1 tries R>U>L>D, death 2 tries L>D>R>U, death 3 tries U>L>D>R. Each death explores a DIFFERENT part of the maze, maximizing coverage across deaths.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-  1. On each level start/reset: shuffle the direction preference order randomly
-  2. Use the shuffled order for untried action selection (instead of fixed R>U>L>D)
-  3. The stategraph still tracks visited states across deaths → each death starts from known territory and extends in a NEW random direction
-  4. With 3+ deaths × different direction preferences = much better maze coverage
+### 1. [Puzzle Logic] LS20 visual investigation of modifiers — what do they look like?
+- **Hypothesis**: Exp 040 proved navigation works (34 steps > 29 baseline) but scoring needs state modifiers. The agent needs to detect and collect shape/color/rotation items before visiting goals. Use arc CLI to visually investigate: what do modifiers look like on the grid? What happens to the player's appearance when a modifier is collected? Are goals visually marked with the required state?
+- **Files to modify**: None initially — investigation via arc CLI
+- **Changes**: Play ls20 via arc CLI with max actions:
+  ```bash
+  arc start ls20 --max-actions 100
+  arc state --image    # See starting grid — identify colored objects that aren't walls/paths
+  # Navigate around, look for items that aren't green/yellow/blue
+  arc action move_right
+  arc state --image    # Did we pick something up? Did player appearance change?
+  arc end
+  ```
+  Key questions: (1) What colors are modifier items? (2) What does the player look like before/after collecting one? (3) Are goals marked with a required state indicator?
 - **Target game**: ls20
-- **Expected impact**: Breaks the oscillation pattern. Each death explores different branches → finds the goal faster.
+- **Expected impact**: Understanding modifiers → targeted collection strategy → first ls20 score.
 
-### 2. [Navigation Strategy] LS20 probe-then-commit at junctions — spend 1 health to decide
-- **Hypothesis**: Exp 039 found probing gets 21 steps vs 15 without (40% more effective exploration). At junctions with 2+ open directions, try each direction once (probe), then commit to the one that led to the most new states. This costs ~2-3 health points per junction but makes much better decisions.
+### 2. [Puzzle Logic] LS20 detect modifier items by color — from game source data
+- **Hypothesis**: The game source code defines modifier sprites: "gsu" (shape, color 0), "gic" (color, grid pattern), "bgt" (rotation, color pattern), "iri" (pickup, color 11). The agent can detect these on the grid by scanning for their distinctive colors/patterns. When the agent steps on one, record the state change.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. At a junction (2+ untried directions): try each direction once
-  2. After probing, pick the direction that produced the most cell changes or led to the most unique state
-  3. Commit to that direction for the next 3-5 steps
-  4. Re-probe at the next junction
-  5. Budget: with ~54 moves and ~5 junctions, probing costs ~10 moves, leaving ~44 for travel
+  1. `_detect_modifiers(grid)`: Scan for non-wall, non-path, non-player colored objects. Colors to look for: 0 (gsu), 11 (iri), and distinctive patterns (gic, bgt).
+  2. Track player state: `{shape_idx, color_idx, rotation}` in datastore
+  3. After each move, check if the frame changed in a way consistent with modifier collection (player appearance changes)
+  4. Prioritize moving toward detected modifiers
 - **Target game**: ls20
-- **Expected impact**: Better junction decisions → deeper exploration → finds goal.
+- **Expected impact**: Enables modifier collection → correct state for goals.
 
-### 3. [Navigation Strategy] LS20 DFS with visited-state avoidance — no oscillation
-- **Hypothesis**: The oscillation happens because the agent revisits recently-visited states. Fix: when choosing a direction, NEVER go to a state that was visited in the last 5 steps (unless all directions lead to visited states). This forces the agent to always move FORWARD through the maze.
+### 3. [Puzzle Logic] LS20 goal-state detection — what state does each goal need?
+- **Hypothesis**: Goals require the player to have a specific shape/color/rotation. This required state might be: (a) visible on the goal marker itself, (b) the same for all goals on a level, or (c) deducible from the available modifiers. If the goal marker shows the required state visually, the agent can plan which modifiers to collect.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-  1. Track last 5 state hashes in a deque
-  2. In `_choose_action()`: filter out actions whose target state is in the recent history
-  3. If all actions lead to recent states: pick the least recently visited
-  4. This prevents A→B→A→B oscillation while still allowing backtracking when truly stuck
+- **Changes**: After detecting a goal on the grid, analyze its visual appearance — does it show a specific shape/color/pattern that the player needs to match? Compare the goal's appearance to the player's current state.
 - **Target game**: ls20
-- **Expected impact**: Eliminates oscillation. Agent moves consistently forward through corridors.
+- **Expected impact**: Knowing the target state enables planning the modifier collection route.
+
+### 4. [Puzzle Logic] LS20 collect-all-modifiers-then-visit-goals strategy
+- **Hypothesis**: The simplest approach: navigate the maze, collect EVERY modifier item encountered, then visit goals. If the modifiers cycle through states (each collection changes state by +1), collecting the right number of each type produces the correct state. With DFS already navigating 34 steps, the agent likely passes through modifier locations.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: No change to navigation (DFS works). Add: after each move, check if a modifier was collected (frame change at player position). Track which modifiers were collected. After collecting all visible modifiers, navigate to goal positions.
+- **Target game**: ls20
+- **Expected impact**: If modifier collection is automatic (just walk over them), the DFS path may already collect some. Adding awareness completes the picture.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
   The executor should do TWO things:
