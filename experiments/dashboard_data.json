@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T17:33:40.262415+00:00",
+  "generated_at": "2026-03-29T17:45:09.356500+00:00",
   "summary": {
-    "total": 28,
-    "completed": 26,
+    "total": 29,
+    "completed": 27,
     "improved": 2,
-    "reverted": 23,
+    "reverted": 24,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -372,7 +372,20 @@
       "vc33": 2.0,
       "duration": "0s",
       "status": "diagnostic",
-      "notes": "FINDINGS: ls20 is a MAZE NAVIGATION game. Player=blue cross, green=walkable path, yellow=walls, maroon block=key/collectible, gray boxes=doors/exits, white bar=health. Movement scrolls the view (52 cells per move). Maze is large \u2014 pathfinding needed. Much more complex than vc33 click puzzles."
+      "notes": "FINDINGS: ls20 is a MAZE NAVIGATION game. Player=blue cross at fixed center (20,32), green=walkable path, yellow=walls, maroon block=key/collectible, gray boxes=doors/exits, white bar=health. Movement scrolls the view (52 cells per move). Maze is large \u2014 pathfinding needed."
+    },
+    {
+      "id": "029",
+      "idea": "#1",
+      "description": "LS20 grid-aware movement",
+      "avg_score": 0.6667,
+      "actions": 1500,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "20s",
+      "status": "reverted",
+      "notes": "Detect green density + goal objects in each direction, prefer moves toward walkable areas and targets. Doesn't fundamentally change exploration depth \u2014 maze is too large (100+ states) for greedy heuristics. LS20 needs actual pathfinding (A* on visible grid) or health management to survive longer."
     }
   ],
   "running_best": [
@@ -396,6 +409,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
