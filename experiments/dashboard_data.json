@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T14:35:18.608363+00:00",
+  "generated_at": "2026-03-29T14:37:05.930185+00:00",
   "summary": {
-    "total": 3,
-    "completed": 3,
+    "total": 4,
+    "completed": 4,
     "improved": 0,
-    "reverted": 2,
+    "reverted": 3,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -48,9 +48,23 @@
       "duration": "1s",
       "status": "reverted",
       "notes": "12x faster (1.4s vs 17s). Pure programmatic exploration. Still no score \u2014 systematic coverage doesn't find winning sequences with 40 actions per game."
+    },
+    {
+      "id": "005",
+      "idea": "#6",
+      "description": "BFS shortest-path-to-frontier",
+      "avg_score": 0.0,
+      "actions": 120,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "24s",
+      "status": "reverted",
+      "notes": "Replaced Priority 4-6 with BFS navigation to nearest untried-action state. Slightly slower (24s vs 17s). Better algorithmic navigation but no score improvement with 40 actions."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0
