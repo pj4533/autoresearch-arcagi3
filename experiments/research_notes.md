@@ -1391,12 +1391,58 @@ Greedy direction selection only looks one step ahead. The ls20 maze requires mul
 4. Use DFS (follow corridors) instead of BFS (ping-pong)
 5. Try ACTION5 (perform) when near goal objects
 
-**Summary of ls20 attempts (3 experiments)**:
+**Summary of ls20 attempts (4 experiments)**:
 | Exp | Approach | Why it failed |
 |-----|----------|---------------|
 | 029 | Green density heuristic | Too greedy, maze too large |
 | 030 | BFS on visual grid | Invisible walls, green ≠ walkable |
-| Next | Empirical wall memory + goal bias | Should combine correct walkability with direction |
+| 031 | Wall-hit avoidance + 5000 actions | GAME_OVER from health drain even with 5000 actions |
+| Next | Pickup-first survival | Navigate toward iri pickups (color 11) to extend health |
+
+### LS20 Source Code Deep Dive (2026-03-29)
+
+**CRITICAL: ls20 is MUCH harder than expected.** Source code analysis reveals:
+
+**Health system: 3 lives, NOT a health bar.**
+- Starting health: 3 lives
+- Each move WITHOUT collecting a pickup → -1 life
+- Collecting an "iri" pickup on a move → no health loss for that move
+- Health reaches 0 → level reset (costs an action as RESET)
+- 3 moves without a pickup = death. This is why 5000 actions still dies.
+
+**Item types:**
+| Item | Tag | Color | Effect |
+|------|-----|-------|--------|
+| iri pickup | "iri" | Color 11, hollow 3x3 | Prevents health loss on that move |
+| Shape modifier | "gsu" | Color 0 | Cycles player shape (snw index) |
+| Color modifier | "gic" | Grid pattern | Cycles player color (tmx index) |
+| Rotation modifier | "bgt" | Color pattern | Rotates player (tuv: 0/90/180/270°) |
+| Wall | "jdd" | Color 4, 5x5 | Impassable |
+| Goal | "mae" | Unknown | Must visit with correct state |
+
+**Level completion: state-matching puzzle.**
+- Goals ("mae" items) must be visited with the CORRECT player state
+- Player state = (shape_index, color_index, rotation)
+- Must collect the right modifiers before visiting goals
+- This is a constraint satisfaction problem INSIDE a maze
+
+**ACTION5 (perform) is NOT available in ls20.** Only ACTION1-4 (directional moves).
+
+**Why ls20 is so hard:**
+1. 3-move health budget without pickups → must chain pickups
+2. Invisible walls → can't plan from visual grid
+3. State-matching goals → must collect correct modifiers in correct order
+4. View scrolls → only partial visibility of large maze
+5. Multiple item types to detect and sequence correctly
+
+**Strategy: pickup-first survival.**
+The agent's first priority must be: detect color 11 (iri pickup) objects and navigate toward them within 2 moves. Each pickup extends the budget by 1 move. Chaining pickups extends exploration indefinitely. Only after establishing a pickup chain should the agent navigate toward goals/modifiers.
+
+### Exp 031: 5000 Actions Still Not Enough (2026-03-29)
+
+**Exp 031 (wall-hit avoidance + 5000 actions)**: Score 0.6667 (same, reverted). "5000 max_actions (265s) → GAME_OVER from health drain. ls20 maze is too large to explore within health budget."
+
+With 3-move budget between pickups, the agent dies repeatedly. 5000 total actions = ~1500 attempts (3 moves each) + resets. Each attempt explores only 3 moves of new territory. The maze requires 29+ moves for level 1 — the agent needs to chain ~10 pickups to survive that long.
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**

@@ -2,35 +2,40 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 030): ls20 has INVISIBLE WALLS — visual green cells ≠ actual walkability. BFS/A* on visual grid fails. The stategraph's empirical trial (try move, observe if blocked) is the correct approach. But it explores too randomly. Need: (1) directional bias toward goal objects, (2) wall memory from failed moves, (3) depth-first exploration instead of breadth-first. Also: health management critical.**
+**PHILOSOPHY (2026-03-29, post exp 031 + source analysis): ls20 is MUCH harder than expected. Health = 3 lives (not a bar). Each move without collecting an "iri" pickup costs 1 life → death in 3 moves. Level completion requires visiting goals with correct player state (shape/color/orientation from modifiers). This is a state-matching puzzle inside a maze, not just navigation. The pickup-first strategy is critical for survival. Also: vc33 level 3 still needs visual investigation via arc CLI.**
 
 ---
 
-### 1. [Navigation Strategy] LS20 empirical wall memory + goal-directed bias
-- **Hypothesis**: Exp 030 proved visual pathfinding fails (invisible walls). The stategraph's trial approach is correct but too random. Fix: combine empirical wall testing (stategraph) with directional bias toward visible goal objects. When the agent tries a move and it's blocked (same state hash), record that direction as "wall" at that position. When choosing next move, prefer directions that: (a) are not known walls, (b) point toward visible goals, (c) lead to unvisited states.
+### 1. [Navigation Strategy] LS20 pickup-first survival — detect "iri" items (color 11) within 2 moves
+- **Hypothesis**: Source code analysis reveals ls20 health = 3 lives. Each move WITHOUT collecting an "iri" pickup (color 11, hollow 3x3 square) costs 1 life → death in 3 moves. Collecting a pickup prevents health drain for that move. The agent MUST navigate toward pickups first to survive. Detect color 11 objects near the player center (20,32) and move toward the nearest one within 2 moves. This extends the exploration budget from 3 moves to potentially unlimited (if pickups are chained).
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. `_detect_goal_direction(grid)`: Scan grid for maroon/gray objects. Return relative direction (up/down/left/right) from center (20,32).
-  2. In `_choose_action()` for movement games: instead of trying untried actions in order, try the direction toward the nearest goal FIRST. If blocked, try the perpendicular directions. If all blocked, backtrack.
-  3. Record empirical wall map: `blocked_directions[state_hash] = set(["ACTION1", "ACTION3"])` when a move produces no state change.
-  4. Use wall map to avoid retrying known-blocked directions.
-  5. When a goal object is visible, bias strongly toward it (priority 0). When no goal visible, use DFS-like exploration (go deep before backtracking).
+  1. `_detect_pickups(grid)`: Scan for color 11 objects (hollow 3x3 squares). Return list of (row, col) positions.
+  2. In `_choose_action()` for ls20: ALWAYS prioritize moving toward the nearest pickup over any other action. If no pickup visible within 2 moves, explore toward the direction with the most green cells (might reveal a pickup after scrolling).
+  3. After collecting a pickup (health not drained), the agent gets another 3-move budget to reach the next pickup.
+  4. This creates a "pickup chain" navigation: pickup → pickup → pickup → ... → goal.
 - **Target game**: ls20
-- **Expected impact**: Combines correct walkability testing with intelligent direction selection. Fewer wasted moves → survives longer → reaches goals.
+- **Expected impact**: Extends survival from 3 moves to potentially 20+ moves (if pickups exist). Prerequisite for any ls20 scoring.
 
-### 2. [Navigation Strategy] LS20 depth-first exploration — go deep before backtracking
-- **Hypothesis**: The stategraph tries all directions from each state breadth-first. For a maze, DFS is better: go as deep as possible in one direction, only backtrack when stuck. This covers more ground with fewer total moves and is more likely to find distant goals.
+### 2. [Puzzle Logic] LS20 state modifier tracking — understand shape/color/rotation items
+- **Hypothesis**: ls20 level completion requires visiting goals with the CORRECT player state (shape, color, orientation). State modifiers change these: "gsu" items change shape, "gic" items change color, "bgt" items rotate. The agent should detect these items on the grid and track its current state to know when it matches a goal.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: In `_choose_action()` for movement games: when the last move succeeded (new state), try the SAME direction again. Only change direction when blocked. This creates a DFS-like exploration that follows corridors instead of ping-ponging.
+- **Changes**: Track player state: `{shape_index, color_index, rotation}`. When stepping on a modifier (detected by frame change pattern), update state. When near a goal, check if current state matches.
 - **Target game**: ls20
-- **Expected impact**: Faster maze traversal. Follows corridors efficiently.
+- **Expected impact**: Enables goal-matching. Without state tracking, the agent can't know when to visit goals.
 
-### 3. [Navigation Strategy] LS20 perform at goal objects — try ACTION5 when near targets
-- **Hypothesis**: ls20 has maroon blocks (keys) and gray boxes (doors/exits). When the player is adjacent to one (visible near center), `perform` (ACTION5) might collect/interact with it. The current agent never uses perform strategically.
+### 3. [Navigation Strategy] LS20 death-and-learn — use repeated resets to map the maze
+- **Hypothesis**: With health=3 and frequent deaths, the agent gets many short attempts. Each attempt reveals ~3 moves of information. With 500 max actions, the agent gets ~150 attempts. By recording what it learned from each death (which directions worked, where pickups were, where walls are), it can gradually build a map and eventually find the path.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: After each move, check if maroon/gray objects are near the center (player position). If so, try ACTION5 (perform). This costs one action but might trigger level completion or item collection.
+- **Changes**: After GAME_OVER (reset): preserve the wall map and pickup locations from the last attempt. On the next attempt, use this knowledge to plan a better path. Gradually extend explored range with each death.
 - **Target game**: ls20
-- **Expected impact**: Discovers interact mechanic. Even basic perform-at-goals might solve levels.
+- **Expected impact**: Turns repeated deaths into a learning signal. Each death contributes to a more complete map.
+
+### 4. [Navigation Strategy] LS20 ACTION5 not available — remove from strategy
+- **Hypothesis**: Source code confirms ls20 only has ACTION1-4 (directional moves). ACTION5 (perform) is NOT available. Remove it from all ls20 strategies. Items are collected by moving onto them, not by performing.
+- **Files to modify**: Update play_strategy.md, remove ACTION5 references for ls20
+- **Target game**: ls20
+- **Expected impact**: Prevents wasting actions on unavailable perform.
 
 ### 2. [Puzzle Logic] VC33 level 3: visually inspect the puzzle via arc CLI
 - **Hypothesis**: After 6 experiments (022-027) trying to crack level 3 programmatically, the scoring condition is still unknown. The executor should visually inspect level 3 via `arc state --image` to understand what the ACTUAL goal looks like. The markers, bars, and buttons are known — but what does "solved" look like? Is it bar height equality? A specific pattern? Something else entirely?
