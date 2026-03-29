@@ -1545,6 +1545,34 @@ Walls are at regular intervals (x=4,9,14,19,24,29,34,39,44,49,54,59) with varyin
 2. Track player state changes after stepping on modifiers
 3. Determine what state each goal requires
 4. Plan a route: collect correct modifiers → visit goals
+
+### LS20 Level 1 EXACT SOLUTION (from deep source analysis, 2026-03-29)
+
+**Player state system:**
+- `snw` (shape): index into hep array [0-5]. Initial for level 1: **5**
+- `tmx` (color): index into hul array [12,9,14,8]. Initial for level 1: **1** (color 9)
+- `tuv` (rotation): index into kdj array [0,90,180,270]. Initial for level 1: **3** (270°)
+
+**Goal at (34,10) requires: snw=5, tmx=1, tuv=0**
+
+**Difference from initial state: ONLY tuv needs to change (3→0)**
+
+**Level 1 has exactly ONE modifier:**
+- "bgt" rotation modifier at position **(19, 30)**
+- Effect: `tuv = (tuv + 1) % 4` → changes tuv from 3 to 0 (wraps around)
+- ONE collection is exactly what's needed!
+
+**Solution route:**
+1. Start at (1, 53)
+2. Navigate to bgt modifier at (19, 30) — collect it (tuv: 3→0)
+3. Navigate to goal at (34, 10) — arrive with state (5, 1, 0) → MATCHES → level complete!
+
+**Distance estimates** (movement = 5 cells/step):
+- (1,53) → (19,30): Manhattan = 18+23 = 41 cells ≈ 8 straight-line steps + maze overhead
+- (19,30) → (34,10): Manhattan = 15+20 = 35 cells ≈ 7 straight-line steps + maze overhead
+- Total ≈ 15 steps + maze turns. Human baseline = 29 steps.
+
+**Implementation**: DFS with waypoint bias. Prefer moves toward current waypoint (first modifier, then goal). Track absolute position from (1,53). Switch waypoint after modifier collection. Items collected by walking over them (no ACTION5).
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**

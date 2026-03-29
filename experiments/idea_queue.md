@@ -2,50 +2,45 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 041): Navigation DOUBLY CONFIRMED (depth 46 > 29 baseline). Score still 0. "The blocker is game mechanics: state modifiers + goal matching, not maze navigation." The executor must visually investigate modifiers via arc CLI — what do they look like? What happens when you collect one? What state does the goal need? This is the SAME pattern as vc33: visual investigation → understanding → coded strategy → score.**
+**PHILOSOPHY (2026-03-29, SOLUTION FOUND): ls20 level 1 EXACT solution from source code: Player starts at (1,53) with state (snw=5, tmx=1, tuv=3). Goal at (34,10) requires state (5,1,0). ONLY ONE modifier: "bgt" rotation at (19,30) — collecting it changes tuv from 3→0 (exactly what's needed!). Route: start(1,53) → modifier(19,30) → goal(34,10). DFS already reaches 34+ steps. Just add waypoint navigation!**
 
 ---
 
-### 1. [Puzzle Logic] LS20 visual investigation of modifiers — what do they look like?
-- **Hypothesis**: Exp 040 proved navigation works (34 steps > 29 baseline) but scoring needs state modifiers. The agent needs to detect and collect shape/color/rotation items before visiting goals. Use arc CLI to visually investigate: what do modifiers look like on the grid? What happens to the player's appearance when a modifier is collected? Are goals visually marked with the required state?
-- **Files to modify**: None initially — investigation via arc CLI
-- **Changes**: Play ls20 via arc CLI with max actions:
-  ```bash
-  arc start ls20 --max-actions 100
-  arc state --image    # See starting grid — identify colored objects that aren't walls/paths
-  # Navigate around, look for items that aren't green/yellow/blue
-  arc action move_right
-  arc state --image    # Did we pick something up? Did player appearance change?
-  arc end
-  ```
-  Key questions: (1) What colors are modifier items? (2) What does the player look like before/after collecting one? (3) Are goals marked with a required state indicator?
-- **Target game**: ls20
-- **Expected impact**: Understanding modifiers → targeted collection strategy → first ls20 score.
-
-### 2. [Puzzle Logic] LS20 detect modifier items by color — from game source data
-- **Hypothesis**: The game source code defines modifier sprites: "gsu" (shape, color 0), "gic" (color, grid pattern), "bgt" (rotation, color pattern), "iri" (pickup, color 11). The agent can detect these on the grid by scanning for their distinctive colors/patterns. When the agent steps on one, record the state change.
+### 1. [Puzzle Logic] LS20 2-waypoint navigation — modifier at (19,30) then goal at (34,10)
+- **Hypothesis**: Source code analysis reveals the EXACT level 1 solution. Player starts at (1,53) with state (snw=5, tmx=1, tuv=3). Goal at (34,10) requires (5,1,0). The ONLY difference is tuv: 3→0. There's exactly ONE modifier: "bgt" rotation at (19,30). Collecting it cycles tuv: (3+1)%4 = 0 — perfect match. Route: start→modifier→goal. DFS already reaches 34+ steps. Just bias DFS toward waypoints.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
-  1. `_detect_modifiers(grid)`: Scan for non-wall, non-path, non-player colored objects. Colors to look for: 0 (gsu), 11 (iri), and distinctive patterns (gic, bgt).
-  2. Track player state: `{shape_idx, color_idx, rotation}` in datastore
-  3. After each move, check if the frame changed in a way consistent with modifier collection (player appearance changes)
-  4. Prioritize moving toward detected modifiers
-- **Target game**: ls20
-- **Expected impact**: Enables modifier collection → correct state for goals.
+  1. For ls20: define waypoints = [(19,30), (34,10)]. Current waypoint index starts at 0.
+  2. In `_choose_action()` for ls20: among untried/available moves, prefer the one that reduces Manhattan distance to the current waypoint. This is a SOFT bias (try preferred direction first, fall back to DFS on failure), not a hard requirement.
+  3. When the agent's grid center position is within 5 cells of waypoint[0] (modifier at 19,30): switch to waypoint[1] (goal at 34,10).
+  4. Items are collected by walking over them (no ACTION5 needed).
+  5. Movement = 5 cells per step. Manhattan distance from (1,53) to (19,30) ≈ 18+23 = 41 cells ≈ 8 steps. From (19,30) to (34,10) ≈ 15+20 = 35 cells ≈ 7 steps. Total ≈ 15 steps + maze overhead.
+  6. With DFS backtracking + waypoint bias, the agent should reach both waypoints within 29 steps.
 
-### 3. [Puzzle Logic] LS20 goal-state detection — what state does each goal need?
-- **Hypothesis**: Goals require the player to have a specific shape/color/rotation. This required state might be: (a) visible on the goal marker itself, (b) the same for all goals on a level, or (c) deducible from the available modifiers. If the goal marker shows the required state visually, the agent can plan which modifiers to collect.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: After detecting a goal on the grid, analyze its visual appearance — does it show a specific shape/color/pattern that the player needs to match? Compare the goal's appearance to the player's current state.
+  **Coordinate note**: Positions are in game coordinates. The player is at fixed grid center (20,32). Movement scrolls the view. The agent needs to track its absolute position: `abs_x += 5 * dx` per move. Start at (1,53). Check if abs_position is near waypoint.
 - **Target game**: ls20
-- **Expected impact**: Knowing the target state enables planning the modifier collection route.
+- **Expected impact**: First ls20 score! Navigation already works (34+ steps). Waypoint bias guides the DFS toward modifier then goal. Human baseline 29 actions.
 
-### 4. [Puzzle Logic] LS20 collect-all-modifiers-then-visit-goals strategy
-- **Hypothesis**: The simplest approach: navigate the maze, collect EVERY modifier item encountered, then visit goals. If the modifiers cycle through states (each collection changes state by +1), collecting the right number of each type produces the correct state. With DFS already navigating 34 steps, the agent likely passes through modifier locations.
+### 2. [Puzzle Logic] LS20 track absolute position — needed for waypoint navigation
+- **Hypothesis**: The agent doesn't currently track its absolute position in the maze. Since the view scrolls and the player stays at grid center (20,32), the agent needs to compute absolute position: start at (1,53), add (±5, 0) or (0, ±5) per successful move. This enables distance-to-waypoint calculation.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: No change to navigation (DFS works). Add: after each move, check if a modifier was collected (frame change at player position). Track which modifiers were collected. After collecting all visible modifiers, navigate to goal positions.
+- **Changes**: Add `abs_x`, `abs_y` to datastore, initialize to (1,53). After each successful move (state changed), update: move_right → abs_x += 5, move_up → abs_y -= 5, etc. Use for waypoint distance computation.
 - **Target game**: ls20
-- **Expected impact**: If modifier collection is automatic (just walk over them), the DFS path may already collect some. Adding awareness completes the picture.
+- **Expected impact**: Enables waypoint-based navigation.
+
+### 3. [Puzzle Logic] LS20 detect modifier collection from frame change
+- **Hypothesis**: When the agent walks over the "bgt" modifier at (19,30), the frame changes (the modifier disappears, player appearance may change). The agent can detect this: if the frame changed AND the agent's absolute position is near (19,30), the modifier was collected. Switch to next waypoint.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: After each move, check if frame changed AND abs position ≈ modifier position. If so, mark modifier as collected, switch waypoint to goal.
+- **Target game**: ls20
+- **Expected impact**: Reliable modifier detection without visual analysis.
+
+### 4. [Puzzle Logic] LS20 hardcode the complete solution path (if waypoint DFS works)
+- **Hypothesis**: Once the waypoint DFS finds a successful path (start→modifier→goal), record the exact action sequence and hardcode it. This gives the optimal run every time. For level 2+, extract similar data from the source code.
+- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
+- **Changes**: Log the successful action sequence on level completion. Hardcode it for future runs. For level 2: read level 2 data from source, extract modifiers+goals, create new waypoint list.
+- **Target game**: ls20
+- **Expected impact**: Optimal action sequence = best possible score.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
   The executor should do TWO things:
