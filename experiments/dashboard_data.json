@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-29T14:51:35.113809+00:00",
+  "generated_at": "2026-03-29T14:55:18.443070+00:00",
   "summary": {
-    "total": 8,
-    "completed": 8,
+    "total": 9,
+    "completed": 9,
     "improved": 0,
-    "reverted": 7,
+    "reverted": 8,
     "baselines": 1,
     "best_score": 0.0,
     "best_experiment": "none"
@@ -113,9 +113,23 @@
       "duration": "55s",
       "status": "reverted",
       "notes": "UCB1 with reward=1 for frame change, 2 for new state. Random untried selection. 300 actions, 55s. Smarter selection doesn't help \u2014 exploration strategy isn't the bottleneck."
+    },
+    {
+      "id": "010",
+      "idea": "#1",
+      "description": "State-aware clicks + priority + no LLM",
+      "avg_score": 0.0,
+      "actions": 600,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 0.0,
+      "duration": "8s",
+      "status": "reverted",
+      "notes": "Per-state click tracking, re-detect on state change, 5-tier priority, LLM disabled. Also tried 1000 actions on vc33 only \u2192 GAME_OVER (lives exhausted). Wrong clicks consume lives faster than agent finds interactive objects. Need to avoid non-productive clicks entirely."
     }
   ],
   "running_best": [
+    0.0,
     0.0,
     0.0,
     0.0,
