@@ -1037,3 +1037,36 @@ My analysis of vc33 game code identified ZGd sprites as color 9 (purple, "corrup
 
 **#1 remaining unknown: Cloud model validation with Claude Sonnet.**
 This has been #1 in the queue for 6 experiments but hasn't been tested yet. It's the gating experiment that determines the entire strategic direction.
+
+### Exp 015 + API Key Blocker Analysis (2026-03-29)
+
+**Exp 015 (LS20 ultra-deep DFS, 2000 actions)**: Score 0, 60s. GAME_OVER — **ls20 ALSO has a life mechanic** (health drain). Agent dies before finding solution. Even 2000 actions can't solve games through blind exploration when lives are limited.
+
+**BOTH viable games have life mechanics:**
+- vc33: 50 lives per level, all clicks cost 1 life
+- ls20: health drain from movement, agent dies before solving
+
+This means blind exploration (programmatic or random) is FUNDAMENTALLY blocked on ALL games. The agent MUST be intelligent about its actions — it needs to understand what it's trying to achieve and conserve lives/health.
+
+**Cloud validation blocker discovered:**
+- No ANTHROPIC_API_KEY in `.env` file
+- `.env` only contains ARC_API_KEY and ARC_URL_BASE
+- This is why the executor hasn't run cloud validation despite it being #1 for 6 experiments
+- The user would need to add an API key to proceed with cloud validation
+
+**Alternative path: QwQ-32B-local**
+- QwQ-32B is a reasoning model with explicit chain-of-thought
+- max_completion_tokens: 8192 (2x others)
+- Specifically trained for step-by-step reasoning
+- Available locally via MLX — no API key needed
+- NOT the same as Qwen3-32B (exp 003) — QwQ is a different model family
+- Speed: ~20-30 tok/s (slower than Qwen3.5 at 60-70 tok/s but generates higher quality reasoning)
+
+**Status after 45 experiments:**
+- Programmatic exploration: exhausted (life mechanics block blind search)
+- Qwen3.5-35B: can't reason about puzzles (exps 012, 013)
+- Qwen3-32B: tested and failed (exp 003)
+- QwQ-32B: NOT tested (different model — reasoning specialist)
+- Cloud models: blocked by missing API key
+- Manual play: not attempted
+- ADCR agent: not tested since infrastructure fixes
