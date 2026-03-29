@@ -168,6 +168,8 @@ class StateGraphAgent(MultimodalAgent):
             context.datastore["balance_target_btn"] = None
             context.datastore["balance_trial_queue"] = None
             context.datastore["balance_trial_results"] = []
+            context.datastore["balance_dimension"] = None
+            context.datastore["balance_stale_count"] = 0
 
             context.datastore["prev_score"] = current_score
             return True
@@ -274,12 +276,11 @@ class StateGraphAgent(MultimodalAgent):
                     buttons.append((cx, cy))
         return buttons
 
-    def _measure_imbalance(self, grid: List[List[int]]) -> int:
-        """Measure grid imbalance: variance in green cell count per row.
+    def _measure_imbalance(self, grid: List[List[int]], context: Optional[SessionContext] = None) -> int:
+        """Measure grid imbalance: range in green cell count per row.
 
-        Samples rows across the grid (skipping bars/status) and counts green
-        cells. The range (max - min) of green counts represents imbalance.
-        Works regardless of whether green is on left or right.
+        Samples rows across the grid and counts green cells. The range
+        (max - min) represents how unbalanced the regions are.
         """
         rows = len(grid)
         cols = len(grid[0]) if rows else 0
@@ -311,7 +312,7 @@ class StateGraphAgent(MultimodalAgent):
         # Phase 2: Already have a locked button — keep clicking until plateaued
         locked_btn = context.datastore.get("balance_target_btn")
         if locked_btn is not None:
-            current_imbalance = self._measure_imbalance(grid)
+            current_imbalance = self._measure_imbalance(grid, context)
             last_imbalance = context.datastore.get("balance_last_imbalance", current_imbalance)
 
             if current_imbalance < last_imbalance:
@@ -343,7 +344,7 @@ class StateGraphAgent(MultimodalAgent):
                 return None
             context.datastore["balance_trial_queue"] = list(buttons)
             context.datastore["balance_trial_results"] = []
-            context.datastore["balance_pre_trial_imbalance"] = self._measure_imbalance(grid)
+            context.datastore["balance_pre_trial_imbalance"] = self._measure_imbalance(grid, context)
             context.datastore["balance_mode"] = True
             trial_queue = context.datastore["balance_trial_queue"]
             logger.info(f"Balance puzzle: {len(buttons)} buttons found, starting trials")
@@ -352,7 +353,7 @@ class StateGraphAgent(MultimodalAgent):
         trial_results = context.datastore.get("balance_trial_results", [])
         pre_imbalance = context.datastore.get("balance_pre_trial_imbalance", 0)
         if trial_results and trial_results[-1].get("pending"):
-            current_imbalance = self._measure_imbalance(grid)
+            current_imbalance = self._measure_imbalance(grid, context)
             improvement = pre_imbalance - current_imbalance
             trial_results[-1]["improvement"] = improvement
             trial_results[-1]["pending"] = False
