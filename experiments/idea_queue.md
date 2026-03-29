@@ -2,12 +2,26 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 036): Maze extracted! DFS explored 42 states in 55 moves. Partial path: R,R,U,U,U,U,L,L,L,U,U,U... Solution is ~29 steps. Need: either (1) complete BFS on extracted wall data to find full path, or (2) iterative deepening across deaths to extend the partial path. Very close to ls20 breakthrough!**
+**PHILOSOPHY (2026-03-29, post exp 037): Offline BFS failed — collision model proprietary. ALL programmatic ls20 approaches exhausted: blind exploration, BFS, DFS, directional bias, anti-oscillation, wall extraction. Two remaining paths: (1) Claude Code plays ls20 via arc CLI with vision (sees each frame, decides moves), (2) ensure stategraph persists graph across deaths for iterative deepening. Also: vc33 level 3 still unsolved.**
 
 ---
 
-### 1. [Navigation Strategy] LS20 complete the path — BFS on extracted maze OR extend partial path
-- **Hypothesis**: Exp 036 extracted the maze and explored 42 states with DFS, finding partial path R,R,U,U,U,U,L,L,L,U,U,U... The solution is ~29 steps. Two approaches to complete it: (A) Run BFS/DFS offline on the extracted wall data to find the FULL path, then hardcode it. (B) Use iterative deepening in the agent: on each death, remember the longest successful prefix and extend it by one step. With ~54 moves per life and many attempts, the agent can discover the complete 29-step path.
+### 1. [Navigation Strategy] LS20 Claude Code plays via arc CLI — visual maze navigation
+- **Hypothesis**: All programmatic ls20 approaches have failed (exps 029-037). Offline BFS failed because the collision model is proprietary. But Claude Code (Opus 4.6) can SEE the maze frames and reason about navigation visually. This is the same approach that solved vc33 (visual investigation → understanding → strategy). Play ls20 via arc CLI: view frame, decide direction based on visible paths, navigate toward goals. With 29 baseline actions, this is ~29 `arc action` commands = a few minutes.
+- **Files to modify**: None — interactive play via arc CLI
+- **Changes**: Play ls20 interactively:
+  ```bash
+  arc start ls20 --max-actions 100
+  arc state --image    # See the maze
+  arc action move_right
+  arc state --image    # See what happened — did we move? Where are we now?
+  # Repeat: view → decide → act → view
+  # Navigate toward visible goals (maroon blocks, gray exits)
+  arc end
+  ```
+  Claude Code's visual reasoning can identify corridors, dead ends, and goals much better than any programmatic heuristic. If successful, the solved path can be hardcoded into the agent.
+- **Target game**: ls20
+- **Expected impact**: First ls20 score via visual reasoning. The approach that went from 0→0.3333→0.6667 on vc33.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
   The executor should do TWO things:

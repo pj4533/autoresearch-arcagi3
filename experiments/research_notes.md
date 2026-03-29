@@ -1493,6 +1493,30 @@ Walls are at regular intervals (x=4,9,14,19,24,29,34,39,44,49,54,59) with varyin
 **KEY INSIGHT**: With the maze layout KNOWN from source code, we can bypass all exploration problems and compute the optimal path. This is similar to how we analyzed vc33's game code to understand the balance puzzle — but for ls20 we can extract the actual maze structure.
 
 **Warning from vc33 exp 014**: "Game-code analysis doesn't generalize to specific instances — each instance has different color mappings." However, we're always running the SAME instance (ls20-cb3b57cc), so instance-specific data should work. The wall positions and item locations are fixed for this instance.
+
+### Exp 037: Offline BFS Failed — Collision Model Proprietary (2026-03-29)
+
+**Exp 037 (hardcoded BFS)**: Built 64x64 occupancy grid from wall data. "Player 'tuv' is 10x10 HOLLOW frame (border-only collision). Multiple BFS attempts with different collision models all failed — game engine's collision model is proprietary."
+
+**Why BFS failed**: The player's collision is a 10x10 hollow frame where only the border pixels collide. The player starts OVERLAPPING walls, meaning the engine has special collision rules (penetration resolution, per-pixel checks, etc.) that can't be replicated from source code alone.
+
+**All programmatic ls20 approaches exhausted:**
+| Exp | Approach | Why it failed |
+|-----|----------|---------------|
+| 029 | Green density heuristic | Too greedy |
+| 030 | BFS on visual grid | Invisible walls |
+| 031 | Wall-hit avoidance + 5000 actions | Health drain |
+| 032 | DFS corridor following | Corridors don't lead to goals |
+| 033 | Pickup-first + corridor | Oscillation at junctions |
+| 034 | Anti-oscillation | Maze size blocker |
+| 035 | Goal-direction bias | Maze requires specific turns |
+| 036 | DFS on actual game | Partial path (42 states) but incomplete |
+| 037 | Offline BFS on extracted walls | Collision model proprietary |
+
+**Remaining options:**
+1. **Claude Code plays via arc CLI** — visual reasoning for each move (like vc33 breakthrough)
+2. **Stategraph iterative deepening** — ensure graph persists across deaths, increase max_actions
+3. **vc33 level 3** — pivot back, still unsolved but different approach might work
 | 4-7 | Unknown | Unknown | Unknown | 59-92 | Not reached |
 
 **Why QwQ-32B might succeed where others failed:**
