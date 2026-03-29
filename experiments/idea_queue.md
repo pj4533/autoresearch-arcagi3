@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 037): Offline BFS failed — collision model proprietary. ALL programmatic ls20 approaches exhausted: blind exploration, BFS, DFS, directional bias, anti-oscillation, wall extraction. Two remaining paths: (1) Claude Code plays ls20 via arc CLI with vision (sees each frame, decides moves), (2) ensure stategraph persists graph across deaths for iterative deepening. Also: vc33 level 3 still unsolved.**
+**PHILOSOPHY (2026-03-29, post exp 038): 17 experiments at 0.6667 plateau. ALL programmatic ls20 approaches exhausted (10 experiments: 029-038). Hardcoded prefix, BFS, DFS, direction bias, anti-oscillation — all failed. The ONLY untested approach is arc CLI visual play (which went 0→0.3333→0.6667 on vc33). ALSO: vc33 level 3 needs visual investigation via arc CLI too. The next step is interactive play, not more programmatic changes.**
 
 ---
 
