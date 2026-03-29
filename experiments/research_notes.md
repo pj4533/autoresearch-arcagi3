@@ -1255,6 +1255,37 @@ This is a much better approach than trying to deduce the correct button from geo
 
 **Need: auto-detect puzzle type and route to appropriate metric.**
 
+### Exp 023 + Pivot to Arc CLI Play (2026-03-29)
+
+**Exp 023 (cell-change trial metric)**: Score 0.6667 (same, reverted). Cell-change metric successfully detected level 3 buttons (36-44 cells each). But level 3 needs MULTI-BUTTON COORDINATION — 8 bars each needing specific heights. Single-button locking insufficient.
+
+**Pivot: Claude Code plays games directly via arc CLI with vision.**
+
+The user changed the approach: instead of modifying Python agent code, Claude Code (Opus 4.6) plays games directly using:
+- `arc start <game>` to start
+- `arc state --image` to see frames (Claude sees actual images)
+- `arc action click --x N --y N` to click
+- `arc action move_right` etc. for movement
+
+This leverages Claude Code's:
+- **Visual reasoning** — can analyze images directly
+- **Planning** — can think through multi-step strategies
+- **Memory** — remembers what it saw on previous frames
+- **Flexible reasoning** — handles novel puzzle types without code changes
+
+**Why this pivot makes sense for level 3+:**
+The programmatic agent could handle levels 1-2 (simple 2-button balance → trial-and-lock). Level 3 requires understanding 8 independent bars, each needing specific heights. This is visual reasoning, not systematic exploration. Claude Code's vision can potentially:
+- See all 8 bars and compare heights
+- Identify target heights (if visible)
+- Plan a multi-click sequence
+- Execute it efficiently
+
+**New research paradigm:**
+- Ideas are PLAY STRATEGY changes (in play_strategy.md)
+- Not agent code changes
+- Focus on visual analysis, puzzle identification, click strategy, navigation
+- Queue adapted with 12 strategy-focused ideas
+
 **Why QwQ-32B might succeed where others failed:**
 - Qwen3.5-35B (3B active MoE) lacks depth of reasoning
 - Qwen3-32B (dense but not reasoning-trained) has the capacity but not the training

@@ -2,112 +2,87 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 022 — score 0.6667): Level 3 is a VERTICAL BAR CHART — gray bars of varying heights with 8 buttons at the bottom (one per bar). This is fundamentally different from levels 1-2 (horizontal balance). Row-based imbalance can't capture bar height. Need: (1) bar height measurement per column, (2) "bar height variance" as the imbalance metric, (3) trial-and-lock to find which button reduces variance.**
+**PHILOSOPHY (2026-03-29, post pivot to arc CLI play): Claude Code (Opus 4.6) now plays games directly via arc CLI with vision. It sees frames as images and reasons about puzzles. We iterate on PLAY STRATEGY. Current best: vc33=0.6667 (levels 1+2 solved programmatically). Level 3 is a bar chart with 8 buttons needing multi-button coordination. The executor's visual reasoning should handle this.**
 
 ---
 
-### 1. [Puzzle Logic] Bar height metric for level 3 — measure column heights not row distribution
-- **Hypothesis**: Exp 022 confirmed level 3 is a vertical bar chart (gray bars of different heights, 8 buttons at bottom). The current `_measure_imbalance()` counts green cells per row — completely wrong for vertical bars. The correct metric is BAR HEIGHT VARIANCE: measure the height of each gray column (scan down from top, count gray cells), compute max-min or variance. The button that reduces this variance is the correct one.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**:
-  1. Add `_measure_bar_heights(grid)`: for each column region (between button x-positions), scan down from top row (below status bar) counting non-background cells. Return list of heights.
-  2. Add `_bar_height_variance(heights)`: return max(heights) - min(heights). This is the bar chart imbalance.
-  3. In trial phase for level 3+: use bar_height_variance as the trial metric (instead of green row imbalance). Save heights before click, compare after. The button that reduces variance most gets locked.
-  4. Auto-detect puzzle type: if buttons are arranged horizontally at the bottom AND grid has vertical bars above them → use bar height metric. If buttons are scattered with horizontal regions → use row-based green metric.
-  5. For plateau detection: re-measure bar_height_variance. Plateau = variance unchanged for 3 steps.
-- **Expected impact**: Solves vertical bar chart puzzles like level 3. Combined with existing row-based metric for levels 1-2, covers both puzzle types.
+### 1. [Visual Analysis] VC33 level 3: identify target bar heights from the image
+- **Hypothesis**: Level 3 is a vertical bar chart with 8 gray bars and 8 buttons. The programmatic agent couldn't determine target heights, but Claude Code can SEE the image and reason about it. Likely the game shows a "target" pattern somewhere (reference bars, colored indicators, or numeric labels). Finding the target tells you exactly how many times to click each button.
+- **Strategy change**: Add to vc33 strategy: "On bar chart levels, look for target indicators — reference lines, colored markers, or a second set of bars showing the goal state. Each button adjusts one bar's height. Click each button the right number of times to match the target."
+- **Target game**: vc33 (level 3+)
+- **Expected impact**: Solving level 3 would push vc33 score from 2 to 3+ levels.
 
-### 2. [Puzzle Logic] Auto-detect puzzle type — horizontal balance vs vertical bar chart
-- **Hypothesis**: Levels 1-2 are horizontal balance puzzles (green fill, horizontal divider). Level 3 is a vertical bar chart (gray bars, buttons at bottom). The agent needs to detect WHICH type of puzzle it's facing and use the appropriate metric. A simple heuristic: if buttons are in a horizontal row at the bottom → bar chart. If buttons are above/below a horizontal divider → horizontal balance.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Add `_detect_puzzle_type(grid, buttons)`:
-  1. Check button Y positions: if all within 2 rows of each other AND near bottom → "bar_chart"
-  2. Check for horizontal divider (rows with >40% single non-bg color): if found → "horizontal_balance"
-  3. Return puzzle type → route to appropriate metric
-- **Expected impact**: Handles both puzzle types automatically. Levels 1-2 use row metric, level 3 uses column/bar metric.
+### 2. [Click Strategy] VC33 level 3: one-click-per-button probe, then systematic adjustment
+- **Hypothesis**: With 8 buttons and 50 lives, the executor can afford to click each button once (8 lives) to understand the mechanic. After observing what each button does (which bar it adjusts and by how much), plan the optimal click sequence. This is the visual equivalent of trial-and-lock.
+- **Strategy change**: Add to vc33 strategy: "For bar chart levels: (1) Click each button once, view frame after each click to see which bar changed and by how much. (2) Map button→bar relationships. (3) Calculate how many clicks each bar needs. (4) Execute the plan — clicking each button the calculated number of times."
+- **Target game**: vc33
+- **Expected impact**: Systematic approach to multi-button puzzles.
 
-### 3. [Puzzle Logic] Total cell change count as universal trial fallback
-- **Hypothesis**: If both specific metrics (row imbalance, bar height) fail to detect improvement, use the most generic metric: total cells changed. ANY button that changes >10 cells is interactive. This is a universal fallback that works for unknown puzzle types.
-- **Expected impact**: Understanding level 3 → targeted fix.
+### 3. [Action Efficiency] VC33 levels 1-2: solve in minimum clicks
+- **Hypothesis**: Levels 1-2 are solved but may use more clicks than the human baseline (6 and 13). By looking at the image and understanding the exact puzzle state, the executor could solve in fewer clicks, improving per-level scores.
+- **Strategy change**: Add to vc33 strategy: "On balance puzzle levels: count the exact gap between boundaries. Each click adjusts by ~1 unit. Click exactly `gap` times — no more."
+- **Target game**: vc33
+- **Expected impact**: Better per-level score through fewer wasted clicks.
 
-### 4. [Life Management] Health bar tracking + stop on low lives
-- **Hypothesis**: When level 3 can't be solved, the agent wastes remaining lives → GAME_OVER → might lose accumulated score. Tracking health and stopping early preserves the score from levels 1+2.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Add `_parse_health(grid)` → count color 7 (orange) cells in row 0. When health < 5 clicks remaining AND no progress on current level → stop clicking (return None or repeat last known-good action).
-- **Expected impact**: Preserves level 1+2 score instead of GAME_OVER.
+### 4. [Navigation Strategy] LS20: look for player character and goal indicators
+- **Hypothesis**: Claude Code with vision can SEE the ls20 grid. It should identify: (1) the player character (unique-looking entity), (2) goal indicators (doors, exits, bright objects), (3) obstacles (walls, barriers), (4) collectibles (keys, health). Then navigate purposefully toward the goal.
+- **Strategy change**: Add to ls20 strategy: "First, identify yourself on the grid — look for a small, unique entity (often a different color from surroundings). Then look for potential goals: doors, exits, bright/distinct objects on the edges. Navigate toward them while avoiding obstacles. Use `perform` when you reach a goal."
+- **Target game**: ls20
+- **Expected impact**: First ls20 score. Even solving level 1 (29 baseline) would add to the average.
 
-### 5. [Puzzle Logic] Try 2-button combinations if single buttons have no effect
-- **Hypothesis**: If all 8 single-button trials show 0 cell changes, the puzzle might require COMBINATIONS: clicking A then B produces an effect neither alone does. With 8 buttons, C(8,2)=28 pairs. At 2 clicks per pair, test ~20 pairs with 50 lives.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: After single-button trials all show 0: enter combination phase. Try pairs (A,B), measure total cell changes. Lock the pair with most changes.
-- **Expected impact**: Handles multi-button interaction puzzles.
+### 5. [Hypothesis Testing] VC33: try ONE click and reason about what changed
+- **Hypothesis**: Instead of clicking multiple times before reasoning, click once, view the before/after difference, and reason about what the click did. This maximizes information per click (which costs a life).
+- **Strategy change**: Add: "After EVERY click, view the frame. Compare to what you remember from before. Ask yourself: what changed? What does this tell me about the puzzle mechanic? Plan your next click based on this understanding."
+- **Target game**: vc33
+- **Expected impact**: Fewer wasted clicks, faster puzzle understanding.
 
-### 6. [Frame Analysis] Investigate ls20 visually — understand navigation mechanics
-- **Hypothesis**: Visual investigation unlocked vc33. Same approach for ls20 might reveal: player position, walls, objectives, health indicators.
-- **Files to modify**: None initially — investigation
-- **Changes**: Use arc CLI to explore ls20 visually.
-- **Expected impact**: Understanding ls20 → targeted strategy.
+### 6. [Puzzle Identification] VC33: identify puzzle type from first frame
+- **Hypothesis**: Each vc33 level has a different puzzle layout but follows patterns. By classifying the puzzle type from the first frame (horizontal balance, vertical bar chart, sorting, etc.), the executor can immediately apply the right strategy.
+- **Strategy change**: Add: "On the first frame of each level, classify the puzzle: (a) Two regions with a divider → balance puzzle (click the button that converges). (b) Vertical bars with buttons at bottom → bar chart (adjust each bar to target height). (c) Other → explore carefully with single clicks."
+- **Target game**: vc33
+- **Expected impact**: Faster level starts, fewer wasted exploratory clicks.
 
-### 7. [Action Priority] Optimize click count — stop when imbalance hits 0
-- **Hypothesis**: The agent keeps clicking until score changes (level transition). But if it detects imbalance=0 (boundaries equalized), it should stop to save lives for later levels.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: After each click in balance mode, check if imbalance <= 1. If so, wait for score change instead of continuing to click.
-- **Expected impact**: Fewer wasted clicks, more lives for later levels.
+### 7. [Level Progression] VC33: carry mechanics knowledge across levels
+- **Hypothesis**: vc33 levels share common mechanics (color 9 = buttons, clicking adjusts things). The executor should remember what worked on previous levels and apply it to new ones, adapting as needed.
+- **Strategy change**: Add: "After solving a level, note what you learned: which objects were interactive, what the mechanic was, how many clicks were needed. Apply this knowledge to the next level — it's probably a variation of the same mechanic."
+- **Target game**: vc33
+- **Expected impact**: Faster adaptation on new levels.
 
-### 8. [Puzzle Logic] Level 3 might need different fill color detection
-- **Hypothesis**: Levels 1+2 use green (color 3). Level 3 might use blue (color 9), orange (color 7), or other colors. The imbalance metric must auto-detect the fill color.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Before measuring imbalance, scan the grid for the dominant non-background, non-status-bar, non-button color. Use that as the fill color.
-- **Expected impact**: Handles any fill color.
+### 8. [Visual Analysis] LS20: identify health bar and monitor it
+- **Hypothesis**: LS20 has health drain. The executor should identify the health indicator (probably a colored bar at the top or bottom) and monitor it to avoid dying. When health is low, stop exploring and try to find a health restore or the goal.
+- **Strategy change**: Add: "Look for a health/life bar (often colored bar at the edge of the screen). Monitor it after each move. If health drops below ~30%, prioritize finding the goal or a health restore rather than exploring."
+- **Target game**: ls20
+- **Expected impact**: Prevents GAME_OVER, preserves more actions for solving.
 
-### 9. [Cross-Level Transfer] Remember puzzle parameters across levels
-- **Hypothesis**: Carry forward: button color (always 9?), fill color, puzzle type. Speeds up detection on new levels.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: On level transition, save puzzle parameters. On new level, try the same parameters first before full re-detection.
-- **Expected impact**: Faster per-level startup.
+### 9. [Click Strategy] VC33: count remaining lives before acting
+- **Hypothesis**: The health bar in vc33 (row 0: orange/yellow) shows remaining lives. The executor should check it before committing to a strategy. If lives are low and the current level is unsolved, be very conservative.
+- **Strategy change**: Add: "Check the health bar (top of screen) regularly. If you've used more than half your lives without solving the current level, switch to conservative mode — only click objects you're confident about."
+- **Target game**: vc33
+- **Expected impact**: Preserves score from solved levels.
 
-### 10. [Puzzle Logic] Handle vertical/diagonal dividers
-- **Hypothesis**: Some levels might have vertical or diagonal dividers instead of horizontal. Current detection only finds horizontal bars.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Add vertical bar scan (columns with >40% uniform color). Add diagonal check.
-- **Expected impact**: Handles non-horizontal layouts.
+### 10. [Navigation Strategy] LS20: try perform action at interesting locations
+- **Hypothesis**: LS20's `perform` action might trigger interactions at specific locations (keys, doors, switches). The executor should try `perform` when it sees a distinct object or when movement stops (indicating a wall or barrier).
+- **Strategy change**: Add: "When you see a distinct object or reach a dead end, try `perform`. It might collect an item, open a door, or trigger a mechanism. Don't use `perform` randomly — save it for when you think you've reached something important."
+- **Target game**: ls20
+- **Expected impact**: Discovers interactive elements in ls20.
 
-### 11. [Puzzle Logic] Multiple independent balance regions
-- **Hypothesis**: Level 3 with 8 buttons might have 4 independent balance regions (each with 2 buttons). Each region needs to be balanced independently.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Detect multiple divider bars. For each region between bars, find buttons and measure imbalance independently. Solve each region in sequence.
-- **Expected impact**: Handles multi-region puzzle layouts.
+### 11. [Visual Analysis] VC33 level 3: compare left vs right halves for goal state
+- **Hypothesis**: Many visual puzzles show the current state and goal state side by side. Level 3's bar chart might have a reference pattern on one side and the adjustable bars on the other. The executor should look for this dual structure.
+- **Strategy change**: Add: "Look for a comparison structure — is half the screen showing a 'goal' pattern and the other half the 'current' state? If so, click buttons to make the current match the goal."
+- **Target game**: vc33
+- **Expected impact**: Identifies goal state for bar chart levels.
 
-### 12. [Puzzle Logic] LS20 player detection + directed exploration
-- **Hypothesis**: LS20 has a player entity. Detecting and tracking player position enables directed movement strategies.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Find objects that move when movement actions are taken. Track position over time.
-- **Expected impact**: Purposeful navigation.
-
-### 13. [Frame Analysis] Grid structure classifier — detect puzzle type
-- **Hypothesis**: Different levels may be fundamentally different puzzle types. Route to appropriate strategy.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: `_classify_puzzle(grid)` returns: "balance", "sorting", "matching", "unknown".
-- **Expected impact**: Multi-strategy support.
-
-### 14. [Life Management] GAME_OVER prevention — safe fallback
-- **Hypothesis**: When stuck on an unsolvable level, stop clicking to preserve score.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Track consecutive 0-improvement clicks. After 15, stop clicking entirely.
-- **Expected impact**: Preserves accumulated score.
-
-### 15. [Puzzle Logic] Level 2 cycling optimization — detect the cycle pattern
-- **Hypothesis**: Level 2 needed button cycling: A→plateau→B→plateau→A→SCORE. If the agent can detect the cycling pattern faster (recognize plateau after 1-2 steps instead of 3), it saves clicks.
-- **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
-- **Changes**: Reduce stale threshold from 3 to 2 for re-trialing. Or detect when imbalance starts increasing and re-trial immediately.
-- **Expected impact**: Fewer wasted clicks on level 2.
+### 12. [Action Efficiency] All games: plan before acting
+- **Hypothesis**: Every action costs either a life (vc33) or health (ls20). Planning 2-3 moves ahead reduces wasted actions.
+- **Strategy change**: Add: "Before each action, state your plan: 'I will click X because I expect Y to change, which moves me toward the goal of Z.' If you can't articulate a plan, observe more carefully before acting."
+- **Target game**: all
+- **Expected impact**: More deliberate, fewer wasted actions.
 
 ---
 
 ## Completed
 
-- **Stategraph 001-018**: All score 0.
-- **Stategraph 019**: **BREAKTHROUGH** avg=0.3333, vc33=1.0. Balance puzzle solved level 1.
-- **Stategraph 020**: Generalized balance — detected level 2 but wrong button. Reverted.
-- **Stategraph 021**: **IMPROVED** avg=0.6667, vc33=2.0. Trial-and-lock with re-trialing solved levels 1+2. Level 3: 8 buttons, improvement=0. GAME_OVER.
+- **Stategraph 001-023**: See log. Highlights: vc33 balance puzzle solved (levels 1-2). Level 3 is bar chart needing multi-button coordination. All local models tested (Qwen3.5, Qwen3-32B, QwQ-32B) — insufficient reasoning.
+- **Stategraph 019 (BREAKTHROUGH)**: Balance puzzle → score 0.3333.
+- **Stategraph 021 (IMPROVED)**: Trial-and-lock → score 0.6667.
 - **Explorer 001-030**: All score 0. See log_archive_explorer.md.
