@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 058): DECORATIONS MOVE! Coordinate mapping is display=game+6 (not scaling). btn[6]×10 moved ChX 36.2→45.8 and VAJ 46.2→36.6. Close to targets! Rate: 0.96 display px/click. Need ~2 more btn[6] + VAJ adjustment + PPS-UP button (btn[0] at display(12,56) = game(6,50)). Life budget: 75, need ~48 total clicks with neutrals.**
+**PHILOSOPHY (2026-03-29, post exp 059): PPS-UP found (btn[0]) but 14% success rate. Balance handler RESETS progress. TWO CRITICAL FIXES: (1) DISABLE balance handler for level 3, (2) test btn[0] STANDALONE (not alternating) — gel() should allow 8 consecutive clicks before blocking.**
 
 ---
 
@@ -53,10 +53,27 @@
   ```
   This finds the correct clickable y AND the missing PPS-UP button (x≈8).
 
-  **Click counts:** at 1.2 display px/click:
-  - ChX: 36.2→48.0 = ~10 clicks DOWN (btn[6])
-  - VAJ: 46.2→38.2 = ~7 clicks UP (btn[6] gives both ChX+VAJ, or btn[5] for VAJ only)
-  - PPS: 48.2→40.6 = ~6 clicks UP (missing button)
+  **CRITICAL FIX #1: DISABLE BALANCE HANDLER FOR LEVEL 3.**
+  The existing trial-and-lock code from levels 1-2 takes over after the level-3 plan finishes
+  and RESETS all decoration progress. Add `return` before balance handler when level 3 detected.
+
+  **CRITICAL FIX #2: TEST btn[0] STANDALONE.**
+  btn[0]=(12,56) had only 14% success when alternated with btn[6]. But gel() allows up to 8
+  consecutive btn[0] clicks (fCG.y goes from 48 down to 32, limit is mud=32). Test: click btn[0]
+  8 times consecutively (no alternation). If all 8 register, PPS moves 8×0.96 = 7.7 px UP. Target
+  needs 7.6 px. EXACTLY right!
+
+  **SOLUTION PLAN (3-step sequential, no alternation needed):**
+  ```
+  Step 1: btn[6]=(46,56) × 12 clicks  — ChX→target, VAJ overshoots
+  Step 2: btn[4]=(34,56) × 4 clicks   — VAJ corrects back to target
+  Step 3: btn[0]=(12,56) × 8 clicks   — PPS→target
+  Total: 24 effective clicks. With neutrals ~48. Within 75 lives.
+  ```
+
+  **LIFE-EFFICIENT ALTERNATION (no neutrals needed):**
+  Alternate REAL buttons: btn[6]+btn[0], btn[6]+btn[0], ... (both need ~similar clicks).
+  Each click hits a real button — 0 wasted lives. Total: ~24 clicks for ~24 lives.
 - **Files to modify**: `src/arcagi3/stategraph_agent/agent.py`
 - **Changes**:
 
