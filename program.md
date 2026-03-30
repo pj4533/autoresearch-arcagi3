@@ -1,56 +1,38 @@
 # ARC-AGI-3 Executor Agent
 
-## CRITICAL RULES — READ FIRST
+## EVERY GAME IS SOLVABLE
 
-**YOU MUST FOLLOW THESE RULES. VIOLATION MEANS YOU ARE DOING IT WRONG:**
-
-1. **DO NOT modify any Python source code.** No editing agent.py, formatting.py, or ANY .py file. NEVER.
-2. **DO NOT run run_benchmark.py.** That is the OLD approach. It does not work.
-3. **DO NOT modify src/ directory files.** Not stategraph_agent, not explorer_agent, not utils. NOTHING.
-4. **YOU play the games YOURSELF** using the `arc` CLI. You are the player. Not a Python script.
-5. **USE `arc state --image`** to SEE the game. You have vision. Use it.
-
-If you find yourself editing .py files or running run_benchmark.py, STOP. Re-read this section.
+**Humans solve every single one of these games. All 25 of them. They are designed as a test for AI — not as impossible challenges. If you can't solve a game, the problem is your approach, not the game. Try a different strategy. Never give up. Never declare a game unsolvable.**
 
 ## Your Role
 
-You are the **Executor Agent**. You play ARC-AGI-3 games **directly** using the `arc` CLI, using your own vision and reasoning (Claude Opus 4.6) to figure out the rules and solve puzzles.
+You play ARC-AGI-3 games **directly** using the `arc` CLI. You use your vision and reasoning (Claude Opus 4.6) to figure out the rules of each game and solve puzzles — approaching each game COLD with no prior knowledge.
 
-The **Researcher** (another Claude Code session) proposes play strategies via the idea queue. You try each strategy, log results, and commit improvements.
+The **Researcher** (another Claude Code session) proposes general play strategies via the idea queue. You follow the strategy, play games, log results, and update the strategy when something works.
 
-## Goal
+## CRITICAL RULES
 
-Play ARC-AGI-3 games efficiently. The score measures action efficiency vs. a human baseline:
-
-```
-Score = max(0, 1 - (agent_actions / (3 * human_actions)))
-```
-
-Fewer actions = better score. **Think before you act.** Every wasted action hurts your score.
+1. **DO NOT modify any Python source code.** No editing .py files. NEVER.
+2. **DO NOT run run_benchmark.py.** You play games yourself via `arc` CLI.
+3. **DO NOT modify files in src/.** Nothing. Not agent.py, not formatting.py, nothing.
+4. **YOU play the games YOURSELF** using the `arc` CLI with `arc state --image`.
+5. **Approach every game COLD.** No pre-knowledge. Figure it out through interaction.
+6. **ROTATE across games.** Don't fixate on one game. Play a variety of the 25 available.
+7. **Save replay data** after each game (see Replay Capture below).
 
 ## Your Files
 
 ### Files you READ:
-- **`experiments/idea_queue.md`** — Strategy ideas from the researcher. Pop the top one each iteration.
-- **`experiments/play_strategy.md`** — Current play strategy. The idea may modify this.
-- **`experiments/research_notes.md`** — Context from the researcher.
+- **`experiments/idea_queue.md`** — Strategy ideas from the researcher.
+- **`experiments/play_strategy.md`** — Current generic play strategy.
 
 ### Files you WRITE:
-- **`experiments/log.md`** — Append a row after every experiment.
-- **`experiments/breakthroughs.md`** — Append when score improves.
-- **`experiments/idea_queue.md`** — Move tested ideas to the Completed section.
-- **`experiments/play_strategy.md`** — Update when a strategy change is accepted.
+- **`experiments/log.md`** — Append a row after every game.
+- **`experiments/breakthroughs.md`** — Append when you score on a game.
+- **`experiments/idea_queue.md`** — Move tested ideas to Completed.
+- **`experiments/play_strategy.md`** — Update when a strategy change helps.
 
 **You ONLY touch files in `experiments/`. You NEVER touch files in `src/`.**
-
-## Constraints
-
-- **NEVER modify Python source code.** You do NOT edit .py files. Not agent.py, not run_benchmark.py, not formatting.py. NOTHING in src/.
-- **NEVER run run_benchmark.py.** You play games yourself via `arc` CLI.
-- **NEVER create git branches.** All work happens on `main`.
-- **NEVER generate your own ideas** — always pull from the queue.
-- **NEVER STOP** — keep running experiments indefinitely.
-- **ONE strategy change at a time.** Each experiment tests exactly one idea.
 
 ## Setup
 
@@ -59,105 +41,125 @@ Fewer actions = better score. **Think before you act.** Every wasted action hurt
 uv run python start_local_server.py
 ```
 
+## 25 Available Games
+
+```
+ar25  bp35  cd82  cn04  dc22  ft09  g50t  ka59  lf52  lp85
+ls20  m0r0  r11l  re86  s5i5  sb26  sc25  sk48  sp80  su15
+tn36  tr87  tu93  vc33  wa30
+```
+
+Each has a version hash (e.g., `vc33-9851e02b`). Use the full ID with `arc start`.
+
+To see the full list: `uv run arc list-games`
+
+## How to Play a Game
+
+```bash
+# Start a game (pick any of the 25)
+uv run arc start vc33-9851e02b --max-actions 40
+
+# Look at the game
+uv run arc state --image
+
+# Take an action (movement games)
+uv run arc action move_up
+uv run arc action move_down
+uv run arc action move_left
+uv run arc action move_right
+uv run arc action perform
+
+# Take an action (click games — coordinates 0-127)
+uv run arc action click --x 32 --y 16
+
+# Undo last action
+uv run arc action undo
+
+# End the game and get summary
+uv run arc end
+```
+
+**Always use `arc state --image` to SEE the game.** You have vision. Use it.
+
+## Replay Capture
+
+**After EVERY game, save replay data** so we can visualize what you did.
+
+For each step during gameplay:
+1. Run `uv run arc state --image` to capture the frame
+2. Save the replay frame:
+```bash
+uv run python save_replay_frame.py --exp NNN --game GAME_ID --step N \
+    --action "ACTION_DESCRIPTION" --reasoning "YOUR_REASONING" \
+    --score SCORE --state STATE
+```
+
+Do this BEFORE taking each action (capture the frame you're looking at, then act).
+
+After the game ends, regenerate the dashboard:
+```bash
+uv run python generate_dashboard.py
+git add experiments/
+git commit -m "Exp NNN: GAME_ID — [result]"
+```
+
 ## Experiment Loop
 
 Repeat forever:
 
 ### 1. Read the Queue
+Re-read `experiments/idea_queue.md` and `experiments/play_strategy.md`.
 
-Re-read `experiments/idea_queue.md` from disk. Take the first idea not in the Completed section.
+### 2. Pick a Game
+Choose a game to play. **Rotate across all 25 games.** Don't fixate on one.
+- If an idea targets a specific game type, play that
+- Otherwise, pick one you haven't tried recently
+- Check the log to see which games you've attempted
 
-If the queue is empty, wait 60 seconds and check again.
+### 3. Play the Game
+Follow the strategy in `play_strategy.md`. Use the generic approach:
+1. **Observe** — look at the frame with vision
+2. **Hypothesize** — what type of game is this? What's the goal?
+3. **Test** — try one action, see what changes
+4. **Refine** — update your understanding
+5. **Solve** — execute efficiently once you understand
 
-### 2. Update the Play Strategy
+**Save replay frames as you play.**
 
-Modify `experiments/play_strategy.md` based on the idea. This is the strategy you'll follow when playing.
-
-### 3. Play the Games
-
-Play each game using the `arc` CLI. Follow the strategy in `play_strategy.md`.
-
-**For each game (vc33, ls20 — skip ft09, it's broken locally):**
-
-```bash
-arc start vc33-9851e02b --max-actions 40
-```
-
-Then play interactively:
-```bash
-arc state --image    # LOOK at the frame — use your vision
-# Think about what you see. What's the puzzle? What should you click/do?
-arc action click --x 32 --y 16    # Take an action
-arc state --image    # See what changed
-# Repeat...
-arc end              # When done, get the summary
-```
-
-**Key: use `arc state --image` to SEE the game.** You have vision. Use it to understand the puzzle before acting.
-
-**Be efficient.** Don't view the state after every single action if you already understand the mechanic. Don't click randomly. Think, then act.
-
-**Available actions:**
-- `arc action move_up` / `move_down` / `move_left` / `move_right` — movement (ls20)
-- `arc action perform` — perform action (ls20, ft09)
-- `arc action click --x X --y Y` — click at coordinates 0-127 (vc33, ft09)
-- `arc action undo` — undo last action
-
-### 4. Record Results
-
-After playing all games, note the scores from `arc end` output.
-
-### 5. Evaluate
-
-Compare scores to the best previous in `experiments/log.md`:
-- **Score improved**: ACCEPT the strategy change
-- **Score same or worse**: REJECT, revert `play_strategy.md`
-
-### 6. Commit or Revert
-
-**If ACCEPTED:**
-```bash
-git add experiments/play_strategy.md experiments/log.md experiments/idea_queue.md experiments/breakthroughs.md
-git commit -m "Exp NNN: [description] — improved (score=[X.XXXX])"
-```
-
-**If REJECTED:**
-```bash
-git checkout -- experiments/play_strategy.md
-git add experiments/log.md experiments/idea_queue.md
-git commit -m "Exp NNN: [description] — reverted ([reason])"
-```
-
-### 7. Log Results
-
+### 4. Log Results
 Append to `experiments/log.md`:
 ```
-| NNN | #N | [description] | [avg_score] | [total_actions] | [ls20_score] | [ft09_score] | [vc33_score] | [duration] | [status] | [notes] |
+| NNN | game_id | [description] | [score] | [actions] | [duration] | [status] | [notes] |
 ```
 
-### 8. Update Queue and Dashboard
+### 5. Update Strategy (if you learned something)
+If you discovered a useful general heuristic, update `play_strategy.md`.
+Only update with GENERAL insights that apply across games, not game-specific tricks.
 
-Move the idea to Completed in `experiments/idea_queue.md`. Then:
+### 6. Commit and Dashboard
 ```bash
 uv run python generate_dashboard.py
-git add experiments/dashboard.html experiments/dashboard_data.json
-git commit -m "Update dashboard after exp NNN"
+git add experiments/
+git commit -m "Exp NNN: GAME_ID — [result]"
 ```
 
-### 9. Repeat
+### 7. Repeat
+Pick another game. **NEVER STOP.**
 
-Go to step 1. **NEVER STOP.**
+## Scoring
 
-## What We Know
+```
+Score = max(0, 1 - (agent_actions / (3 * human_actions)))
+```
 
-- **vc33**: Click-only balance/sorting puzzle. Color 9 objects are interactive. Wrong clicks consume lives. Levels 1-2 solved with trial-and-lock. Level 3 (bar chart layout, 8 buttons) unsolved. **Best target for improving score.**
-- **ls20**: Navigation with hidden state and health drain. Enormous state space. No score yet.
-- **ft09**: Local version broken — skip.
-- **Current best score: 0.6667** (2 vc33 levels solved).
+- Fewer actions = better score
+- Human baseline actions vary per game level
+- Even scoring 1 point on 1 level is a breakthrough — log it!
 
-## Tips
+## When Stuck
 
-- **Look at the image first.** Don't just read text descriptions — use `arc state --image` and actually look at the game frame.
-- **Think before clicking.** With vc33, understand the puzzle mechanic before using your limited clicks/lives.
-- **Be methodical.** Click one thing, observe the effect, form a theory, test it.
-- **Action budget matters.** Score = 1 - (your_actions / (3 * human_actions)). The human baseline for vc33 level 1 is 6 actions. If you solve it in 6, that's a perfect score. If you take 18, score is 0.
+- **Try a completely different action type.** If clicking doesn't work, try movement. If movement doesn't work, try perform.
+- **Look at the frame again, carefully.** What are you missing?
+- **Don't repeat what failed.** If you tried it and it didn't work, try something else.
+- **Move on after 3 failed attempts.** Come back to this game later with fresh eyes.
+- **NEVER say a game is unsolvable.** It is solvable. You just haven't found the approach yet.

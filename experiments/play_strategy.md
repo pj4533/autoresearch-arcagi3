@@ -1,56 +1,56 @@
 # Play Strategy
 
-This file describes HOW the executor (Claude Code) should play each game.
-The researcher proposes changes to this strategy. The executor follows it.
+Generic approach for playing ANY ARC-AGI-3 game cold, with no prior knowledge.
 
-## General Approach
+## Core Philosophy
 
-1. Start the game with `arc start <game_id> --max-actions 40`
-2. View the initial frame with `arc state --image`
-3. Analyze what you see — look for patterns, objects, interactive elements
-4. Form a hypothesis about what the game wants
-5. Take an action to test your hypothesis
-6. View the result with `arc state --image`
-7. Update your understanding based on what changed
-8. Repeat until you solve the level or run out of actions
-9. End with `arc end`
+**Every game is solvable. Humans solve these. You can too.**
 
-**Be efficient.** The scoring formula rewards fewer actions. Don't click randomly — think first, then act deliberately.
+You approach each game knowing NOTHING about it. You figure out the rules through interaction. This is what makes you intelligent.
 
-## VC33 Strategy
+## Generic Approach (for any unknown game)
 
-VC33 is a click-only puzzle game. What we know:
-- Only ACTION6 (click) is available
-- Color 9 objects are interactive (produce 265 cell changes when clicked)
-- Wrong clicks consume lives → GAME_OVER
-- It's a balance/sorting puzzle — buttons adjust boundaries
-- Level 1: solved by trial-and-lock approach (baseline: 6 human actions)
-- Level 2: solved similarly (baseline: 13 human actions)
-- Level 3: vertical bar chart layout with 8 buttons, unsolved
+### 1. Observe
+- `arc state --image` — LOOK at the frame carefully
+- What do you see? Grid, objects, colors, patterns, dividers, borders?
+- Is there an obvious goal state or target?
+- What looks interactive vs structural?
 
-**Approach:**
-1. Look at the frame image carefully
-2. Identify the puzzle layout — what needs to change to match a goal?
-3. Look for buttons/interactive elements (small colored objects)
-4. Try clicking one button and observe the effect
-5. Based on the effect, form a theory about the mechanic
-6. Click strategically to solve the puzzle
+### 2. Discover Available Actions
+- Check what actions the game supports (movement? clicking? perform? undo?)
+- Try each available action once and observe what changes
+- Note: some games are click-only, some are movement-only, some are mixed
 
-## LS20 Strategy
+### 3. Hypothesize
+- Based on what you observed, what type of game is this?
+  - Puzzle (arrange/sort/match something)
+  - Navigation (move to a goal)
+  - Pattern completion (fill in missing parts)
+  - Transformation (change the grid to match a target)
+- What's the goal? What does "solving" look like?
 
-LS20 is a navigation game with latent/hidden state.
-- Actions: move_up, move_down, move_left, move_right, perform
-- Every move creates a new state (enormous state space)
-- Has health drain — agent dies if it takes too many actions
-- Baseline actions per level: 29, 41, 172, 49, 53, 62, 82
+### 4. Test
+- Take ONE deliberate action based on your hypothesis
+- Observe the result — did it confirm or contradict your theory?
+- If the score changed, GREAT — what did you just do? Do more of that.
+- If nothing useful happened, update your hypothesis
 
-**Approach:**
-1. Look at the frame image
-2. Identify any goal indicators, paths, or objectives
-3. Try to navigate purposefully, not randomly
-4. Use perform action when you think you've reached a goal
-5. Be conservative — health drain means wasted moves kill you
+### 5. Solve
+- Once you understand the mechanic, execute efficiently
+- Don't waste actions exploring when you already know what to do
+- Fewer actions = better score
 
-## FT09 Strategy
+### 6. When Stuck
+- Try something COMPLETELY different — don't repeat failed approaches
+- If clicking didn't work, try movement. If movement didn't work, try perform.
+- Look at the frame from a different angle — what are you missing?
+- After 3 failed attempts on a game, move on to a different game
 
-FT09 appears broken in the local game version (9ab2447a). No actions produce meaningful frame changes. **Skip this game for now** — focus on vc33 and ls20.
+## General Heuristics
+
+- Small colorful objects are often interactive (buttons, toggles)
+- Large uniform regions are often background/structural
+- Symmetry or patterns often indicate the goal state
+- If an action changes many cells, it's probably important
+- Score increases = you did something right. Do more of whatever that was.
+- GAME_OVER = you did something wrong. Avoid whatever caused that.

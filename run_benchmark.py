@@ -17,7 +17,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_GAMES = ["ls20-cb3b57cc", "ft09-9ab2447a", "vc33-9851e02b"]
+DEFAULT_GAMES = [
+    "ar25-e3c63847", "bp35-0a0ad940", "cd82-fb555c5d", "cn04-65d47d14",
+    "dc22-4c9bff3e", "ft09-0d8bbf25", "g50t-5849a774", "ka59-9f096b4a",
+    "lf52-271a04aa", "lp85-305b61c3", "ls20-9607627b", "m0r0-dadda488",
+    "r11l-aa269680", "re86-4e57566e", "s5i5-a48e4b1d", "sb26-7fbdac44",
+    "sc25-f9b21a2f", "sk48-41055498", "sp80-0ee2d095", "su15-4c352900",
+    "tn36-ab4f63cc", "tr87-cd924810", "tu93-2b534c15", "vc33-9851e02b",
+    "wa30-ee6fef47",
+]
 DEFAULT_CONFIG = "qwen3.5-35b-local"
 DEFAULT_MAX_ACTIONS = 40
 

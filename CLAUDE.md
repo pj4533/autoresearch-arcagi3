@@ -120,6 +120,17 @@ uv run python start_local_server.py
 
 The `.env` file has `ARC_URL_BASE=http://localhost:5000` which routes all game requests to localhost.
 
+### Replay System
+
+Games played by the executor are recorded for visual replay:
+```bash
+# Replay data saved during gameplay via:
+uv run python save_replay_frame.py --exp NNN --game GAME_ID --step N \
+    --action "ACTION" --reasoning "REASONING"
+
+# Replays viewable in dashboard under Replays tab
+```
+
 ### Overnight Run Pattern
 ```bash
 # Terminal 1: Local game server
@@ -128,13 +139,13 @@ uv run python start_local_server.py
 # Terminal 2: Dashboard server
 cd experiments && python3 -m http.server 8080 --bind 0.0.0.0
 
-# Terminal 3: Executor (Claude Code session)
+# Terminal 3: Executor (Claude Code session — plays games via arc CLI)
 claude
-# "Read program.md and begin the autoresearch loop."
+# /loop 10m Read program.md. Play games via arc CLI with vision. NEVER modify Python code.
 
-# Terminal 4: Researcher (Claude Code session)
+# Terminal 4: Researcher (Claude Code session — proposes generic strategies)
 claude
-# "Read research_program.md and begin the research loop."
+# /loop 10m Read research_program.md. Propose generic play strategies, NOT code changes.
 ```
 
 ### Coordination Files
@@ -178,10 +189,16 @@ arc end
 
 Session state persists in `.arc_session/session.json`. Only one session can be active at a time.
 
-### Game-Specific Notes
-- **ft09** — Pattern completion puzzle. Click blocks in the answer grid to toggle colors (9 to 8), then `perform` to submit. Multiple levels per game.
-- **ls20** — Navigation/exploration with latent state. Directional moves shift elements on the grid. Has hidden state mechanics.
-- **vc33** — Visual/logical reasoning.
+### Games
+
+25 games available locally (downloaded via `uv run python download_all_games.py`):
+```
+ar25  bp35  cd82  cn04  dc22  ft09  g50t  ka59  lf52  lp85
+ls20  m0r0  r11l  re86  s5i5  sb26  sc25  sk48  sp80  su15
+tn36  tr87  tu93  vc33  wa30
+```
+
+All games are solvable by humans. Each has multiple levels with varying difficulty.
 
 ## Architecture
 
