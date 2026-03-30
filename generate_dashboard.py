@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
-Generate a static HTML dashboard from experiments/log.md with replay support.
+Generate a static HTML dashboard from scorecard-based experiments.
+
+Reads:
+  - experiments/log.md          (per-scorecard summary table)
+  - experiments/scorecards/*.json (per-scorecard detail JSON)
+  - .arc_session/scorecard.json  (live scorecard in progress)
+  - experiments/replays/*.jsonl   (frame-by-frame replays)
 
 Usage:
     uv run python generate_dashboard.py
@@ -15,20 +21,26 @@ from pathlib import Path
 
 
 ALL_GAMES = [
-    "su15", "tu93", "sb26", "ka59", "cn04", "bp35", "ft09", "re86",
-    "s5i5", "tn36", "lp85", "ar25", "sp80", "m0r0", "tr87", "ls20",
-    "vc33", "dc22", "cd82", "sc25", "wa30", "r11l", "g50t", "sk48", "lf52",
+    "ar25", "bp35", "cd82", "cn04", "dc22",
+    "ft09", "g50t", "ka59", "lf52", "lp85",
+    "ls20", "m0r0", "r11l", "re86", "s5i5",
+    "sb26", "sc25", "sk48", "sp80", "su15",
+    "tn36", "tr87", "tu93", "vc33", "wa30",
 ]
 
 
 def parse_log(log_path: str) -> list[dict]:
-    """Parse experiments/log.md markdown table (new per-game format) into list of dicts."""
+    """Parse experiments/log.md scorecard table into list of dicts.
+
+    Expected format:
+    | Exp | Score | Games | Levels | Actions | Status | Strategy | Notes |
+    """
     path = Path(log_path)
     if not path.exists():
         return []
 
     text = path.read_text()
-    experiments = []
+    scorecards = []
 
     lines = text.strip().split("\n")
     in_table = False
@@ -39,7 +51,7 @@ def parse_log(log_path: str) -> list[dict]:
             continue
 
         # Detect header row
-        if "Exp" in line and "Game" in line and "Description" in line:
+        if "Exp" in line and "Score" in line and "Strategy" in line:
             in_table = True
             continue
         # Skip separator
@@ -55,21 +67,77 @@ def parse_log(log_path: str) -> list[dict]:
             continue
 
         try:
-            exp = {
+            # Parse "25/25" style games field
+            games_str = cells[2].strip()
+            games_completed = 0
+            games_total = 25
+            if "/" in games_str:
+                parts = games_str.split("/")
+                games_completed = int(parts[0])
+                games_total = int(parts[1])
+            elif games_str.isdigit():
+                games_completed = int(games_str)
+
+            # Parse levels field
+            levels_str = cells[3].strip()
+            levels_completed = 0
+            levels_total = 0
+            if "/" in levels_str:
+                parts = levels_str.split("/")
+                levels_completed = int(parts[0])
+                levels_total = int(parts[1])
+            elif levels_str.isdigit():
+                levels_completed = int(levels_str)
+
+            sc = {
                 "id": cells[0].strip(),
-                "game": cells[1].strip(),
-                "description": cells[2].strip(),
-                "score": float(cells[3]) if cells[3].strip() else 0.0,
+                "score": float(cells[1]) if cells[1].strip() else 0.0,
+                "games_completed": games_completed,
+                "games_total": games_total,
+                "levels_completed": levels_completed,
+                "levels_total": levels_total,
                 "actions": int(cells[4]) if cells[4].strip() else 0,
-                "duration": cells[5].strip(),
-                "status": cells[6].strip().lower(),
+                "status": cells[5].strip().lower(),
+                "strategy": cells[6].strip(),
                 "notes": cells[7].strip() if len(cells) > 7 else "",
             }
-            experiments.append(exp)
+            scorecards.append(sc)
         except (ValueError, IndexError):
             continue
 
-    return experiments
+    return scorecards
+
+
+def load_scorecard_details(scorecards_dir: str) -> dict:
+    """Load per-scorecard detail JSON files from experiments/scorecards/."""
+    path = Path(scorecards_dir)
+    if not path.exists():
+        return {}
+
+    details = {}
+    for json_file in sorted(path.glob("*.json")):
+        try:
+            with open(json_file) as f:
+                data = json.load(f)
+            exp_id = data.get("experiment_id", json_file.stem)
+            details[exp_id] = data
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    return details
+
+
+def load_live_scorecard(session_path: str) -> dict | None:
+    """Load live scorecard from .arc_session/scorecard.json if it exists."""
+    path = Path(session_path)
+    if not path.exists():
+        return None
+
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
 
 
 def scan_replays(replays_dir: str) -> list[dict]:
@@ -81,11 +149,13 @@ def scan_replays(replays_dir: str) -> list[dict]:
     replays = []
     for jsonl_file in sorted(path.glob("*.jsonl")):
         name = jsonl_file.stem
-        # Format: {exp_id}_{game_id}
+        # Format: {exp_id}_{game_id} or similar
         parts = name.rsplit("_", 1)
         if len(parts) != 2:
-            continue
-        exp_id, game_id = parts
+            exp_id = name
+            game_id = "unknown"
+        else:
+            exp_id, game_id = parts
 
         steps = []
         try:
@@ -113,48 +183,54 @@ def scan_replays(replays_dir: str) -> list[dict]:
     return replays
 
 
-def build_data(experiments: list[dict], replays: list[dict]) -> dict:
-    """Build dashboard data from parsed experiments and replays."""
-    completed = [e for e in experiments if e["status"] in ("baseline", "improved", "reverted")]
-    improved = [e for e in experiments if e["status"] == "improved"]
-    reverted = [e for e in experiments if e["status"] == "reverted"]
-    baselines = [e for e in experiments if e["status"] == "baseline"]
-
-    games_attempted = sorted(set(e["game"] for e in experiments))
-    games_scored = sorted(set(e["game"] for e in experiments if e["score"] > 0))
+def build_data(
+    scorecards: list[dict],
+    scorecard_details: dict,
+    live_scorecard: dict | None,
+    replays: list[dict],
+) -> dict:
+    """Build dashboard data from all sources."""
+    completed = [sc for sc in scorecards if sc["status"] == "complete"]
 
     best_score = 0.0
-    best_exp = "none"
-    for e in experiments:
-        if e["status"] in ("baseline", "improved") and e["score"] > best_score:
-            best_score = e["score"]
-            best_exp = e["id"]
+    best_sc = "none"
+    total_levels = 0
+    for sc in scorecards:
+        if sc["score"] > best_score:
+            best_score = sc["score"]
+            best_sc = sc["id"]
+        total_levels += sc["levels_completed"]
 
-    # Per-game best scores
-    game_bests = {}
-    for e in experiments:
-        game = e["game"]
-        if game not in game_bests or e["score"] > game_bests[game]["score"]:
-            game_bests[game] = {"score": e["score"], "exp_id": e["id"]}
+    # Per-game scores across all scorecards (from detail files)
+    per_game_matrix = {}  # {sc_id: {game: score}}
+    for sc_id, detail in scorecard_details.items():
+        per_game_matrix[sc_id] = {}
+        completed_games = detail.get("completed_games", {})
+        for game_key, game_data in completed_games.items():
+            # game_key may be like "ar25-e3c63847" or just "ar25"
+            game_short = game_key.split("-")[0] if "-" in game_key else game_key
+            score = game_data.get("score", 0)
+            per_game_matrix[sc_id][game_short] = {
+                "score": score,
+                "actions": game_data.get("actions", 0),
+                "levels_completed": game_data.get("levels_completed", 0),
+                "state": game_data.get("state", ""),
+            }
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "summary": {
-            "total": len(experiments),
-            "completed": len(completed),
-            "improved": len(improved),
-            "reverted": len(reverted),
-            "baselines": len(baselines),
-            "games_attempted": len(games_attempted),
-            "games_scored": len(games_scored),
-            "best_score": best_score,
-            "best_experiment": best_exp,
-        },
-        "experiments": experiments,
+        "scorecards": scorecards,
+        "scorecard_details": scorecard_details,
+        "per_game_matrix": per_game_matrix,
+        "live_scorecard": live_scorecard,
         "all_games": ALL_GAMES,
-        "games_attempted": games_attempted,
-        "games_scored": games_scored,
-        "game_bests": game_bests,
+        "summary": {
+            "total_scorecards": len(scorecards),
+            "completed_scorecards": len(completed),
+            "best_score": best_score,
+            "best_scorecard": best_sc,
+            "total_levels": total_levels,
+        },
         "replays": replays,
     }
 
@@ -178,13 +254,19 @@ def generate_html(data: dict) -> str:
         key = f"{r['exp_id']}_{r['game_id']}"
         replay_data[key] = r["steps"]
 
+    # Clean scorecard details for JSON embedding (remove huge server_scorecard if present)
+    clean_details = {}
+    for sc_id, detail in data["scorecard_details"].items():
+        clean = {k: v for k, v in detail.items() if k != "server_scorecard"}
+        clean_details[sc_id] = clean
+
     data_json = json.dumps({
         "summary": data["summary"],
-        "experiments": data["experiments"],
+        "scorecards": data["scorecards"],
+        "scorecard_details": clean_details,
+        "per_game_matrix": data["per_game_matrix"],
+        "live_scorecard": data["live_scorecard"],
         "all_games": data["all_games"],
-        "games_attempted": data["games_attempted"],
-        "games_scored": data["games_scored"],
-        "game_bests": data["game_bests"],
         "generated_at": data["generated_at"],
         "replay_list": replay_list,
     })
@@ -196,7 +278,7 @@ def generate_html(data: dict) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ARC-AGI-3 Autoresearch</title>
+<title>ARC-AGI-3 Scorecard Dashboard</title>
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -351,53 +433,84 @@ def generate_html(data: dict) -> str:
     margin-bottom: 12px;
   }}
 
-  .bottom-grid {{
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
+  /* Live scorecard banner */
+  .live-banner {{
+    background: var(--bg-card);
+    border: 1px solid var(--accent-amber);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
   }}
 
-  .activity-list {{
-    list-style: none;
-  }}
-
-  .activity-item {{
+  .live-banner-header {{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }}
+
+  .live-banner-title {{
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent-amber);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }}
+
+  .live-banner-stats {{
+    display: flex;
+    gap: 16px;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
   }}
 
-  .activity-item:last-child {{ border-bottom: none; }}
-
-  .badge {{
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+  .live-grid {{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
   }}
 
-  .badge-improved {{ background: rgba(34,197,94,0.15); color: var(--accent-green); }}
-  .badge-reverted {{ background: rgba(239,68,68,0.15); color: var(--accent-red); }}
-  .badge-baseline {{ background: rgba(59,130,246,0.15); color: var(--accent-blue); }}
-  .badge-neutral {{ background: rgba(100,116,139,0.15); color: var(--text-muted); }}
-
-  .game-badge {{
-    display: inline-block;
-    padding: 1px 6px;
-    border-radius: 3px;
+  .live-cell {{
+    aspect-ratio: 1;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
     font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
-    background: rgba(59,130,246,0.15);
-    color: var(--accent-blue);
-    margin-right: 4px;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
   }}
 
+  .live-cell.completed-scored {{
+    background: rgba(34, 197, 94, 0.25);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+  }}
+
+  .live-cell.completed-zero {{
+    background: rgba(100, 116, 139, 0.15);
+    border-color: var(--text-muted);
+    color: var(--text-muted);
+  }}
+
+  .live-cell.current {{
+    background: rgba(251, 191, 36, 0.2);
+    border-color: var(--accent-amber);
+    color: var(--accent-amber);
+    animation: pulse 2s infinite;
+  }}
+
+  .live-cell.pending {{
+    background: rgba(15, 23, 42, 0.5);
+    border-color: rgba(51, 65, 85, 0.5);
+    color: var(--text-muted);
+    opacity: 0.4;
+  }}
+
+  /* Game grid for progress tab */
   .game-grid {{
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -414,53 +527,32 @@ def generate_html(data: dict) -> str:
     font-size: 12px;
   }}
 
-  .game-cell.attempted {{ border-color: var(--accent-blue); }}
   .game-cell.scored {{ border-color: var(--accent-green); background: rgba(34,197,94,0.05); }}
+  .game-cell.attempted {{ border-color: var(--accent-blue); }}
   .game-cell .game-name {{ font-weight: 600; margin-bottom: 4px; }}
   .game-cell .game-score {{ color: var(--text-secondary); font-size: 11px; }}
+
+  /* Heatmap container */
+  .heatmap-container {{
+    overflow-x: auto;
+  }}
 
   /* Detail view */
   .detail-layout {{
     display: grid;
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: 320px 1fr;
     gap: 16px;
     height: calc(100vh - 180px);
   }}
 
-  .exp-list {{
+  .sc-list {{
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow-y: auto;
   }}
 
-  .exp-list-item {{
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    transition: background 0.1s;
-    font-size: 13px;
-  }}
-
-  .exp-list-item:hover {{ background: var(--bg-card-hover); }}
-  .exp-list-item.selected {{ background: var(--bg-card-hover); border-left: 3px solid var(--accent-blue); }}
-
-  .exp-list-item .exp-id {{
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600;
-    font-size: 12px;
-  }}
-
-  .exp-list-item .exp-desc {{
-    color: var(--text-secondary);
-    font-size: 12px;
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }}
-
-  .exp-list-header {{
+  .sc-list-header {{
     padding: 12px 14px;
     border-bottom: 1px solid var(--border);
     font-size: 12px;
@@ -471,6 +563,31 @@ def generate_html(data: dict) -> str:
     top: 0;
     background: var(--bg-card);
     z-index: 1;
+  }}
+
+  .sc-list-item {{
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+    font-size: 13px;
+  }}
+
+  .sc-list-item:hover {{ background: var(--bg-card-hover); }}
+  .sc-list-item.selected {{ background: var(--bg-card-hover); border-left: 3px solid var(--accent-blue); }}
+
+  .sc-list-item .sc-id {{
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 12px;
+  }}
+
+  .sc-list-item .sc-meta {{
+    color: var(--text-secondary);
+    font-size: 11px;
+    margin-top: 3px;
+    display: flex;
+    gap: 12px;
   }}
 
   .detail-panel {{
@@ -507,6 +624,79 @@ def generate_html(data: dict) -> str:
   .detail-row:last-child {{ border-bottom: none; }}
   .detail-label {{ color: var(--text-secondary); }}
   .detail-value {{ font-family: 'JetBrains Mono', monospace; font-weight: 500; }}
+
+  .detail-game-grid {{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }}
+
+  .detail-game-cell {{
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1px solid var(--border);
+  }}
+
+  .detail-game-cell .dg-name {{
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }}
+
+  .detail-game-cell .dg-score {{
+    font-size: 16px;
+    font-weight: 700;
+  }}
+
+  .detail-game-cell .dg-meta {{
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }}
+
+  .detail-game-table {{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }}
+
+  .detail-game-table th {{
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 11px;
+  }}
+
+  .detail-game-table td {{
+    padding: 7px 10px;
+    border-bottom: 1px solid rgba(51,65,85,0.3);
+    font-family: 'JetBrains Mono', monospace;
+  }}
+
+  .detail-game-table tr:hover {{
+    background: var(--bg-card-hover);
+  }}
+
+  .badge {{
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }}
+
+  .badge-complete {{ background: rgba(34,197,94,0.15); color: var(--accent-green); }}
+  .badge-running {{ background: rgba(251,191,36,0.15); color: var(--accent-amber); }}
+  .badge-failed {{ background: rgba(239,68,68,0.15); color: var(--accent-red); }}
+  .badge-pending {{ background: rgba(100,116,139,0.15); color: var(--text-muted); }}
 
   .view {{ display: none; }}
   .view.active {{ display: block; }}
@@ -753,16 +943,28 @@ def generate_html(data: dict) -> str:
     min-width: 60px;
     text-align: right;
   }}
+
+  .game-badge {{
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(59,130,246,0.15);
+    color: var(--accent-blue);
+    margin-right: 4px;
+  }}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>ARC-AGI-3 Autoresearch</h1>
+  <h1>ARC-AGI-3 Scorecard Dashboard</h1>
   <div class="header-right">
     <div class="tabs">
       <button class="tab active" onclick="switchView('progress')">Progress</button>
-      <button class="tab" onclick="switchView('details')">Details</button>
+      <button class="tab" onclick="switchView('scorecard-detail')">Scorecard Detail</button>
       <button class="tab" onclick="switchView('replays')">Replays</button>
     </div>
     <div class="timer"><span class="live-dot"></span><span id="countdown">30</span>s</div>
@@ -772,57 +974,48 @@ def generate_html(data: dict) -> str:
 <div class="content">
   <!-- Progress View -->
   <div id="progress-view" class="view active">
+    <div id="live-banner-container"></div>
+
     <div class="stats">
       <div class="stat-card">
-        <div class="stat-value" id="stat-total">0</div>
-        <div class="stat-label">Total Experiments</div>
+        <div class="stat-value blue" id="stat-scorecards">0</div>
+        <div class="stat-label">Scorecards Run</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value cyan" id="stat-games-attempted">0/25</div>
-        <div class="stat-label">Games Attempted</div>
+        <div class="stat-value amber" id="stat-best-score">0.00</div>
+        <div class="stat-label">Best Aggregate Score</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value green" id="stat-games-scored">0/25</div>
-        <div class="stat-label">Games Scored</div>
+        <div class="stat-value green" id="stat-total-levels">0</div>
+        <div class="stat-label">Total Levels Solved</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value amber" id="stat-best">0.000</div>
-        <div class="stat-label">Best Score</div>
+        <div class="stat-value cyan" id="stat-best-sc">---</div>
+        <div class="stat-label">Best Scorecard</div>
       </div>
     </div>
 
     <div class="chart-card">
-      <div class="chart-title">Score Timeline</div>
-      <div id="score-chart"></div>
+      <div class="chart-title">Score History</div>
+      <div id="score-history-chart"></div>
     </div>
 
     <div class="chart-card">
-      <div class="chart-title">Per-Game Score Summary</div>
-      <div class="game-grid" id="game-grid"></div>
-    </div>
-
-    <div class="bottom-grid">
-      <div class="chart-card">
-        <div class="chart-title">Recent Activity</div>
-        <ul class="activity-list" id="recent-list"></ul>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Score Distribution by Game</div>
-        <div id="game-scores-chart"></div>
-      </div>
+      <div class="chart-title">Per-Game Heatmap</div>
+      <div class="heatmap-container" id="heatmap-chart"></div>
     </div>
   </div>
 
-  <!-- Details View -->
-  <div id="details-view" class="view">
+  <!-- Scorecard Detail View -->
+  <div id="scorecard-detail-view" class="view">
     <div class="detail-layout">
-      <div class="exp-list" id="exp-list">
-        <div class="exp-list-header">Experiments</div>
+      <div class="sc-list" id="sc-list">
+        <div class="sc-list-header">Scorecards</div>
       </div>
-      <div class="detail-panel" id="detail-panel">
+      <div class="detail-panel" id="sc-detail-panel">
         <div class="empty-state">
-          <h2>Select an experiment</h2>
-          <p>Click an experiment on the left to view details</p>
+          <h2>Select a scorecard</h2>
+          <p>Click a scorecard on the left to view per-game details</p>
         </div>
       </div>
     </div>
@@ -849,274 +1042,400 @@ const DATA = {data_json};
 const REPLAY_DATA = {replay_json};
 
 let countdown = 30;
-let selectedExp = null;
+let selectedSC = null;
 let selectedReplay = null;
 let replayInterval = null;
 let currentStep = 0;
 
-// --- Color helpers ---
+const ALL_GAMES = DATA.all_games;
 
-const GAME_COLORS = {{}};
-const GAME_PALETTE = [
-  '#3b82f6', '#22c55e', '#ef4444', '#fbbf24', '#a78bfa',
-  '#22d3ee', '#f97316', '#ec4899', '#14b8a6', '#8b5cf6',
-  '#06b6d4', '#84cc16', '#f43f5e', '#eab308', '#6366f1',
-  '#10b981', '#e11d48', '#d97706', '#7c3aed', '#0891b2',
-  '#65a30d', '#be123c', '#c2410c', '#4f46e5', '#059669',
-];
-DATA.all_games.forEach((g, i) => {{
-  GAME_COLORS[g] = GAME_PALETTE[i % GAME_PALETTE.length];
-}});
-
-const STATUS_COLORS = {{
-  improved: '#22c55e',
-  reverted: '#ef4444',
-  baseline: '#3b82f6',
-  neutral: '#64748b',
-}};
-
-// --- Progress view ---
-
-function renderStats(d) {{
-  document.getElementById('stat-total').textContent = d.summary.total;
-  document.getElementById('stat-games-attempted').textContent = d.summary.games_attempted + '/25';
-  document.getElementById('stat-games-scored').textContent = d.summary.games_scored + '/25';
-  document.getElementById('stat-best').textContent = d.summary.best_score.toFixed(4);
+// Score color: 0 = dark gray, higher = brighter green
+function scoreColor(score) {{
+  if (score <= 0) return 'rgba(100, 116, 139, 0.2)';
+  // Scale from dim green to bright green
+  const intensity = Math.min(1, score / 20);  // 20+ is very bright
+  const r = Math.round(34 + (34 - 34) * intensity);
+  const g = Math.round(80 + (197 - 80) * intensity);
+  const b = Math.round(40 + (94 - 40) * intensity);
+  const a = 0.3 + 0.7 * intensity;
+  return `rgba(${{r}}, ${{g}}, ${{b}}, ${{a}})`;
 }}
 
-function renderScoreChart(d) {{
-  if (d.experiments.length === 0) {{
-    document.getElementById('score-chart').innerHTML = '<div class="empty-state"><p>No experiments yet</p></div>';
+function scoreBorderColor(score) {{
+  if (score <= 0) return 'var(--text-muted)';
+  const intensity = Math.min(1, score / 20);
+  return `rgba(34, 197, 94, ${{0.3 + 0.7 * intensity}})`;
+}}
+
+function statusBadgeClass(status) {{
+  if (status === 'complete') return 'badge-complete';
+  if (status === 'running') return 'badge-running';
+  if (status === 'failed') return 'badge-failed';
+  return 'badge-pending';
+}}
+
+// ==============================
+// Progress Tab
+// ==============================
+
+function renderLiveBanner() {{
+  const container = document.getElementById('live-banner-container');
+  const live = DATA.live_scorecard;
+
+  if (!live) {{
+    container.innerHTML = '';
     return;
   }}
 
-  // Group experiments by game for separate traces
-  const gameExps = {{}};
-  d.experiments.forEach((e, i) => {{
-    if (!gameExps[e.game]) gameExps[e.game] = [];
-    gameExps[e.game].push({{ ...e, index: i }});
+  // Determine completed/current/pending games
+  const completedGames = live.completed_games || {{}};
+  const currentGame = live.current_game || null;
+  const completedSet = new Set(Object.keys(completedGames).map(k => k.split('-')[0]));
+
+  let gamesCompleted = Object.keys(completedGames).length;
+  let gamesTotal = live.games_total || 25;
+  let runningScore = live.running_score || live.score || 0;
+
+  let gridHtml = '';
+  ALL_GAMES.forEach(game => {{
+    let cellClass = 'pending';
+    let cellText = game;
+
+    // Check if this game is in completed games (may have full key like "ar25-e3c63847")
+    let matchedKey = null;
+    for (const key of Object.keys(completedGames)) {{
+      if (key.startsWith(game)) {{
+        matchedKey = key;
+        break;
+      }}
+    }}
+
+    if (matchedKey) {{
+      const gd = completedGames[matchedKey];
+      const score = gd.score || 0;
+      const levels = gd.levels_completed || 0;
+      if (score > 0 || levels > 0) {{
+        cellClass = 'completed-scored';
+        cellText = game + '<br><span style="font-size:9px">' + score.toFixed(1) + '</span>';
+      }} else {{
+        cellClass = 'completed-zero';
+      }}
+    }} else if (currentGame && currentGame.startsWith(game)) {{
+      cellClass = 'current';
+    }}
+
+    gridHtml += `<div class="live-cell ${{cellClass}}">${{cellText}}</div>`;
   }});
 
-  const traces = [];
-  Object.keys(gameExps).forEach(game => {{
-    const exps = gameExps[game];
-    traces.push({{
-      x: exps.map(e => e.index),
-      y: exps.map(e => e.score),
-      mode: 'markers+lines',
-      type: 'scatter',
-      name: game,
-      line: {{ color: GAME_COLORS[game] || '#64748b', width: 1.5 }},
-      marker: {{
-        color: GAME_COLORS[game] || '#64748b',
-        size: 7,
-        line: {{ color: '#0f172a', width: 1 }},
-      }},
-      text: exps.map(e => `${{e.id}} (${{e.game}}): ${{e.description.substring(0, 60)}}`),
-      hovertemplate: '%{{text}}<br>Score: %{{y:.4f}}<extra></extra>',
-    }});
-  }});
-
-  Plotly.react('score-chart', traces, {{
-    template: 'plotly_dark',
-    paper_bgcolor: 'transparent',
-    plot_bgcolor: '#1e293b',
-    height: 350,
-    margin: {{ l: 50, r: 20, t: 10, b: 50 }},
-    xaxis: {{
-      title: {{ text: 'Experiment #', font: {{ size: 12, color: '#94a3b8' }} }},
-      gridcolor: '#334155',
-      tickfont: {{ family: 'JetBrains Mono', size: 10, color: '#94a3b8' }},
-    }},
-    yaxis: {{
-      title: {{ text: 'Score', font: {{ size: 12, color: '#94a3b8' }} }},
-      gridcolor: '#334155',
-      tickfont: {{ family: 'JetBrains Mono', size: 10, color: '#94a3b8' }},
-      range: [0, Math.max(0.1, Math.max(...d.experiments.map(e => e.score)) * 1.2 || 0.1)],
-    }},
-    legend: {{
-      x: 1, y: 1, xanchor: 'right',
-      bgcolor: 'rgba(30,41,59,0.9)',
-      font: {{ size: 10, color: '#94a3b8', family: 'JetBrains Mono' }},
-    }},
-    showlegend: true,
-  }}, {{ responsive: true, displayModeBar: false }});
+  container.innerHTML = `
+    <div class="live-banner">
+      <div class="live-banner-header">
+        <div class="live-banner-title">
+          <span class="live-dot"></span> Live Scorecard In Progress
+        </div>
+        <div class="live-banner-stats">
+          <span style="color:var(--accent-amber)">Score: ${{typeof runningScore === 'number' ? runningScore.toFixed(2) : runningScore}}</span>
+          <span style="color:var(--text-secondary)">Games: ${{gamesCompleted}} / ${{gamesTotal}}</span>
+        </div>
+      </div>
+      <div class="live-grid">${{gridHtml}}</div>
+    </div>
+  `;
 }}
 
-function renderGameGrid(d) {{
-  const grid = document.getElementById('game-grid');
-  grid.innerHTML = '';
-
-  d.all_games.forEach(game => {{
-    const cell = document.createElement('div');
-    const attempted = d.games_attempted.includes(game);
-    const scored = d.games_scored.includes(game);
-    const best = d.game_bests[game];
-
-    cell.className = 'game-cell' + (scored ? ' scored' : (attempted ? ' attempted' : ''));
-    cell.innerHTML = `
-      <div class="game-name" style="color:${{GAME_COLORS[game] || '#94a3b8'}}">${{game}}</div>
-      <div class="game-score">${{best ? best.score.toFixed(4) : (attempted ? '0.0000' : '---')}}</div>
-    `;
-    grid.appendChild(cell);
-  }});
+function renderStats() {{
+  const s = DATA.summary;
+  document.getElementById('stat-scorecards').textContent = s.total_scorecards;
+  document.getElementById('stat-best-score').textContent = s.best_score.toFixed(2);
+  document.getElementById('stat-total-levels').textContent = s.total_levels;
+  document.getElementById('stat-best-sc').textContent = s.best_scorecard;
 }}
 
-function renderRecentList(d) {{
-  const recent = d.experiments.slice(-10).reverse();
-  const list = document.getElementById('recent-list');
-  list.innerHTML = '';
-
-  if (recent.length === 0) {{
-    list.innerHTML = '<li class="activity-item" style="color:var(--text-muted)">No experiments yet</li>';
+function renderScoreHistory() {{
+  const scs = DATA.scorecards;
+  if (scs.length === 0) {{
+    document.getElementById('score-history-chart').innerHTML = '<div class="empty-state"><p>No scorecards yet</p></div>';
     return;
   }}
-
-  recent.forEach(e => {{
-    const badgeClass = 'badge-' + e.status;
-    const li = document.createElement('li');
-    li.className = 'activity-item';
-    li.innerHTML = `
-      <span>
-        <span style="font-family:JetBrains Mono;font-weight:600;font-size:12px">${{e.id}}</span>
-        <span class="game-badge">${{e.game}}</span>
-        ${{e.description.substring(0, 35)}}
-      </span>
-      <span>
-        <span class="badge ${{badgeClass}}">${{e.status}}</span>
-        <span style="font-family:JetBrains Mono;color:var(--text-muted);font-size:12px">${{e.score.toFixed(4)}}</span>
-      </span>
-    `;
-    list.appendChild(li);
-  }});
-}}
-
-function renderGameScoresChart(d) {{
-  if (d.experiments.length === 0) return;
-
-  // Best score per game
-  const games = Object.keys(d.game_bests).sort();
-  if (games.length === 0) return;
 
   const trace = {{
-    x: games,
-    y: games.map(g => d.game_bests[g].score),
-    type: 'bar',
-    marker: {{ color: games.map(g => GAME_COLORS[g] || '#64748b') }},
-    text: games.map(g => d.game_bests[g].exp_id),
-    hovertemplate: '%{{x}}<br>Best: %{{y:.4f}}<br>Exp: %{{text}}<extra></extra>',
+    x: scs.map(sc => sc.id),
+    y: scs.map(sc => sc.score),
+    mode: 'markers+lines',
+    type: 'scatter',
+    line: {{ color: '#3b82f6', width: 2 }},
+    marker: {{
+      color: scs.map(sc => sc.score > 0 ? '#22c55e' : '#64748b'),
+      size: 10,
+      line: {{ color: '#0f172a', width: 1.5 }},
+    }},
+    text: scs.map(sc => `${{sc.id}}<br>Score: ${{sc.score.toFixed(2)}}<br>Levels: ${{sc.levels_completed}}<br>Strategy: ${{sc.strategy}}`),
+    hovertemplate: '%{{text}}<extra></extra>',
   }};
 
-  Plotly.react('game-scores-chart', [trace], {{
+  Plotly.react('score-history-chart', [trace], {{
     template: 'plotly_dark',
     paper_bgcolor: 'transparent',
     plot_bgcolor: '#1e293b',
-    height: 220,
-    margin: {{ l: 40, r: 10, t: 0, b: 50 }},
+    height: 300,
+    margin: {{ l: 50, r: 20, t: 10, b: 60 }},
     xaxis: {{
-      tickfont: {{ family: 'JetBrains Mono', size: 10, color: '#94a3b8' }},
-      tickangle: -45,
-      gridcolor: 'transparent',
-    }},
-    yaxis: {{
-      title: {{ text: 'Best Score', font: {{ size: 11, color: '#94a3b8' }} }},
+      title: {{ text: 'Scorecard', font: {{ size: 12, color: '#94a3b8' }} }},
       gridcolor: '#334155',
       tickfont: {{ family: 'JetBrains Mono', size: 10, color: '#94a3b8' }},
+      tickangle: -45,
+    }},
+    yaxis: {{
+      title: {{ text: 'Aggregate Score', font: {{ size: 12, color: '#94a3b8' }} }},
+      gridcolor: '#334155',
+      tickfont: {{ family: 'JetBrains Mono', size: 10, color: '#94a3b8' }},
+      rangemode: 'tozero',
     }},
     showlegend: false,
   }}, {{ responsive: true, displayModeBar: false }});
 }}
 
-// --- Details view ---
+function renderHeatmap() {{
+  const matrix = DATA.per_game_matrix;
+  const scIds = Object.keys(matrix);
 
-function renderExpList(d) {{
-  const list = document.getElementById('exp-list');
-  list.innerHTML = '<div class="exp-list-header">Experiments (' + d.experiments.length + ')</div>';
+  if (scIds.length === 0) {{
+    document.getElementById('heatmap-chart').innerHTML = '<div class="empty-state"><p>No per-game data available yet</p></div>';
+    return;
+  }}
 
-  const reversed = [...d.experiments].reverse();
-  reversed.forEach(e => {{
+  // Sort scorecard IDs to match log order
+  const orderedIds = DATA.scorecards.map(sc => sc.id).filter(id => matrix[id]);
+
+  // Build z-matrix: rows = scorecards, cols = games (alphabetical = ALL_GAMES)
+  const z = [];
+  const textMatrix = [];
+  orderedIds.forEach(scId => {{
+    const row = [];
+    const textRow = [];
+    ALL_GAMES.forEach(game => {{
+      const gd = matrix[scId] && matrix[scId][game];
+      const score = gd ? gd.score : 0;
+      row.push(score);
+      if (gd) {{
+        textRow.push(`${{scId}} / ${{game}}<br>Score: ${{score.toFixed(2)}}<br>Levels: ${{gd.levels_completed}}<br>Actions: ${{gd.actions}}`);
+      }} else {{
+        textRow.push(`${{scId}} / ${{game}}<br>No data`);
+      }}
+    }});
+    z.push(row);
+    textMatrix.push(textRow);
+  }});
+
+  const trace = {{
+    z: z,
+    x: ALL_GAMES,
+    y: orderedIds,
+    type: 'heatmap',
+    colorscale: [
+      [0, '#1e293b'],
+      [0.01, '#1a3a2a'],
+      [0.25, '#166534'],
+      [0.5, '#16a34a'],
+      [0.75, '#22c55e'],
+      [1, '#4ade80'],
+    ],
+    text: textMatrix,
+    hovertemplate: '%{{text}}<extra></extra>',
+    showscale: true,
+    colorbar: {{
+      title: {{ text: 'Score', font: {{ color: '#94a3b8', size: 11 }} }},
+      tickfont: {{ color: '#94a3b8', size: 10, family: 'JetBrains Mono' }},
+      bgcolor: 'transparent',
+      borderwidth: 0,
+    }},
+  }};
+
+  const height = Math.max(250, orderedIds.length * 30 + 80);
+
+  Plotly.react('heatmap-chart', [trace], {{
+    template: 'plotly_dark',
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: '#1e293b',
+    height: height,
+    margin: {{ l: 70, r: 80, t: 10, b: 60 }},
+    xaxis: {{
+      tickfont: {{ family: 'JetBrains Mono', size: 10, color: '#94a3b8' }},
+      tickangle: -45,
+      side: 'bottom',
+    }},
+    yaxis: {{
+      tickfont: {{ family: 'JetBrains Mono', size: 10, color: '#94a3b8' }},
+      autorange: 'reversed',
+    }},
+  }}, {{ responsive: true, displayModeBar: false }});
+}}
+
+// ==============================
+// Scorecard Detail Tab
+// ==============================
+
+function renderSCList() {{
+  const list = document.getElementById('sc-list');
+  list.innerHTML = '<div class="sc-list-header">Scorecards (' + DATA.scorecards.length + ')</div>';
+
+  if (DATA.scorecards.length === 0) {{
     const div = document.createElement('div');
-    div.className = 'exp-list-item' + (selectedExp === (e.id + '_' + e.game) ? ' selected' : '');
-    const badgeClass = 'badge-' + e.status;
+    div.style.cssText = 'padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px';
+    div.textContent = 'No scorecards recorded yet';
+    list.appendChild(div);
+    return;
+  }}
+
+  // Show newest first
+  const reversed = [...DATA.scorecards].reverse();
+  reversed.forEach(sc => {{
+    const div = document.createElement('div');
+    div.className = 'sc-list-item' + (selectedSC === sc.id ? ' selected' : '');
+    const badgeClass = statusBadgeClass(sc.status);
     div.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span><span class="exp-id">${{e.id}}</span> <span class="game-badge">${{e.game}}</span></span>
-        <span class="badge ${{badgeClass}}">${{e.status}}</span>
+        <span class="sc-id">${{sc.id}}</span>
+        <span>
+          <span class="badge ${{badgeClass}}">${{sc.status}}</span>
+          <span style="font-family:JetBrains Mono;color:var(--accent-amber);font-size:12px;margin-left:6px">${{sc.score.toFixed(2)}}</span>
+        </span>
       </div>
-      <div class="exp-desc">${{e.description}}</div>
+      <div class="sc-meta">
+        <span>Games: ${{sc.games_completed}}/${{sc.games_total}}</span>
+        <span>Levels: ${{sc.levels_completed}}</span>
+        <span>Actions: ${{sc.actions}}</span>
+      </div>
     `;
-    div.onclick = () => selectExperiment(e.id, e.game, d);
+    div.onclick = () => selectScorecard(sc.id);
     list.appendChild(div);
   }});
 }}
 
-function selectExperiment(expId, game, d) {{
-  selectedExp = expId + '_' + game;
-  const e = d.experiments.find(x => x.id === expId && x.game === game);
-  if (!e) return;
+function selectScorecard(scId) {{
+  selectedSC = scId;
+  renderSCList();
 
-  renderExpList(d);
+  const sc = DATA.scorecards.find(s => s.id === scId);
+  if (!sc) return;
 
-  const panel = document.getElementById('detail-panel');
+  const panel = document.getElementById('sc-detail-panel');
+  const detail = DATA.scorecard_details[scId];
+  const gameMatrix = DATA.per_game_matrix[scId] || {{}};
 
-  // Find all experiments for this game
-  const gameExps = d.experiments.filter(x => x.game === game);
+  // Build 5x5 game grid with color-coded scores
+  let gridHtml = '';
+  ALL_GAMES.forEach(game => {{
+    const gd = gameMatrix[game];
+    const score = gd ? gd.score : null;
+    const levels = gd ? gd.levels_completed : 0;
+    const actions = gd ? gd.actions : 0;
+
+    let bgColor, borderColor, textColor;
+    if (score === null) {{
+      bgColor = 'var(--bg-deep)';
+      borderColor = 'rgba(51,65,85,0.5)';
+      textColor = 'var(--text-muted)';
+    }} else if (score > 0) {{
+      bgColor = scoreColor(score);
+      borderColor = scoreBorderColor(score);
+      textColor = 'var(--accent-green)';
+    }} else {{
+      bgColor = 'rgba(100,116,139,0.1)';
+      borderColor = 'var(--text-muted)';
+      textColor = 'var(--text-muted)';
+    }}
+
+    gridHtml += `
+      <div class="detail-game-cell" style="background:${{bgColor}};border-color:${{borderColor}}">
+        <div class="dg-name" style="color:${{textColor}}">${{game}}</div>
+        <div class="dg-score" style="color:${{textColor}}">${{score !== null ? score.toFixed(1) : '---'}}</div>
+        <div class="dg-meta">${{score !== null ? `L:${{levels}} A:${{actions}}` : ''}}</div>
+      </div>
+    `;
+  }});
+
+  // Build per-game table rows
+  let tableHtml = '';
+  const sortedGames = [...ALL_GAMES].filter(g => gameMatrix[g]);
+  // Sort by score descending
+  sortedGames.sort((a, b) => (gameMatrix[b]?.score || 0) - (gameMatrix[a]?.score || 0));
+
+  sortedGames.forEach(game => {{
+    const gd = gameMatrix[game];
+    const scoreVal = gd.score || 0;
+    const scoreStyle = scoreVal > 0 ? 'color:var(--accent-green)' : 'color:var(--text-muted)';
+
+    // Check for matching replay
+    let replayLink = '';
+    const matchingReplay = DATA.replay_list.find(r => r.exp_id === scId && r.game_id === game);
+    if (matchingReplay) {{
+      replayLink = `<span style="color:var(--accent-violet);cursor:pointer;font-size:10px" onclick="event.stopPropagation();switchView('replays');setTimeout(()=>openReplayByKey('${{scId}}_${{game}}'),100)">replay</span>`;
+    }}
+
+    tableHtml += `
+      <tr>
+        <td style="font-weight:600">${{game}}</td>
+        <td style="${{scoreStyle}}">${{scoreVal.toFixed(2)}}</td>
+        <td>${{gd.levels_completed || 0}}</td>
+        <td>${{gd.actions || 0}}</td>
+        <td style="color:var(--text-muted)">${{gd.state || ''}}</td>
+        <td>${{replayLink}}</td>
+      </tr>
+    `;
+  }});
+
+  // Games with no data
+  const unplayed = ALL_GAMES.filter(g => !gameMatrix[g]);
+  unplayed.forEach(game => {{
+    tableHtml += `
+      <tr style="opacity:0.4">
+        <td>${{game}}</td>
+        <td>---</td>
+        <td>---</td>
+        <td>---</td>
+        <td></td>
+        <td></td>
+      </tr>
+    `;
+  }});
 
   panel.innerHTML = `
     <div class="detail-section">
-      <h3>${{e.id}} <span class="game-badge" style="font-size:12px;margin-left:4px">${{e.game}}</span> <span class="badge badge-${{e.status}}" style="margin-left:8px">${{e.status}}</span></h3>
-      <div class="detail-row"><span class="detail-label">Description</span></div>
-      <div style="font-size:13px;color:var(--text-secondary);padding:4px 0 12px">${{e.description}}</div>
-      <div class="detail-row"><span class="detail-label">Score</span><span class="detail-value">${{e.score.toFixed(4)}}</span></div>
-      <div class="detail-row"><span class="detail-label">Actions</span><span class="detail-value">${{e.actions}}</span></div>
-      <div class="detail-row"><span class="detail-label">Duration</span><span class="detail-value">${{e.duration}}</span></div>
-      ${{e.notes ? `<div class="detail-row"><span class="detail-label">Notes</span><span style="font-size:12px;color:var(--text-secondary);max-width:60%;text-align:right">${{e.notes}}</span></div>` : ''}}
+      <h3>${{sc.id}} <span class="badge ${{statusBadgeClass(sc.status)}}" style="margin-left:8px">${{sc.status}}</span></h3>
+      <div class="detail-row"><span class="detail-label">Aggregate Score</span><span class="detail-value" style="color:var(--accent-amber)">${{sc.score.toFixed(2)}}</span></div>
+      <div class="detail-row"><span class="detail-label">Games</span><span class="detail-value">${{sc.games_completed}} / ${{sc.games_total}}</span></div>
+      <div class="detail-row"><span class="detail-label">Levels Completed</span><span class="detail-value">${{sc.levels_completed}}${{sc.levels_total ? ' / ' + sc.levels_total : ''}}</span></div>
+      <div class="detail-row"><span class="detail-label">Total Actions</span><span class="detail-value">${{sc.actions}}</span></div>
+      <div class="detail-row"><span class="detail-label">Strategy</span><span class="detail-value" style="font-size:12px;max-width:60%;text-align:right">${{sc.strategy}}</span></div>
+      ${{sc.notes ? `<div class="detail-row"><span class="detail-label">Notes</span><span style="font-size:12px;color:var(--text-secondary);max-width:60%;text-align:right">${{sc.notes}}</span></div>` : ''}}
     </div>
     <div class="detail-section">
-      <h3>All Experiments for ${{game}} (${{gameExps.length}})</h3>
-      <div id="game-detail-chart"></div>
+      <h3>Game Grid</h3>
+      <div class="detail-game-grid">${{gridHtml}}</div>
+    </div>
+    <div class="detail-section">
+      <h3>Per-Game Results (${{sortedGames.length}} games)</h3>
+      <table class="detail-game-table">
+        <thead>
+          <tr>
+            <th>Game</th>
+            <th>Score</th>
+            <th>Levels</th>
+            <th>Actions</th>
+            <th>State</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${{tableHtml}}</tbody>
+      </table>
     </div>
   `;
-
-  // Chart showing all experiments for this game
-  if (gameExps.length > 0) {{
-    const trace = {{
-      x: gameExps.map((x, i) => i),
-      y: gameExps.map(x => x.score),
-      mode: 'markers+lines',
-      type: 'scatter',
-      line: {{ color: GAME_COLORS[game] || '#64748b', width: 2 }},
-      marker: {{
-        color: gameExps.map(x => (x.id === expId) ? '#fbbf24' : (STATUS_COLORS[x.status] || '#64748b')),
-        size: gameExps.map(x => (x.id === expId) ? 14 : 8),
-        line: {{ color: '#0f172a', width: 1.5 }},
-      }},
-      text: gameExps.map(x => `${{x.id}}: ${{x.description.substring(0, 50)}}`),
-      hovertemplate: '%{{text}}<br>Score: %{{y:.4f}}<extra></extra>',
-    }};
-
-    Plotly.newPlot('game-detail-chart', [trace], {{
-      template: 'plotly_dark',
-      paper_bgcolor: 'transparent',
-      plot_bgcolor: '#1e293b',
-      height: 250,
-      margin: {{ l: 50, r: 20, t: 10, b: 40 }},
-      xaxis: {{
-        title: {{ text: 'Experiment #', font: {{ size: 11, color: '#94a3b8' }} }},
-        gridcolor: '#334155',
-        tickfont: {{ family: 'JetBrains Mono', size: 10, color: '#94a3b8' }},
-      }},
-      yaxis: {{
-        title: {{ text: 'Score', font: {{ size: 11, color: '#94a3b8' }} }},
-        gridcolor: '#334155',
-        tickfont: {{ family: 'JetBrains Mono', size: 10, color: '#94a3b8' }},
-      }},
-      showlegend: false,
-    }}, {{ responsive: true, displayModeBar: false }});
-  }}
 }}
 
-// --- Replays view ---
+// ==============================
+// Replays Tab
+// ==============================
 
 function renderReplayList() {{
   const list = document.getElementById('replay-list');
@@ -1134,6 +1453,7 @@ function renderReplayList() {{
     const key = r.exp_id + '_' + r.game_id;
     const div = document.createElement('div');
     div.className = 'replay-list-item' + (selectedReplay === key ? ' selected' : '');
+    div.setAttribute('data-key', key);
     div.innerHTML = `
       <div class="replay-title">${{r.exp_id}} <span class="game-badge">${{r.game_id}}</span></div>
       <div class="replay-meta">
@@ -1146,10 +1466,13 @@ function renderReplayList() {{
   }});
 }}
 
-function openReplay(key, replayInfo) {{
-  // Stop any existing playback
-  stopPlayback();
+function openReplayByKey(key) {{
+  const r = DATA.replay_list.find(x => x.exp_id + '_' + x.game_id === key);
+  if (r) openReplay(key, r);
+}}
 
+function openReplay(key, replayInfo) {{
+  stopPlayback();
   selectedReplay = key;
   currentStep = 0;
   renderReplayList();
@@ -1201,7 +1524,6 @@ function renderReplayStep(steps, index) {{
   const step = steps[index];
   currentStep = index;
 
-  // Update frame image
   const img = document.getElementById('replay-img');
   if (step.frame_path) {{
     img.src = 'replays/' + step.frame_path;
@@ -1210,39 +1532,31 @@ function renderReplayStep(steps, index) {{
     img.style.display = 'none';
   }}
 
-  // Update step counter
   const counter = document.getElementById('replay-step-counter');
   if (counter) counter.textContent = `Step ${{index + 1}} / ${{steps.length}}`;
 
-  // Update score
   const scoreEl = document.getElementById('replay-score-display');
   if (scoreEl) {{
     const scoreVal = typeof step.score === 'number' ? step.score.toFixed(4) : (step.score || '---');
     scoreEl.textContent = `Score: ${{scoreVal}}`;
   }}
 
-  // Update action
   const actionEl = document.getElementById('replay-action-display');
   if (actionEl) {{
-    let actionText = step.action || '---';
-    actionEl.textContent = actionText;
+    actionEl.textContent = step.action || '---';
   }}
 
-  // Update reasoning
   const reasonEl = document.getElementById('replay-reasoning-display');
   if (reasonEl) {{
     reasonEl.textContent = step.reasoning || '(no reasoning recorded)';
   }}
 
-  // Update slider
   const slider = document.getElementById('replay-slider');
   if (slider) slider.value = index;
 
-  // Update step label
   const label = document.getElementById('replay-step-label');
   if (label) label.textContent = `${{index + 1}} / ${{steps.length}}`;
 
-  // Update button states
   const prevBtn = document.getElementById('btn-prev');
   const nextBtn = document.getElementById('btn-next');
   if (prevBtn) prevBtn.disabled = (index === 0);
@@ -1303,7 +1617,9 @@ function stopPlayback() {{
   }}
 }}
 
-// --- View switching ---
+// ==============================
+// View Switching
+// ==============================
 
 function switchView(view) {{
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1311,19 +1627,21 @@ function switchView(view) {{
   document.getElementById(view + '-view').classList.add('active');
   document.querySelector(`[onclick="switchView('${{view}}')"]`).classList.add('active');
 
-  if (view === 'details') {{
-    renderExpList(DATA);
+  if (view === 'scorecard-detail') {{
+    renderSCList();
   }} else if (view === 'replays') {{
     renderReplayList();
   }}
 }}
 
-// --- Countdown timer (only auto-refresh on Progress tab) ---
+// ==============================
+// Countdown Timer (auto-refresh Progress tab only)
+// ==============================
+
 setInterval(() => {{
   countdown--;
   if (countdown <= 0) {{
     countdown = 30;
-    // Only reload if on the Progress tab — don't interrupt Details or Replays
     const activeView = document.querySelector('.view.active');
     if (activeView && activeView.id === 'progress-view') {{
       location.reload();
@@ -1332,12 +1650,14 @@ setInterval(() => {{
   document.getElementById('countdown').textContent = countdown;
 }}, 1000);
 
-// --- Initial render ---
-renderStats(DATA);
-renderScoreChart(DATA);
-renderGameGrid(DATA);
-renderRecentList(DATA);
-renderGameScoresChart(DATA);
+// ==============================
+// Initial Render
+// ==============================
+
+renderLiveBanner();
+renderStats();
+renderScoreHistory();
+renderHeatmap();
 </script>
 </body>
 </html>"""
@@ -1346,16 +1666,21 @@ renderGameScoresChart(DATA);
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate ARC-AGI-3 autoresearch dashboard")
+    parser = argparse.ArgumentParser(description="Generate ARC-AGI-3 scorecard dashboard")
     parser.add_argument("--log", default="experiments/log.md", help="Path to log.md")
+    parser.add_argument("--scorecards", default="experiments/scorecards", help="Path to scorecards directory")
+    parser.add_argument("--live", default=".arc_session/scorecard.json", help="Path to live scorecard")
     parser.add_argument("--replays", default="experiments/replays", help="Path to replays directory")
     parser.add_argument("--output", default="experiments/dashboard.html", help="Output HTML path")
     parser.add_argument("--data-output", default="experiments/dashboard_data.json", help="Output JSON path")
     args = parser.parse_args()
 
-    experiments = parse_log(args.log)
+    scorecards = parse_log(args.log)
+    scorecard_details = load_scorecard_details(args.scorecards)
+    live_scorecard = load_live_scorecard(args.live)
     replays = scan_replays(args.replays)
-    data = build_data(experiments, replays)
+
+    data = build_data(scorecards, scorecard_details, live_scorecard, replays)
 
     # Write JSON data
     Path(args.data_output).parent.mkdir(parents=True, exist_ok=True)
@@ -1363,7 +1688,7 @@ def main():
         json.dump({
             "generated_at": data["generated_at"],
             "summary": data["summary"],
-            "experiments": data["experiments"],
+            "scorecards": data["scorecards"],
             "replay_count": len(replays),
         }, f, indent=2)
 
@@ -1375,7 +1700,9 @@ def main():
 
     print(f"Dashboard generated: {args.output}")
     print(f"Data written: {args.data_output}")
-    print(f"Experiments: {len(experiments)}")
+    print(f"Scorecards: {len(scorecards)}")
+    print(f"Scorecard details: {len(scorecard_details)}")
+    print(f"Live scorecard: {'yes' if live_scorecard else 'no'}")
     print(f"Replays: {len(replays)}")
 
 
