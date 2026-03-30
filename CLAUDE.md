@@ -315,10 +315,12 @@ The autoresearch system can modify agents across 7 categories: prompt engineerin
 ## Scoring
 
 ARC-AGI-3 scores on action efficiency vs human baseline:
-- Score = max(0, 1 - (agent_actions / (3 * human_actions)))
-- Fewer actions = better score
-- Every RESET counts as an action
-- Games: 1000+ levels across 150+ environments
+- Per-level: min(100, (baseline_actions / your_actions)² × 100). Quadratic penalty.
+- Per-game: Weighted average of level scores (weight = level number; later levels count more)
+- Overall: Simple average across all games played in the scorecard
+- Match human baseline = 100%. Use 2x actions = 25%. Use 3x = 11%.
+- Every RESET after the first counts as an action
+- 25 public games, 181 total levels. Competition includes additional private games.
 
 ## Key Insights from Preview Competition
 

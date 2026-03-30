@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 SESSION_DIR = ".arc_session"
 SESSION_FILE = os.path.join(SESSION_DIR, "session.json")
+SCORECARD_FILE = os.path.join(SESSION_DIR, "scorecard.json")
 
 
 @dataclass
@@ -73,5 +74,80 @@ class Session:
         """Remove session file."""
         if os.path.exists(SESSION_FILE):
             os.remove(SESSION_FILE)
-        if os.path.exists(SESSION_DIR) and not os.listdir(SESSION_DIR):
+        # Don't remove SESSION_DIR if scorecard.json still exists
+        remaining = [f for f in os.listdir(SESSION_DIR) if f != "frame.png"] if os.path.exists(SESSION_DIR) else []
+        if os.path.exists(SESSION_DIR) and not remaining:
             os.rmdir(SESSION_DIR)
+
+
+@dataclass
+class ScorecardSession:
+    """Multi-game scorecard state that persists across individual game sessions."""
+    card_id: str
+    backend: str
+    game_list: List[str]
+    current_game_index: int = 0
+    completed_games: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    status: str = "open"  # "open", "closed"
+    max_actions_per_game: int = 40
+    experiment_id: str = ""
+
+    @property
+    def current_game(self) -> Optional[str]:
+        if self.current_game_index < len(self.game_list):
+            return self.game_list[self.current_game_index]
+        return None
+
+    @property
+    def games_completed(self) -> int:
+        return len(self.completed_games)
+
+    @property
+    def games_total(self) -> int:
+        return len(self.game_list)
+
+    @property
+    def is_complete(self) -> bool:
+        return self.games_completed >= self.games_total
+
+    @property
+    def running_score(self) -> float:
+        if not self.completed_games:
+            return 0.0
+        scores = [g.get("score", 0) for g in self.completed_games.values()]
+        return sum(scores) / len(scores)
+
+    def record_game(self, game_id: str, score: float, actions: int,
+                    levels_completed: int, state: str):
+        self.completed_games[game_id] = {
+            "score": score,
+            "actions": actions,
+            "levels_completed": levels_completed,
+            "state": state,
+        }
+
+    def advance(self):
+        self.current_game_index += 1
+
+    def save(self):
+        os.makedirs(SESSION_DIR, exist_ok=True)
+        data = asdict(self)
+        with open(SCORECARD_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+
+    @classmethod
+    def load(cls) -> "ScorecardSession":
+        if not os.path.exists(SCORECARD_FILE):
+            raise FileNotFoundError("No active scorecard. Open one with: arc scorecard open")
+        with open(SCORECARD_FILE) as f:
+            data = json.load(f)
+        return cls(**data)
+
+    @classmethod
+    def exists(cls) -> bool:
+        return os.path.exists(SCORECARD_FILE)
+
+    @classmethod
+    def delete(cls):
+        if os.path.exists(SCORECARD_FILE):
+            os.remove(SCORECARD_FILE)

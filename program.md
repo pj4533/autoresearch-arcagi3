@@ -83,46 +83,68 @@ uv run arc end
 
 ## Automatic Logging
 
-**Everything is logged automatically.** When you run `arc end`, the CLI automatically:
-- Saves all frame PNGs for replay
-- Generates the replay JSONL file
-- Appends a row to experiments/log.md
+**Everything is logged automatically.** The CLI automatically:
+- Saves frame PNGs for replay after every action
+- Generates replay JSONL on `arc end` / `arc scorecard next`
+- Logs to experiments/log.md when the scorecard closes
 - Regenerates the dashboard
 
-**You do NOT need to manually log, save replays, or update the dashboard.** Just play the game and run `arc end` when done.
+**You do NOT need to manually log, save replays, or update the dashboard.**
+
+## Scoring (CORRECT FORMULA)
+
+```
+Per-level: min(100, (baseline_actions / your_actions)² × 100)
+Per-game: Weighted average of level scores (weight = level number)
+Overall: Simple average across all 25 games
+```
+
+Match human baseline = 100%. Use 2x actions = 25%. Use 3x = 11%. Quadratic penalty.
 
 ## Experiment Loop
+
+**Each experiment = one full scorecard across all 25 games.** Your aggregate score is directly comparable to the ARC-AGI-3 competition leaderboard.
 
 Repeat forever:
 
 ### 1. Read the Queue
 Re-read `experiments/idea_queue.md` and `experiments/play_strategy.md`.
 
-### 2. Pick a Game
-Choose a game to play. **Rotate across all 25 games.** Don't fixate on one.
-- If an idea targets a specific game type, play that
-- Otherwise, pick one you haven't tried recently
-- Check the log to see which games you've attempted
+### 2. Open a Scorecard
+```bash
+uv run arc scorecard open --max-actions 40
+```
+This opens a scorecard with all 25 games and auto-starts the first game.
 
-### 3. Play the Game
-Follow the strategy in `play_strategy.md`. Use the generic approach:
-1. **Observe** — look at the frame with vision
+### 3. Play Each Game
+For each of the 25 games:
+1. **Observe** — `uv run arc state --image`. LOOK at the frame.
 2. **Hypothesize** — what type of game is this? What's the goal?
-3. **Test** — try one action, see what changes
-4. **Refine** — update your understanding
-5. **Solve** — execute efficiently once you understand
+3. **Test** — try one action, observe the result
+4. **Refine** — update your hypothesis
+5. **Solve** — execute efficiently once you understand the mechanic
+6. **Next** — `uv run arc scorecard next` to move to the next game
 
-**Save replay frames as you play.**
+The dashboard updates after each game so you can track progress.
 
-### 4. End the Game
-Run `arc end`. Everything is logged automatically (experiment log, replay, dashboard).
+Check progress anytime with: `uv run arc scorecard status`
 
-### 5. Update Strategy (if you learned something)
+### 4. Close the Scorecard
+After all 25 games (or when you decide to stop):
+```bash
+uv run arc scorecard close
+```
+This computes your final aggregate score and logs it.
+
+### 5. Evaluate
+Compare your aggregate score to previous scorecards in experiments/log.md.
+
+### 6. Update Strategy (if you learned something)
 If you discovered a useful general heuristic, update `play_strategy.md`.
 Only update with GENERAL insights that apply across games, not game-specific tricks.
 
-### 6. Repeat
-Pick another game. **NEVER STOP.**
+### 7. Repeat
+Open a new scorecard. **NEVER STOP.**
 
 ## Scoring
 
