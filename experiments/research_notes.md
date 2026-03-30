@@ -2029,3 +2029,38 @@ Level l gets weight l. For 7-level game: denominator = 28.
 - A y-scan that finds a better coordinate could reach 22%+
 
 **Queue updated:** Added ideas #3 (y-scan), #4 (phase-dependent), #8 (alternating without neutrals), #9 (btn[3] alternative). These are concrete, testable experiments.
+
+### Exp 066: LS20 Batch Moves Fail — Per-Move Protocol Needed (2026-03-29)
+
+**Exp 066 (LS20 vision-guided map building)**: 90 actions, 0 score. Reverted.
+
+**What happened**: The executor played LS20 via arc CLI with vision. Navigated LEFT+UP toward modifier. Got stuck on walls. Tried detour RIGHT+DOWN then UP. Many moves hit invisible walls.
+
+**ROOT CAUSE**: The executor used BATCH MOVES — issuing multiple `arc action move_X` commands without checking the frame between them. In LS20's maze, many moves are blocked by invisible walls (confirmed in exp 030). Without per-move frame checking, the executor doesn't know which moves succeeded and which were wall hits.
+
+**Critical operational insight**: LS20 maze navigation requires a **per-move protocol**:
+1. Take ONE action
+2. Check frame (`arc state --image` or `arc state` for text comparison)
+3. Determine if the move succeeded (frame scrolled = success, frame unchanged = wall)
+4. Record the result (open direction vs wall)
+5. Repeat
+
+**Why this matters**: Each wall-hit action is WASTED — it costs health/action budget but provides no progress. With per-move checking, the executor immediately detects blocks and tries a different direction. Without it, multiple consecutive moves may all hit the same wall.
+
+**Efficiency optimization**: Full `arc state --image` after every move is context-heavy. Alternative: use `arc state` (text grid) for wall detection (just check if output changed), and `--image` every 3-5 moves for strategic navigation decisions.
+
+**Action budget analysis for per-move LS20**:
+- L1 solution path ≈ 14-15 direct moves (4L + 3U to modifier + 3R + 4U to goal)
+- Exploration overhead: ~2x direct (exploring dead ends, finding maze turns)
+- Wall-hit waste: ~5-10 moves (blocked directions that must be tried)
+- Total estimated: 30-40 actions
+- L1 baseline: 29 actions → RHAE = (29/35)^2 ≈ 69% if efficient, (29/50)^2 ≈ 34% if slower
+- Even 50 actions gives a positive score — any LS20 score beats current 0!
+
+**Direction priority (from known positions)**:
+- Start (39,45) → Modifier (19,30): need ~4 LEFT + ~3 UP (20 cells / 5 per move = 4L, 15 cells / 5 = 3U)
+- Modifier (19,30) → Goal (34,10): need ~3 RIGHT + ~4 UP (15/5 = 3R, 20/5 = 4U)
+- Priority order from start: LEFT > UP > RIGHT > DOWN
+- Priority order from modifier: RIGHT > UP > LEFT > DOWN
+
+**Queue reprioritized**: Idea #1 rewritten with explicit per-move protocol. Added idea #2 (text-based fast wall detection) and #3 (directional priority). These directly address exp 066's failure mode.
