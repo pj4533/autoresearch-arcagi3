@@ -155,6 +155,38 @@ Added new:
 - **sp80**: Platformer with scrolling → navigation archetype. Large world beyond visible frame.
 - **tr87**: Symbol tiles → logic archetype. Agent gave up after 3 actions (too complex visually).
 
+## 2026-03-30: Exp 007-008 Update — Quantity vs Quality of Exploration
+
+### New Results
+- **Exp 007 (bp35)**: 40 actions, score 0. Used FULL budget.
+- **Exp 008 (dc22)**: 7 actions, score 0. Premature surrender continues.
+
+### Critical Insight: More Actions ≠ Better Outcomes
+bp35 proves that simply using more actions isn't sufficient. The agent burned through 40 actions and scored 0. This means:
+1. **Minimum exploration floor is necessary but not sufficient** — prevents tr87-style 3-action surrender
+2. **Structured exploration is the real bottleneck** — the agent needs to extract INFORMATION from actions, not just take more actions
+3. **Queue items #4 (action survey) and #5 (frame differencing) are the real multipliers** — they improve QUALITY of each action
+
+### Updated Action Budget Analysis
+| Game | Actions | % of Budget | Outcome |
+|------|---------|-------------|---------|
+| bp35 | 40 | 100% | 0 — full budget, no result |
+| sp80 | 22 | 55% | 0 — moderate use, no result |
+| ls20 | 16 | 40% | 0 — moderate use |
+| ar25 | 16 | 40% | 0 — moderate use |
+| dc22 | 7 | 18% | 0 — premature |
+| vc33 | 7 | 18% | 0 — premature |
+| ft09 | 5 | 13% | 0 — premature |
+| tr87 | 3 | 8% | 0 — premature |
+
+Average: 14.5 actions (36% of budget). Median: 11.5. Bimodal distribution — either premature (3-7) or moderate (16-40) but neither works.
+
+### Strategy Implication
+The queue top 3 should stay as-is (#1 min floor, #2 counter monitoring, #3 goal inference) but the REAL unlock is likely a combination of #1 + #4 + #5 applied together. The executor should incorporate MULTIPLE queue items per game, not just one.
+
+### Play Strategy Not Yet Updated
+The executor is still using the basic play_strategy.md. No queue items have been incorporated yet. Scoring will likely remain 0 until the strategy is updated.
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)
