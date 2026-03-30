@@ -1,6 +1,0 @@
-{"step": 0, "action": "(initial state)", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/sc25_local_step000.png"}
-{"step": 1, "action": "move_right", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/sc25_local_step001.png"}
-{"step": 2, "action": "click --x 30 --y 50", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/sc25_local_step002.png"}
-{"step": 3, "action": "click --x 25 --y 50", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/sc25_local_step003.png"}
-{"step": 4, "action": "move_right", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/sc25_local_step004.png"}
-{"step": 5, "action": "click --x 30 --y 55", "reasoning": "", "score": 0, "state": "IN_PROGRESS", "frame_path": "frames/sc25_local_step005.png"}
