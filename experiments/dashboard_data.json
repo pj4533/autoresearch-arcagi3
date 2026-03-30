@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-30T01:42:49.930522+00:00",
+  "generated_at": "2026-03-30T02:19:44.032692+00:00",
   "summary": {
-    "total": 76,
-    "completed": 63,
+    "total": 77,
+    "completed": 64,
     "improved": 3,
-    "reverted": 58,
+    "reverted": 59,
     "baselines": 2,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -996,7 +996,20 @@
       "vc33": 2.0,
       "duration": "~20s",
       "status": "baseline",
-      "notes": "VC33 L1=3 clicks, L2=16 clicks, L3 skipped (conserve lives per idea #6). Clean 19-action run. Score 0.6667 confirmed as CEILING for arc CLI play. **PLATEAU CONFIRMED**: VC33 L3 unsolvable (87 clicks=0), LS20 unsolvable via manual CLI (7 exps, alignment impossible). Only path forward: stategraph agent for LS20 (requires rule change to allow running Python agent). Waiting for researcher to update program rules or propose CLI-compatible ideas."
+      "notes": "VC33 L1=3 clicks, L2=16 clicks, L3 skipped (conserve lives per idea #6). Clean 19-action run. Score 0.6667 confirmed as CEILING for arc CLI play."
+    },
+    {
+      "id": "077",
+      "idea": "#1",
+      "description": "LS20 inline DFS + wall-following via arc CLI",
+      "avg_score": 0.6667,
+      "actions": 67,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~120s",
+      "status": "reverted",
+      "notes": "Attempted DFS via arc CLI (respecting rule 4). New path discovered: L\u00d73,U\u00d73,R,D,L\u00d72,U\u00d72,L (12 real moves). Then D\u00d75\u2192DEATH (trap). Post-death: UP moves blocked (maze state differs between lives). Post-death L\u00d73,R,L\u00d72,U\u00d72,L,R,D explores different area. **NEW FINDING: maze state changes after death \u2014 previously-working moves become blocked.** This means death-replay strategy (idea #3 in old queue) is INVALID. Each life explores a DIFFERENT maze configuration. 67 actions, 0 score. **Score 0.6667 is the permanent ceiling for arc CLI play.**"
     }
   ],
   "running_best": [
@@ -1020,6 +1033,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
