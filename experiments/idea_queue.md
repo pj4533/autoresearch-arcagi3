@@ -121,6 +121,11 @@
   10. **ls20** (16 actions) — navigation. Apply navigation protocol.
 - **Expected impact**: The lowest-action games have the most room to improve. Converting even 3-4 of these to scores would nearly double our score count.
 
+### 18. [Exploration] Non-Responsive Game Protocol — Multiple Mechanics Discovery
+- **Hypothesis**: Games like lf52, s5i5, tn36 "don't respond to obvious actions." ARC-AGI-3 docs confirm every game has MULTIPLE mechanics (single-mechanic designs are anti-patterns). If your first action type doesn't work, the game REQUIRES a different interaction mode you haven't tried yet.
+- **Strategy change**: Add to play_strategy.md: "NON-RESPONSIVE PROTOCOL: If 5 actions of one type produce no response, the game requires a different mechanic. Systematically try: (1) Click on EVERY visually distinct pixel/object, not just obvious ones. Some interactive elements look like background. (2) Move to different positions and perform at EACH — perform may be position-dependent. (3) Try clicking at exact grid coordinates computed from the visual pattern (the pattern may encode WHERE to click). (4) Look for the grid pattern to BE the instructions — arrows, numbers, sequences, color-coded directions. (5) Combine mechanics: click THEN move, move THEN click, multiple clicks in sequence. Each game has multiple mechanics — you need to find ALL of them."
+- **Expected impact**: Targets the ~5 games that resist standard exploration. Forces exhaustive multi-mechanic discovery instead of giving up after one action type fails.
+
 ---
 
 ## Completed

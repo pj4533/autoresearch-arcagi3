@@ -441,6 +441,34 @@ Best candidates for conversion (have reference/pattern visual cues that grid par
 ### Replay Overhead
 The executor replayed scored games 4 times (Exp 021, 023, 025, 029), consuming ~136 actions. These could have been 3-4 retries of unsolved games instead.
 
+## 2026-03-30: Exp 030-031 — bp35 Retry Failed, Non-Responsive Games
+
+### New Results
+- Exp 030 (bp35): 32 actions, 0 score. Retry attempt — still failing after sustained effort.
+- Exp 031 (sb26): 34 actions, score 1. Third sb26 replay.
+
+### bp35 Retry Failure Analysis
+bp35 had 40 actions originally (Exp 007) and 32 on retry (Exp 030). Total: 72 actions across 2 attempts, still 0. This is a genuinely hard game that resists more effort. It's a "high-engagement failure" — not premature surrender.
+
+### Non-Responsive Game Category
+Play strategy updated with: "Many games (lf52, s5i5, tn36) don't respond to obvious actions."
+ARC-AGI-3 docs confirm: "Each environment contains multiple mechanics" and single-mechanic games are anti-patterns. This means:
+1. Every game requires discovering MULTIPLE interaction modes
+2. If standard actions don't work, there are hidden mechanics
+3. The agent needs to try unconventional combinations
+
+Added #18: Non-Responsive Game Protocol for exhaustive multi-mechanic discovery.
+
+### Score Summary: 31 Experiments
+- 9 scored (su15×2, sb26×3, re86×3) = 3 unique games
+- 22 failed
+- Score rate on unique games: 3/25 = 12%
+- Executor still preferring known-win replays over unsolved retries
+
+### Strategy Adoption Status
+Play strategy has grown organically with 13 heuristics (from original 6). Key additions: coordinate mapping, invalid click detection, perform semantics, re86 level 2 shapes, non-responsive game awareness. However, the SYSTEMATIC protocols from the queue (minimum floor, zone detection, counter monitoring, midpoint reassessment) remain unadopted as formal rules.
+
 ## Dead Ends
 
-(patterns that don't work — to be filled as experiments run)
+- **bp35**: 72 total actions across 2 attempts, 0 score. Resistant to current strategies. Deprioritize.
+- **High-engagement failures in general** (bp35, r11l, tu93, wa30, ka59): These may require specialized mechanics discovery rather than more exploration time.
