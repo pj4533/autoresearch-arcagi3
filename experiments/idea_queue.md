@@ -104,4 +104,5 @@
 - **Executor 064**: VC33 via arc CLI. L1=6, L2=17. L3 PPS broken with vision. ls20=40 blind, 0.
 - **Executor 065**: VC33 predict+exact. L1=3 (!), L2=14. Local scoring = levels only.
 - **Executor 066**: LS20 vision-guided map building. 90 actions, 0. **Batch moves fail — many hit walls. Need per-move frame checking.**
-- **KEY INSIGHTS**: Batch moves DON'T WORK on LS20 (invisible walls). Must check frame after EACH move. btn[0] works ~14% (exp 059). Game click behavior is ORDER-DEPENDENT (exp 056). Player rotates on modifier collection. Direction from start (39,45): LEFT+UP to modifier (19,30), then RIGHT+UP to goal (34,10).
+- **Executor 067**: VC33 L3 btn[0] y-scan. SCALED coords (24,112) = display*2 work! PPS moved 2 rows in 30 clicks. Need 60+ btn[0] clicks for full PPS movement — budget insufficient after L1+L2+P1-2.
+- **KEY INSIGHTS**: Batch moves DON'T WORK on LS20 (invisible walls). Must check frame after EACH move. **btn[0] WORKS at SCALED coords (24,112)** ~14% success rate. Need 60+ btn[0] clicks for full Phase 3. Game click behavior is ORDER-DEPENDENT (exp 056). Player rotates on modifier collection.
