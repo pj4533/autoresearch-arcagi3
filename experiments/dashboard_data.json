@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-30T01:01:56.939579+00:00",
+  "generated_at": "2026-03-30T01:08:03.793655+00:00",
   "summary": {
-    "total": 72,
-    "completed": 59,
+    "total": 73,
+    "completed": 60,
     "improved": 3,
-    "reverted": 55,
+    "reverted": 56,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -945,6 +945,19 @@
       "duration": "~90s",
       "status": "reverted",
       "notes": "Verified prefix (R,U,U,U,U,L,L,L,U,U) reaches dead-end room \u2014 ALL L/U/R blocked after. Backtracked DOWN, navigated D,D,R,D,D,R then DOWN further. Player kept cycling between rows 25-45 in display. Modifier stays at display row 32 throughout. Maze has cycle topology that loops player back to starting area. Key finding: verified prefix leads to DEAD END (the small room at top of initial view). Need different path from start. **Confirmed: the \"verified\" DFS path R,R,U\u00d74,L\u00d73,U\u00d73 was the stategraph's DFS which ALSO dead-ended there.**"
+    },
+    {
+      "id": "073",
+      "idea": "#1",
+      "description": "LS20 local search + bypass wall from below",
+      "avg_score": 0.6667,
+      "actions": 130,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~120s",
+      "status": "reverted",
+      "notes": "Most systematic attempt yet. Shortened prefix (L\u00d73,U\u00d73) then local search D,D,D,R,L. Navigated player to (24,35) with modifier at (20,32) \u2014 ONLY 4 cols apart with wall at 29-33 between. Went DOWN far, LEFT around wall, UP \u2014 reached (14,25) but modifier at (20,32). Tried D+R approach: reached (24,35) again near modifier. Then D,R,D,R \u2192 GAME_OVER (died from health). **KEY: player reached within 4 cols of modifier but wall at cols 29-33 on row 32 blocks final approach. The maze corridor between cols 14-28 and cols 34+ is separated by this wall. Need to find the corridor connecting them.**"
     }
   ],
   "running_best": [
@@ -968,6 +981,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
