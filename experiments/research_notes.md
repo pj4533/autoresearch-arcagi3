@@ -240,6 +240,34 @@ su15 Level 2 had a different mechanic (scattered paired dots, clicking one chang
 - sc25: 5 actions, premature surrender. Minimum floor (#2) still needed.
 - Play strategy heuristics are improving but core systematic approach is still missing.
 
+## 2026-03-30: Triple Breakthrough Analysis (Exp 010-013)
+
+### Results: 3/13 games scoring (23%)
+| Game | Score | Actions | Game Type | Key Strategy |
+|------|-------|---------|-----------|-------------|
+| su15 | 1 | 36 | Click path | Grid parsing, sequential clicking |
+| sb26 | 1 | 31 | Color matching | Zone detection, select-then-apply |
+| re86 | 1 | 22 | Cross alignment | Constraint satisfaction, step detection |
+
+### Cross-Breakthrough Patterns (What Wins)
+1. **Mathematical grid analysis** — ALL 3 wins used numerical coordinate analysis
+2. **Multi-step action sequences** — ALL 3 required action combinations (click→click, select→click, move→perform)
+3. **Reference/target identification** — ALL 3 had a clear "what to achieve" visible on screen
+4. **One-shot execution** — once the agent understood the mechanic, it executed efficiently
+
+### New Strategies Derived from Wins
+- **Reference-Workspace-Toolbox zone detection** (#2) — from sb26
+- **Perform function discovery** (#3) — from sb26 (submit) vs re86 (switch control)
+- **Level transition protocol** (#4) — from su15/sb26 L2 failures
+- **Movement step size detection** (#13) — from re86 (3px per arrow move)
+- **Constraint satisfaction positioning** — from re86 (compute target position mathematically)
+
+### Level 2 Problem
+Both su15 and sb26 solved L1 but failed L2. L2 mechanics changed (different patterns, more complexity). The agent needs to carry forward general knowledge while re-analyzing the specifics.
+
+### Queue Trimmed to 15 Items
+Merged overlapping strategies, removed items superseded by breakthrough-derived ones. Queue is now tighter and more evidence-based.
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)
