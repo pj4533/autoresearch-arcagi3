@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-30T00:55:56.830256+00:00",
+  "generated_at": "2026-03-30T01:01:56.939579+00:00",
   "summary": {
-    "total": 71,
-    "completed": 58,
+    "total": 72,
+    "completed": 59,
     "improved": 3,
-    "reverted": 54,
+    "reverted": 55,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -932,6 +932,19 @@
       "duration": "~120s",
       "status": "reverted",
       "notes": "Combined per-move wall detection + directional priority + verified prefix. Wall detection works (2=blocked, 52+=OK). R,R prefix partially worked. Navigated player near modifier area (display row 30) but modifier disappeared \u2014 unclear if collected or scrolled out. Player sprite did NOT rotate (no collection confirmed). Continued DOWN, got stuck repeatedly. Deaths (206-cell changes) reset progress. Even with 500-action budget, maze topology prevents systematic navigation \u2014 too many dead ends and backtracking needed. **LS20 requires pre-computed path or actual DFS with state tracking, not blind navigation.**"
+    },
+    {
+      "id": "072",
+      "idea": "#1-5",
+      "description": "LS20 verified prefix + DOWN path",
+      "avg_score": 0.6667,
+      "actions": 92,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~90s",
+      "status": "reverted",
+      "notes": "Verified prefix (R,U,U,U,U,L,L,L,U,U) reaches dead-end room \u2014 ALL L/U/R blocked after. Backtracked DOWN, navigated D,D,R,D,D,R then DOWN further. Player kept cycling between rows 25-45 in display. Modifier stays at display row 32 throughout. Maze has cycle topology that loops player back to starting area. Key finding: verified prefix leads to DEAD END (the small room at top of initial view). Need different path from start. **Confirmed: the \"verified\" DFS path R,R,U\u00d74,L\u00d73,U\u00d73 was the stategraph's DFS which ALSO dead-ended there.**"
     }
   ],
   "running_best": [
@@ -955,6 +968,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
