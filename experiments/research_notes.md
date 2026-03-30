@@ -1870,3 +1870,43 @@ if math.dist((hhe, dcv), (self.tuv.mgu.y + nlo, self.tuv.mgu.x + nlo)) > 20.0:
     frame[hhe, dcv] = 5
 ```
 This means a circle of radius 20 from player center is visible, everything outside is color 5. The 16x16 viewport (scaled to 64x64) has most edge pixels as constant color 5. Current hashing (mask 2 rows) still includes these constant edges, making hashes insensitive to position. Fix: hash only center region (8x8 or 10x10).
+
+### Research Iteration: Post Exp 063 (2026-03-29)
+
+**Exp 063 Analysis:**
+- Center hashing ACCEPTED as permanent improvement (ls20 NOT_FINISHED instead of GAME_OVER)
+- ls20 with 2000 actions still scores 0 — maze too large for undirected DFS
+- vc33 no regression (L1-2 still solve)
+- Duration: 103s for 4000 total actions
+
+**Score plateau status:** 0.6667 for 42 consecutive experiments (022-063). Two blockers remain:
+1. VC33 L3: PPS button unreliable (sprite overlap)
+2. LS20: Undirected DFS can't find modifier→goal path in maze
+
+**Fresh Research Findings (2026-03-29):**
+
+1. **Balance puzzle optimization**: Work backward from goal state. For equalization, target = mean height. Eliminate obviously bad moves (never reverse previous move). IDA* with Manhattan-distance heuristic finds optimal solutions.
+
+2. **Maze navigation with limited lives**: IDDFS (iterative deepening DFS) is ideal. Each death = one depth-limited attempt. Persist state graph across deaths. After respawn: 70% budget = navigate to frontier, 30% = explore new territory. "Death IS information" — record lethal transitions.
+
+3. **Bar chart equalization**: Adjacent-only transfer → left-to-right sweep is provably optimal. Compute target (mean or marker positions), process pairs sequentially.
+
+4. **ARC-AGI-3 competition updates**: Frontier LLMs all <1% (Gemini 3.1 Pro 0.37%, GPT 5.4 0.26%, Opus 4.6 0.25%). State graph approaches dominate (12.58% top). Status bar masking confirmed critical by multiple teams.
+
+5. **Visual reasoning for games**: Chain-of-Symbol prompting +60% spatial accuracy. Visualization-of-Thought +27% accuracy. Periodic context summarization every ~10 steps prevents loops. Separate perception from reasoning (two-pass approach).
+
+**Queue Refresh:**
+Replaced code-change ideas with 12 play-strategy ideas covering:
+- Action Efficiency: #1 (predict button from symmetry), #2 (compute exact click count), #7 (budget awareness)
+- Navigation: #3 (progressive DFS across deaths), #4 (death-state recording), #6 (visual sprite detection), #11 (Chain-of-Symbol spatial descriptions)
+- Hypothesis Testing: #5 (L3 visual investigation via arc CLI), #12 (periodic context summarization)
+- Visual Analysis: #8 (Visualization-of-Thought)
+- Level Progression: #9 (cross-level knowledge transfer)
+- Puzzle Identification: #10 (left-to-right sweep for bar equalization)
+
+**Dead Ends Updated (post exp 063):**
+- All approaches involving position-based waypoints for ls20 (position tracking unreliable)
+- All approaches involving hardcoded paths from source code (collision model proprietary)
+- All local Qwen models for puzzle reasoning (insufficient spatial reasoning)
+- ft09: game version broken
+- VC33 L3 btn[0] via programmatic agent: sprite overlap makes it unreliable
