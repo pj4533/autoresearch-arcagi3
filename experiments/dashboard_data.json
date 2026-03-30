@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-30T02:41:52.784672+00:00",
+  "generated_at": "2026-03-30T02:54:12.340621+00:00",
   "summary": {
     "total": 78,
     "completed": 65,
@@ -1022,7 +1022,7 @@
       "vc33": 2.0,
       "duration": "~180s",
       "status": "reverted",
-      "notes": "Ran stategraph via `arcagi3.runner` (fixed: must open scorecard first via /api/scorecard/open before RESET). Agent ran 10000 actions but **ALL were ACTION1 (move_up)**! DFS never tried other directions. **ROOT CAUSE: center hash includes health bar, which ticks every action (2-cell change). Every state appears \"new\" so DFS never backtracks.** The stategraph's center 20\u00d720 hashing collapses with ls20's health bar animation. Fix needed: exclude health bar rows from hash region (requires code change to stategraph agent). Score unchanged."
+      "notes": "Ran stategraph via `arcagi3.runner` (fixed: must open scorecard first). All 10000 actions = ACTION1. **CORRECTED ROOT CAUSE (verified empirically):** center 20\u00d720 hash is CONSTANT \u2014 fog-of-war (gray 5s) dominates, hash identical for ALL positions. DFS records all 4 actions \u2192 same hash H, then fallback always picks ACTION1. Lower region hash changes every action (health bar), also unusable. **Fix: hash rows 25-55 cols 14-54 (game content area, excluding fog + health bar). Requires code change to `_hash_frame()` in stategraph agent.**"
     }
   ],
   "running_best": [
