@@ -2,7 +2,9 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**Priority rationale (updated after Exp 001-006)**: All 6 games scored 0. Top failures: goal blindness (4/6), counter/indicator blindness (2/6), premature surrender (2/6). Reprioritized to address observed failures first. Top items now target the specific failure modes seen in actual gameplay.
+**Priority rationale (updated after Exp 001-009)**: 9 games played, ALL scored 0 with basic strategy. Top failures: goal blindness (67%), premature surrender (44%), counter blindness (33%). Even full-budget games (bp35=40, ka59=28 actions) scored 0 — the basic strategy is fundamentally insufficient.
+
+> **RECOMMENDATION TO EXECUTOR**: Incorporate items #1 through #5 together as a bundle for your next game — they form a "Systematic Discovery Protocol" that addresses ALL observed failure modes simultaneously. Testing individually is too slow when the basic strategy is 0/9.
 
 ---
 

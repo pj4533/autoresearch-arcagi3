@@ -187,6 +187,32 @@ The queue top 3 should stay as-is (#1 min floor, #2 counter monitoring, #3 goal 
 ### Play Strategy Not Yet Updated
 The executor is still using the basic play_strategy.md. No queue items have been incorporated yet. Scoring will likely remain 0 until the strategy is updated.
 
+## 2026-03-30: Exp 009 Update & Engagement Pattern Analysis
+
+### New Result
+- **Exp 009 (ka59)**: 28 actions, score 0. IN_PROGRESS.
+
+### Running Totals (9 games, 0 scores)
+Average actions: 16. Average budget usage: 40%. Still 0 across the board.
+
+### Why Does the Agent Engage More on Some Games?
+
+| High engagement (16-40 actions) | Low engagement (3-7 actions) |
+|--------------------------------|------------------------------|
+| bp35, ka59, sp80, ls20, ar25 | tr87, ft09, dc22, vc33 |
+
+**High-engagement games** seem to have: visible movement feedback (character moves, blocks slide), spatial exploration possible (platformer, corridors), clear cause-effect from actions.
+
+**Low-engagement games** seem to have: click-only mechanics, subtle/no visible changes, pattern/logic puzzles where the agent doesn't know how to start.
+
+**Implication**: The agent engages when it sees SOMETHING happening, even if it doesn't score. It gives up when actions produce no visible feedback. This reinforces the importance of:
+- **#2 Counter monitoring** — counters ARE feedback, even if subtle
+- **#5 Frame differencing** — catches changes the agent misses, keeps it engaged
+- **#1 Minimum floor** — prevents surrender on "quiet" games
+
+### Strategy Not Yet Updated
+Play_strategy.md remains at its initial version. Added urgency note to queue recommending executor adopt top 5 items as a bundle.
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)
