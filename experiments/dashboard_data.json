@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-30T01:12:27.373204+00:00",
+  "generated_at": "2026-03-30T01:32:49.027363+00:00",
   "summary": {
-    "total": 74,
-    "completed": 61,
+    "total": 75,
+    "completed": 62,
     "improved": 3,
-    "reverted": 57,
+    "reverted": 58,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -971,6 +971,19 @@
       "duration": "~90s",
       "status": "reverted",
       "notes": "Tried D\u00d73 from start then L\u00d76 (reached col 19 same as modifier). Then U\u00d74 to row 25 (modifier at row 32 = 7 below). Then D\u00d75 \u2192 back to start (row 45)! **MAZE CYCLES: DOWN from upper-left always loops back to start.** Corridors form a closed loop: start(right) \u2192UP\u2192 upper-left \u2192DOWN\u2192 start(right). The modifier at (20,32) sits INSIDE the loop but the walls prevent reaching it from any adjacent corridor. **CONCLUSION: Manual arc CLI navigation CANNOT solve LS20. The maze requires algorithmic DFS with state hashing (which the stategraph agent does) \u2014 not human-like direction-biased exploration.**"
+    },
+    {
+      "id": "075",
+      "idea": "#1",
+      "description": "LS20 wall-gap probe + modifier overlap test",
+      "avg_score": 0.6667,
+      "actions": 81,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~90s",
+      "status": "reverted",
+      "notes": "**CRITICAL FINDING**: Player display-overlaps modifier (confirmed 3x: rows 30, cols 19-23 covers modifier at row 32, cols 20-22). Modifier disappears from grid when player is on it. But NO COLLECTION (sprite didn't rotate, 0 levels scored). Approached from all 4 directions, stepped through repeatedly. **ROOT CAUSE: display overlap \u2260 game position match.** Per exp 044: \"collection positions (16,28)/(31,8) are on 5px grid but differ from (19,30).\" The 5px movement grid lands on modifier's display area but NOT the game's actual collection trigger point. Manual CLI play fundamentally CANNOT solve the alignment problem."
     }
   ],
   "running_best": [
@@ -994,6 +1007,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,

@@ -51,15 +51,16 @@
 - **Stategraph 022-070**: vc33 L3 — 20 experiments. CLOSED (unsolvable).
 - **Stategraph 063 (IMPROVED)**: Center hashing permanent. LS20 NOT_FINISHED with 2000 actions.
 - **Executor 064-065**: VC33 L1=3, L2=14.
-- **Executor 066-074**: LS20 manual navigation — 6 experiments, all 0 score. CLOSED.
+- **Executor 066-075**: LS20 manual navigation — 7 experiments, all 0 score. CLOSED.
   - 069: Per-move wall detection works (2 cells=blocked, 52+=move)
   - 072: Verified prefix leads to dead end
   - 073: Reached within 4 cols of modifier — wall at cols 29-33 blocks
-  - 074: **DEFINITIVE**: Maze has CYCLIC TOPOLOGY. Manual navigation CANNOT solve LS20.
+  - 074: Maze has CYCLIC TOPOLOGY
+  - 075: **DEFINITIVE**: Player display-overlaps modifier 3x but NO collection. 5px grid doesn't align with collection trigger. Manual CLI CANNOT solve the alignment problem.
 
 ## Dead Ends (Confirmed)
 - **VC33 L3**: UNSOLVABLE (87 clicks = 0 PPS movement)
-- **LS20 via arc CLI**: 6 experiments (066-074), all 0 score. Maze cycles defeat directional bias. Manual play CANNOT solve LS20.
+- **LS20 via arc CLI**: 7 experiments (066-075), all 0 score. Maze cycles + 5px alignment mismatch. Display overlap ≠ collection. Manual play CANNOT solve LS20.
 - ft09 game version broken
 - All local Qwen models for reasoning
 - Position-based waypoints (tracking unreliable)
