@@ -75,6 +75,7 @@
 - **Executor 067-068**: btn[0] y-scan + 57-click definitive test. btn[0] DEAD at ALL coords.
 - **Executor 069**: LS20 per-move protocol WORKS (2 cells=blocked, 52+=move). But only 45 actions → 20 real moves → overshot modifier. Need more budget + local search.
 - **Executor 070**: VC33 L3 grid scan: 30 positions, 0 PPS movement. **L3 CLOSED — unsolvable.**
+- **Executor 071**: LS20 500-action smart nav. 122 actions, 0 score. Player reached modifier area but no collection confirmed. Deaths reset progress. Maze topology blocks systematic exploration.
 
 ## Dead Ends (Confirmed)
 - **VC33 L3 entirely**: btn[0] broken (57 clicks=0, exp 068), full grid scan=0 (30 positions, exp 070). NO mechanism to move PPS. UNSOLVABLE in this game instance.

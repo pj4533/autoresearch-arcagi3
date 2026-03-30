@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-30T00:44:39.635589+00:00",
+  "generated_at": "2026-03-30T00:55:56.830256+00:00",
   "summary": {
-    "total": 70,
-    "completed": 57,
+    "total": 71,
+    "completed": 58,
     "improved": 3,
-    "reverted": 53,
+    "reverted": 54,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -919,6 +919,19 @@
       "duration": "~60s",
       "status": "reverted",
       "notes": "**DEFINITIVE**: Clicked 30 positions across 6\u00d75 grid (x=8,16,24,32,40,48 \u00d7 y=10,20,30,40,50). PPS (decoration 14) at line 49 for ALL 30 clicks \u2014 ZERO movement from ANY position. **No hidden mechanic exists to move PPS on L3.** Combined with exp 068 (57 btn[0] clicks = 0 movement), this CLOSES the VC33 L3 investigation. The PPS button is broken due to sprite overlap in this game instance. L3 is unsolvable. Score improvement must come from LS20."
+    },
+    {
+      "id": "071",
+      "idea": "#1-4",
+      "description": "LS20 smart navigation with 500 actions",
+      "avg_score": 0.6667,
+      "actions": 122,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~120s",
+      "status": "reverted",
+      "notes": "Combined per-move wall detection + directional priority + verified prefix. Wall detection works (2=blocked, 52+=OK). R,R prefix partially worked. Navigated player near modifier area (display row 30) but modifier disappeared \u2014 unclear if collected or scrolled out. Player sprite did NOT rotate (no collection confirmed). Continued DOWN, got stuck repeatedly. Deaths (206-cell changes) reset progress. Even with 500-action budget, maze topology prevents systematic navigation \u2014 too many dead ends and backtracking needed. **LS20 requires pre-computed path or actual DFS with state tracking, not blind navigation.**"
     }
   ],
   "running_best": [
@@ -942,6 +955,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
