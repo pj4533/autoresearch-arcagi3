@@ -2341,17 +2341,19 @@ Score plateau: 56 consecutive experiments (021-077) at 0.6667. 8 manual LS20 att
 
 **Exp 078 (stategraph 10000 actions)**: 10000 actions, 0 score. ALL actions were ACTION1 (move_up).
 
-**ROOT CAUSE: center 20×20 hash includes health bar pixels.** The health bar ticks 2 cells on EVERY action (from exp 069: 2 cells changed = blocked = health tick only). These 2 cells are within the center 20×20 hash region. Every action changes the hash → DFS sees "new state" → never backtracks to try other directions → 10000 × move_up.
+**INITIAL DIAGNOSIS WAS WRONG.** I initially thought the health bar was causing every state to look "new." The CORRECTED root cause (verified empirically by the executor):
 
-**Why exp 063 showed NOT_FINISHED but 0 score with 2000 actions:** Same root cause! The agent was doing 2000 × move_up. It survived because move_up from the start position is valid (moves the player up), but it only explored ONE direction. The "NOT_FINISHED" was misleading — the agent was alive but doing nothing useful.
+**CORRECTED ROOT CAUSE: center 20×20 hash is CONSTANT.** Fog-of-war (gray color 5) dominates the center 20×20 region. The LS20 fog-of-war is a circle of radius ~20 pixels from the player center, BUT the game's rendering means the center of the 64×64 display contains mostly fog pixels. ALL positions hash to the SAME value H. DFS records "ACTION1 → H, ACTION2 → H, ACTION3 → H, ACTION4 → H" — all tried, all lead to same state. Fallback always picks ACTION1.
 
-**Fix options (ranked by simplicity):**
-1. **Cell-change threshold**: Don't create new state if <10 cells changed. Health ticks (2 cells) and wall hits (2 cells) get filtered. Real moves (52+ cells) create new states. SIMPLEST — no need to identify health bar position. No pixel-level masking needed.
-2. **Mask health bar rows**: Identify which rows/cols within the center region contain the health bar. Exclude them from hash. Requires diagnosis via arc CLI grid diffing.
-3. **Smaller center region**: Hash 12×12 instead of 20×20. May avoid health bar but reduces state discrimination.
-4. **Full grid hash with status bar masking**: Hash entire 64×64 minus known status rows. Most robust but may reintroduce fog-of-war edge issues.
+The lower region hash changes every action (health bar), making it also unusable.
 
-**Recommended: Option 1 (cell-change threshold).** It's the simplest, requires no diagnosis of health bar position, and works for both the health tick (2 cells) and wall-hit (2 cells) cases. The threshold separates "noise" (<10 cells) from "real state changes" (52+ cells).
+**My cell-change threshold recommendation was WRONG for this case.** The issue isn't that states change too much (health ticks), it's that they DON'T change at all (constant fog hash). A threshold wouldn't help because the hash is identical for all positions.
+
+**Correct fix (from executor's empirical diagnosis):** Hash rows 25-55, cols 14-54. This captures the actual game content (visible maze within the fog-of-war circle) while excluding:
+- Fog-of-war edges (rows 0-24, 56-63 and cols 0-13, 55-63 — mostly gray 5s)
+- Health bar (in status area outside this region)
+
+**Why exp 063 showed NOT_FINISHED but 0 score:** Same root cause — 2000 × move_up. The agent was alive (moving up is valid) but only explored one direction.
 
 **Updated project status (exp 078):**
 | Game | Score | Status | Next Step |

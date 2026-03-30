@@ -2,36 +2,22 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 078): Stategraph ran 10000 actions on LS20 but ALL were move_up! ROOT CAUSE: health bar ticks 2 cells per action INSIDE the center hash region → every state looks "new" → DFS never backtracks. FIX: exclude health bar pixels from the hash. This is the ONLY remaining blocker — once the hash is fixed, the DFS will explore properly. ALL ideas are PLAY STRATEGY changes. The hash fix is a DIAGNOSTIC finding that the executor implements.**
+**PHILOSOPHY (2026-03-29, post exp 078 CORRECTED): Stategraph 10000 actions = all move_up. CORRECTED ROOT CAUSE: center 20×20 hash is CONSTANT because fog-of-war (gray 5s) dominates → ALL positions hash identically → DFS thinks all 4 directions lead to same state → fallback picks ACTION1. FIX: hash rows 25-55, cols 14-54 (game content area, excluding fog + health bar). This is a diagnostic finding — the executor implements the hash region change.**
 
 ---
 
-### 1. [Navigation] LS20: fix stategraph hash to exclude health bar pixels, then re-run 10000 actions
-- **DIAGNOSIS (exp 078)**: Stategraph ran 10000 actions but ALL were ACTION1 (move_up). The DFS never tried other directions because the center 20×20 hash includes the health bar, which changes 2 cells on EVERY action. The DFS sees "new state" every time and never backtracks to try ACTION2/3/4.
-- **THE FIX**: The hash must exclude the health bar pixels. From exp 069: health tick = exactly 2 cells changed. These 2 cells are within the 20×20 center region. Options:
-  1. **Mask the 2 health cells**: Identify which 2 cells change on health ticks and exclude them from the hash
-  2. **Use a smaller center region**: Hash 16×16 or 12×12 center to avoid the health bar area
-  3. **Hash only non-status-bar rows**: The health bar is likely in the top rows — exclude rows 0-3 of the center region
-  4. **Use cell-change threshold for state comparison**: Only count states as "new" if >10 cells changed (filters out 2-cell health ticks)
-- **AFTER FIX**: Re-run `uv run python -m arcagi3.runner --agent stategraph --game_id ls20 --max_actions 10000 --offline`. The DFS should now properly explore all 4 directions at each state.
+### 1. [Navigation] LS20: fix stategraph hash region to rows 25-55, cols 14-54, then re-run 10000 actions
+- **DIAGNOSIS (exp 078, corrected)**: Center 20×20 hash is CONSTANT for LS20 — fog-of-war fills the center with gray (color 5), making every position hash identically. DFS records all 4 directions → same hash H → fallback always picks ACTION1. Result: 10000 × move_up.
+- **THE FIX**: Hash rows 25-55, cols 14-54 instead of the center 20×20. This region captures the game content (visible maze within the fog-of-war circle) while excluding:
+  - Fog-of-war edges (rows 0-24, 56-63 and cols 0-13, 55-63 are mostly gray 5s)
+  - Health bar (in the status area, outside this region)
+- **AFTER FIX**: Re-run `uv run python -m arcagi3.runner --agent stategraph --game_id ls20 --max_actions 10000 --offline`. With proper state distinction, the DFS will explore all 4 directions at each state.
 - **Target game**: ls20
-- **Expected impact**: Proper DFS exploration → finds modifier→goal path → score 0.6667→1.0.
+- **Expected impact**: Proper DFS → finds modifier→goal path → score 0.6667→1.0.
 
 ### 2. [Navigation] LS20: if hash fix + 10000 fails, try 50000 actions
-- **Hypothesis**: If proper hashing with 10000 actions isn't enough, the maze state space is very large. Try 50000 (~10 min).
+- **Hypothesis**: If proper hashing with 10000 actions isn't enough, try 50000 (~10 min).
 - **Target game**: ls20
-
-### 3. [Navigation] LS20: investigate which 2 cells are the health bar
-- **Hypothesis**: The health bar changes exactly 2 cells per action (from exp 069's wall detection: 2 cells = blocked = health tick only). To fix the hash, need to identify WHERE these 2 cells are in the 20×20 center region. The executor can check: run 2 consecutive `arc state` commands (text grid), diff them, find the 2 changed cells. Those are the health bar positions to mask.
-- **Strategy change**: "To diagnose: `arc start ls20 --max-actions 5`. Do `arc state` → `arc action move_up` → `arc state`. Diff the two grids. The 2 changed cells = health bar. These need to be excluded from the stategraph's hash."
-- **Target game**: ls20
-- **Expected impact**: Identifies exact health bar position for hash masking.
-
-### 4. [Navigation] LS20: alternative — use cell-change THRESHOLD instead of exact hash
-- **Hypothesis**: Instead of fixing the hash to exclude specific pixels, use a cell-change threshold for "same state" detection. If <10 cells changed → same state (don't explore). If 10+ cells changed → new state (explore). This filters out the 2-cell health ticks AND wall-hit ticks without needing to know which cells are the health bar.
-- **Strategy change**: "Alternative to hash masking: modify state comparison to use a change threshold. States differing by <10 cells = same state. This filters health ticks (2 cells) and wall hits (2 cells) while detecting real moves (52+ cells)."
-- **Target game**: ls20
-- **Expected impact**: Simpler fix — no need to identify exact health bar cells.
 
 ### 5. [Navigation] LS20: after solving L1, optimize path for RHAE
 - **Hypothesis**: DFS solution path will be long. Optimize by replaying minimum path.
