@@ -90,5 +90,6 @@
 - **Stategraph 048-062**: vc33 L3 — 14 experiments. PPS button BLOCKED by sprite overlap.
 - **Stategraph 063 (IMPROVED)**: Center hashing permanent.
 - **Executor 064**: VC33 L1-2 manual play via arc CLI. L1=6 actions (baseline!), L2=17. L3 PPS still broken with vision. ls20=40 blind moves, 0 score.
+- **Executor 065**: VC33 predict button + exact clicks. L1 in 3 (half human baseline!), L2 in 14. Score still 0.6667 — local scoring is levels-based not efficiency-based.
 - **Explorer 001-030**: All score 0.
 - **KEY INSIGHTS**: RHAE scoring = (human/agent)^2, per-game WEIGHTED by level index (l/sum(1..n)). VC33 L1-2 combined weight = 3/28 = 10.7%. Solving L3 (wt 3) nearly doubles game score. LS20 baselines: [29,41,172,49,53,62,82]. Click coords = display grid coords.

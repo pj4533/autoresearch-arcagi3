@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-30T00:23:45.469790+00:00",
+  "generated_at": "2026-03-30T00:28:08.360381+00:00",
   "summary": {
-    "total": 64,
-    "completed": 51,
+    "total": 65,
+    "completed": 52,
     "improved": 3,
-    "reverted": 47,
+    "reverted": 48,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -841,6 +841,19 @@
       "duration": "~60s",
       "status": "reverted",
       "notes": "Executor played vc33 directly via arc CLI with vision. L1 solved in 6 actions (1 wasted on wrong coords + 5 productive = human baseline). L2 solved in 17 actions (trial B+C buttons, then cycle B\u00d75, D\u00d75, B\u00d73, D\u00d72). L3 attempted: btn[6]\u00d712 + btn[4]\u00d74 + btn[0]\u00d78 = 24 clicks, no score. PPS button (btn[0]) still unreliable \u2014 confirms stategraph findings. ls20: 40 blind maze moves, 0 score. Same 2 levels as before, no improvement."
+    },
+    {
+      "id": "065",
+      "idea": "#1",
+      "description": "VC33 predict button + exact click count",
+      "avg_score": 0.6667,
+      "actions": 59,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~45s",
+      "status": "reverted",
+      "notes": "L1 solved in 3 clicks (skip trial, predict lower button converges, compute 3 clicks needed). L2 solved in 14 clicks (B\u00d76 + D\u00d72 + B\u00d73 + D\u00d75, scored at action 17). No L3 attempt. ls20: 0. Key findings: L1 can be solved in HALF the human baseline (3 vs 6). L2 needs cycling \u2014 exact computation doesn't work because 3 regions can't all converge simultaneously. Score unchanged at 0.6667 \u2014 scoring appears to be levels-based not efficiency-based at the local server level."
     }
   ],
   "running_best": [
@@ -864,6 +877,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
