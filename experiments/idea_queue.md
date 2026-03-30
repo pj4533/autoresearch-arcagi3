@@ -89,5 +89,6 @@
 - **Stategraph 046-047**: ls20 confirmed (39,45), vc33 L3 decoded as chain-of-bars.
 - **Stategraph 048-062**: vc33 L3 — 14 experiments. Phase 1-2 work (ChX/VAJ reach targets). Phase 3 (PPS) BLOCKED: btn[0] at game(6,50) overlaps with fCG rDn bar, get_sprite_at returns wrong sprite ~86% of time.
 - **Stategraph 063 (IMPROVED)**: Center hashing permanent. LS20 NOT_FINISHED with 2000 actions (better exploration). vc33 no regression.
+- **Executor 064**: VC33 L1-2 manual play via arc CLI. L1 solved in 6 actions, L2 in 17. L3 still blocked by PPS button. Same 2 levels, no improvement.
 - **Explorer 001-030**: All score 0.
-- **KEY INSIGHTS**: Coordinate mapping is display=game+6 (not scaling). Scoring is quadratic (human/agent)^2. VC33 grid sizes: L1-2=32, L3=52, L4-6=64, L7=48.
+- **KEY INSIGHTS**: Coordinate mapping is display=game+6 (not scaling). Scoring is quadratic (human/agent)^2. VC33 grid sizes: L1-2=32, L3=52, L4-6=64, L7=48. Click coordinates = display grid coordinates (confirmed in exp 064).

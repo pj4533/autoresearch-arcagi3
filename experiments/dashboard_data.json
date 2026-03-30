@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-30T00:05:38.964849+00:00",
+  "generated_at": "2026-03-30T00:23:45.469790+00:00",
   "summary": {
-    "total": 63,
-    "completed": 50,
+    "total": 64,
+    "completed": 51,
     "improved": 3,
-    "reverted": 46,
+    "reverted": 47,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -828,6 +828,19 @@
       "duration": "103s",
       "status": "improved",
       "notes": "Applied center 20\u00d720 hashing permanently. ls20 2000 actions: NOT_FINISHED (no death, better exploration) but still score 0 \u2014 maze too large for undirected DFS. vc33 no regression (still 2). Center hashing ACCEPTED as permanent improvement."
+    },
+    {
+      "id": "064",
+      "idea": "#1",
+      "description": "VC33 L1-2 manual play via arc CLI",
+      "avg_score": 0.6667,
+      "actions": 87,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~60s",
+      "status": "reverted",
+      "notes": "Executor played vc33 directly via arc CLI with vision. L1 solved in 6 actions (1 wasted on wrong coords + 5 productive = human baseline). L2 solved in 17 actions (trial B+C buttons, then cycle B\u00d75, D\u00d75, B\u00d73, D\u00d72). L3 attempted: btn[6]\u00d712 + btn[4]\u00d74 + btn[0]\u00d78 = 24 clicks, no score. PPS button (btn[0]) still unreliable \u2014 confirms stategraph findings. ls20: 40 blind maze moves, 0 score. Same 2 levels as before, no improvement."
     }
   ],
   "running_best": [
@@ -851,6 +864,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
