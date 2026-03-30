@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-30T02:19:44.032692+00:00",
+  "generated_at": "2026-03-30T02:41:52.784672+00:00",
   "summary": {
-    "total": 77,
-    "completed": 64,
+    "total": 78,
+    "completed": 65,
     "improved": 3,
-    "reverted": 59,
+    "reverted": 60,
     "baselines": 2,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -1010,6 +1010,19 @@
       "duration": "~120s",
       "status": "reverted",
       "notes": "Attempted DFS via arc CLI (respecting rule 4). New path discovered: L\u00d73,U\u00d73,R,D,L\u00d72,U\u00d72,L (12 real moves). Then D\u00d75\u2192DEATH (trap). Post-death: UP moves blocked (maze state differs between lives). Post-death L\u00d73,R,L\u00d72,U\u00d72,L,R,D explores different area. **NEW FINDING: maze state changes after death \u2014 previously-working moves become blocked.** This means death-replay strategy (idea #3 in old queue) is INVALID. Each life explores a DIFFERENT maze configuration. 67 actions, 0 score. **Score 0.6667 is the permanent ceiling for arc CLI play.**"
+    },
+    {
+      "id": "078",
+      "idea": "#1",
+      "description": "LS20 stategraph agent 10000 actions",
+      "avg_score": 0.6667,
+      "actions": 10000,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~180s",
+      "status": "reverted",
+      "notes": "Ran stategraph via `arcagi3.runner` (fixed: must open scorecard first via /api/scorecard/open before RESET). Agent ran 10000 actions but **ALL were ACTION1 (move_up)**! DFS never tried other directions. **ROOT CAUSE: center hash includes health bar, which ticks every action (2-cell change). Every state appears \"new\" so DFS never backtracks.** The stategraph's center 20\u00d720 hashing collapses with ls20's health bar animation. Fix needed: exclude health bar rows from hash region (requires code change to stategraph agent). Score unchanged."
     }
   ],
   "running_best": [
@@ -1033,6 +1046,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
