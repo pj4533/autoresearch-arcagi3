@@ -1994,3 +1994,38 @@ Level l gets weight l. For 7-level game: denominator = 28.
 - VC33 L3 btn[0] via arc CLI with vision: CONFIRMED BROKEN (exp 064). No coordinate workaround works.
 - ls20 blind exploration via arc CLI: doesn't score (exp 064). Needs structured approach.
 - VC33 L1-2 optimization has very low RHAE impact (weight 3/28 = 10.7% of game score)
+
+### Exp 065: L1-2 Optimization Complete (2026-03-29)
+
+**L1 solved in 3 actions** (human baseline 6 — HALF the baseline!). L2 in 14 (baseline 13). Ideas #1 (predict direction) and #2 (exact click count) implemented and validated.
+
+**Local scoring = levels solved, NOT RHAE.** Score stays at 0.6667 regardless of click efficiency. This confirms: only solving NEW levels changes the local score. RHAE improvements only matter for competition submission.
+
+**L1-2 optimization is DONE.** Moving these ideas to Completed.
+
+### Re-Analysis: btn[0] Is NOT Completely Broken (2026-03-29)
+
+**Critical re-reading of exp 059**: "PPS-UP BUTTON FOUND: scan click (24,112)=btn[0] moved PPS -1.2." btn[0] DID work — it moved PPS by -1.2 display pixels. But only 1 out of 7 attempts succeeded (~14% success rate).
+
+**This changes the analysis.** btn[0] is not BROKEN — it's UNRELIABLE due to probabilistic sprite overlap. The overlap likely depends on:
+1. **Click y-position**: The button and bar sprites overlap vertically. Different y-offsets may hit different sprites.
+2. **Game state**: Exp 056 showed order-dependent behavior — "btn[7] works after systematic test but NOT when clicked first." Bar positions shift as buttons are clicked, changing overlap geometry.
+3. **Sprite z-ordering**: The game engine may process overlapping sprites in different orders based on game state.
+
+**Three approaches to increase btn[0] reliability:**
+
+1. **Exhaustive y-scan**: Try x=12, y=40,42,44,...,60 (display coords). Find the y where btn[0] is most responsive. Cost: ~10 lives.
+
+2. **Phase-dependent approach**: Execute Phase 1 (btn[6]×12 for ChX/VAJ) FIRST. The bar positions shift, potentially clearing the overlap. Then try btn[0]. Cost: 0 extra lives (Phase 1 is needed anyway).
+
+3. **btn[3] alternative**: Game position (22,50) / display (28,56) should control TKb→sro transfer. If it has the same overlap issue, a y-scan there might find a responsive zone. This provides a SECOND path to move PPS (via sro growing taller).
+
+**Life budget analysis for btn[0] at 14% success:**
+- Need ~8 PPS moves (48.2 → 40.6 = 7.6 px / 0.96 per click ≈ 8)
+- At 14%: 8/0.14 = 57 attempts needed
+- Alternating with real buttons (no neutrals): 57 × 2 = 114 clicks
+- 75 lives on L3 — NOT ENOUGH at 14%
+- Need ≥22% success rate (8/0.22 × 2 = 73 clicks ≤ 75 lives)
+- A y-scan that finds a better coordinate could reach 22%+
+
+**Queue updated:** Added ideas #3 (y-scan), #4 (phase-dependent), #8 (alternating without neutrals), #9 (btn[3] alternative). These are concrete, testable experiments.
