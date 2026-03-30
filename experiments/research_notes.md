@@ -300,6 +300,42 @@ Added #17 (Retry Failed Games). Early games were played with basic strategy befo
 ### Executor Activity
 Active session on m0r0 observed. Executor is working through games systematically but not adding detailed descriptions to recent log entries — makes research analysis harder.
 
+## 2026-03-30: Exp 016-019 — Premature Surrender Crisis
+
+### New Results (all 0)
+| Exp | Game | Actions | Category |
+|-----|------|---------|----------|
+| 016 | lp85 | **0** | Non-attempt |
+| 017 | m0r0 | **1** | Non-attempt |
+| 018 | tu93 | 34 | Full engagement, no score |
+| 019 | g50t | 5 | Premature surrender |
+
+### Score Trend: DECLINING
+- After 13 games: 3/13 = 23%
+- After 19 games: 3/19 = 15.8%
+- Score rate declining because new games are all 0
+
+### Premature Surrender is the #1 Problem
+8/19 games (42%) have ≤7 actions. This is worse than when I first identified it.
+- 0 actions: lp85
+- 1 action: m0r0
+- 3 actions: tr87
+- 5 actions: ft09, sc25, g50t
+- 7 actions: dc22, vc33
+
+These 8 games represent **wasted potential**. With 40 actions available, the agent is using <18% of budget on nearly half the games. The minimum exploration floor has NOT been adopted.
+
+### Phase Transition Approaching
+19/25 games attempted. Only 6 remain: cn04, lf52, r11l, s5i5, sk48, cd82.
+After finishing the first pass, the executor should shift to RETRY mode.
+Created specific replay priority list (queue #17) ordered by lowest-action games first.
+
+### tu93 Pattern: High Engagement, No Score
+tu93 used 34 actions (85% of budget) and still scored 0. Same pattern as bp35 (40), wa30 (34), ka59 (28). These games engage the agent but resist solving. Possible explanations:
+- Complex mechanics not addressed by current strategies
+- Navigation/spatial puzzles requiring systematic exploration
+- The agent explores randomly rather than systematically
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)

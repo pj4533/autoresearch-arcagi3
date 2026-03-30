@@ -2,11 +2,15 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**Priority rationale (updated after Exp 010-013 — 3 BREAKTHROUGHS)**: su15, sb26, re86 all scored 1. Common thread: mathematical grid analysis + multi-step action sequences + reference/target identification. 3/13 games scoring (23%). Level 2 failures on su15 and sb26 highlight need for level transition strategies.
+**Priority rationale (updated after Exp 019 — 3/19 scoring, 15.8%)**:
 
-> **WHAT WORKS (3 wins)**: Mathematical grid parsing, reference-workspace-toolbox layout detection, constraint satisfaction for positioning, multi-step action sequences (select→apply, move→perform). Grid coordinates are the key data source.
+> **URGENT — PREMATURE SURRENDER IS CRITICAL**: lp85=0 actions, m0r0=1 action, g50t=5 actions. 42% of games have ≤7 actions. The minimum exploration floor (#5) MUST be adopted immediately — it's the single highest-impact change. You cannot score a game you don't play.
 >
-> **WHAT STILL FAILS**: Premature surrender (sc25=5 acts), 10/13 games at 0, level 2 failures on solved games, navigation/platformer games (sp80, ls20).
+> **PHASE SHIFT NEEDED**: Only 6 games remain untried. After finishing the first pass, RETRY failed games with improved strategies. Early games (Exp 001-009) were played before breakthroughs — replaying them should yield new scores.
+>
+> **WHAT WORKS (3 wins)**: Mathematical grid parsing, zone detection, constraint satisfaction, multi-step action sequences. All wins use numerical coordinate analysis.
+>
+> **BIGGEST GAPS**: (1) Premature surrender — 42% of games get <8 actions. (2) Navigation games — 0 wins. (3) Counter/logic games — 0 wins.
 
 ---
 
@@ -30,10 +34,10 @@
 - **Strategy change**: Add to play_strategy.md: "LEVEL TRANSITION PROTOCOL: When you advance to a new level: (1) CARRY FORWARD: action types, coordinate system, what perform does, general game mechanic (click-to-paint, move-to-position, etc.). (2) RE-ANALYZE: the specific visual layout — objects may be in different positions, colors may differ, the exact puzzle changes. (3) DON'T assume level 2 is identical to level 1 — it's harder and may introduce new twists. (4) Re-run grid analysis on the new frame BEFORE acting."
 - **Expected impact**: Directly addresses the su15 L2 and sb26 L2 failures. General mechanics transfer saves ~10 actions per level. Re-analysis catches changed specifics.
 
-### 5. [Failure Recovery] Minimum Exploration Floor — Never Give Up Early
-- **Hypothesis**: Exp 006 (tr87) took only 3 actions, Exp 003 (ft09) only 5. This is far too few. A minimum action floor prevents premature surrender.
-- **Strategy change**: Add to play_strategy.md: "MINIMUM EXPLORATION RULE: You MUST take at least 15 actions per game before concluding you can't solve it. Use the first 10-15 actions to systematically try every available action type and observe results."
-- **Expected impact**: Fixes premature surrender (sc25=5 actions still happening). 4/13 games used <8 actions.
+### 5. [Failure Recovery] Minimum Exploration Floor — NEVER Give Up Early
+- **Hypothesis**: 8 out of 19 games (42%) had ≤7 actions. lp85 had ZERO. m0r0 had ONE. These are non-attempts. You CANNOT score a game you don't play. This is the single highest-impact change available.
+- **Strategy change**: Add to play_strategy.md: "**IRON RULE — MINIMUM 15 ACTIONS**: You MUST take at least 15 actions on every game, no exceptions. If a game confuses you, that's NORMAL — every game is unknown. Use those 15 actions to: (1) Try every available action type. (2) Click on every distinct-looking object. (3) Test movement in all directions. (4) Try perform. (5) Analyze the grid numerically. DO NOT give up because you don't understand the game immediately. Humans don't understand it immediately either — they explore."
+- **Expected impact**: Would have directly impacted 8/19 games. Even unfocused exploration over 15 actions has a chance of discovering mechanics. 0 actions has ZERO chance.
 
 ### 6. [Visual Analysis] Counter and Header Monitoring
 - **Hypothesis**: vc33 and ft09 both noted "clicks decrement counter" but didn't use it as a learning signal. Counters ARE the game's feedback mechanism.
@@ -90,10 +94,20 @@
 - **Strategy change**: Add to play_strategy.md: "NAVIGATION PROTOCOL for movement games: (1) ORIENT: Move one step in each direction to detect walls/boundaries and determine step size. (2) EXPLORE SYSTEMATICALLY: Pick a direction, move until blocked, then turn right (wall-following). This guarantees coverage of connected spaces. (3) TRACK POSITION: Note your position after each move (count steps from start). (4) WATCH FOR LANDMARKS: Different colored cells, special objects, or visual changes = potential goals or interactive points. (5) SCROLL AWARENESS: If the world scrolls (sp80), the map extends beyond your view — keep exploring in one direction to discover new areas. Don't assume the visible frame is the whole world."
 - **Expected impact**: Navigation games are 0/15 — the biggest gap. Wall-following alone solves many maze-type games. Position tracking prevents backtracking waste.
 
-### 17. [Strategy] Retry Failed Games With New Knowledge
-- **Hypothesis**: Early games (Exp 001-009) were played with the basic strategy BEFORE breakthroughs. The agent now has much better strategies (grid analysis, zone detection, counter monitoring). Replaying early failed games with current knowledge should convert some 0s to scores.
-- **Strategy change**: Add to play_strategy.md: "RETRY RULE: After playing all 25 games once, go back and retry the 0-score games — especially those where you gave up early (tr87=3 actions, ft09=5 actions, sc25=5 actions). Apply everything you've learned: grid analysis, zone detection, counter monitoring, action combinations. Early failures were with less knowledge."
-- **Expected impact**: Could convert 2-5 additional games from 0 to scored. The agent's skill has measurably improved since the early games.
+### 17. [Strategy] Retry Failed Games — Specific Replay Plan
+- **Hypothesis**: Early games were played before breakthroughs. Current strategies are much better. Prioritized replay targets below.
+- **Strategy change**: After finishing all 25, replay in this priority order:
+  1. **tr87** (3 actions) — symbol tiles. Apply grid parsing + zone detection. Was barely attempted.
+  2. **ft09** (5 actions) — pattern grid. Apply grid parsing + counter monitoring. Analogy/XOR patterns need numerical analysis.
+  3. **sc25** (5 actions) — barely attempted. Apply full exploration protocol.
+  4. **g50t** (5 actions) — barely attempted. Apply full exploration protocol.
+  5. **vc33** (7 actions) — counter game. Apply counter monitoring + systematic clicking.
+  6. **dc22** (7 actions) — barely attempted. Apply full exploration protocol.
+  7. **lp85** (0 actions!) — wasn't even attempted. Must play for real.
+  8. **m0r0** (1 action) — wasn't attempted. Must play for real.
+  9. **ar25** (16 actions) — multi-mechanic. Apply action combination testing + perform discovery.
+  10. **ls20** (16 actions) — navigation. Apply navigation protocol.
+- **Expected impact**: The lowest-action games have the most room to improve. Converting even 3-4 of these to scores would nearly double our score count.
 
 ---
 
