@@ -2180,3 +2180,47 @@ If the reachable maze has 500+ positions, the total state space is 1000+ states.
 **Dead ends updated:**
 - LS20 via arc CLI manual play: 3 experiments, all 0 score. Too complex for manual navigation.
 - The per-move wall detection protocol WORKS (exp 069 validated) but the maze topology is too complex for a human/LLM to navigate efficiently.
+
+### Exp 072-073: Major Maze Progress — Wall Identified, Corridor Needed (2026-03-29)
+
+**Exp 072 (verified prefix + DOWN path)**: 92 actions, 0 score.
+- Verified prefix R,U×4,L×3,U×2 reaches a DEAD END (small room at top of initial view)
+- All L/U/R blocked after prefix → must backtrack DOWN
+- Navigated D,D,R,D,D,R then DOWN further — player cycles between rows 25-45
+- Modifier stays at display row 32 throughout
+- **KEY: The "verified" prefix from stategraph DFS also dead-ended at this room. The DFS's path was suboptimal.**
+
+**Exp 073 (local search + bypass wall)**: 130 actions, 0 score. **CLOSEST TO MODIFIER YET.**
+- Shortened prefix L×3,U×3 avoids the dead-end room
+- Player reached **(24,35) with modifier at (20,32) — ONLY 4 COLS APART!**
+- **Wall at cols 29-33 on row 32 blocks the final approach**
+- Went DOWN far, LEFT around wall, UP — reached (14,25)
+- From (14,25): modifier at (20,32) is to the RIGHT+DOWN but wall blocks
+- Died from health drain trying D,R,D,R approach
+
+**Accumulated maze map (from exps 069-073):**
+```
+Start: (39,45)        Modifier: (19,30)        Goal: (34,10)
+
+Verified paths:
+- L×3,U×3 → reaches (24,35) area [exp 073]
+- R,U×4,L×3,U×2 → DEAD END [exp 072, don't use]
+- DOWN-LEFT-UP → reaches (14,25) [exp 073]
+
+Known walls:
+- Cols 29-33, around row 32 — separates player corridors from modifier
+- Top of initial view (dead end room after R,U×4,L×3,U×2)
+
+Unknowns:
+- WHERE does the wall at cols 29-33 END?
+- Is there a corridor connecting cols 34+ to cols 14-28?
+- Can the modifier be approached from BELOW (rows 40+)?
+```
+
+**Next steps (ranked by probability of success):**
+1. **Probe the wall from different rows**: From (24,35), go UP or DOWN along the wall, try LEFT at each row. The wall has a gap somewhere.
+2. **Approach from below**: From start, go DOWN×3-5 first (to rows 55+), then LEFT past the wall's bottom edge, then UP.
+3. **Wall-edge tracing**: Follow the wall edge UP or DOWN until finding the connecting corridor.
+4. **Stategraph DFS with 10000 actions**: Systematic exploration as parallel approach.
+
+**CORRECTION to my earlier recommendation**: The executor continued with manual arc CLI play despite my recommendation to switch to stategraph. And they've made MORE PROGRESS than the stategraph did — reaching within 4 cols of the modifier. The manual approach is viable; it just needs the right wall-bypass strategy. Keeping stategraph as fallback (#4) but prioritizing wall probing (#1-3).

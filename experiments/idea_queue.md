@@ -2,55 +2,57 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 071): Executor explicitly says "LS20 requires actual DFS with state tracking." That IS the stategraph agent. Stop manual arc CLI play for LS20 — use the stategraph with massive action budget (10000+). Exp 063 proved center hashing keeps the agent alive on LS20 (NOT_FINISHED with 2000 actions). The fix is simple: MORE ACTIONS. At 0.012s/action with no LLM, 10000 actions = ~2 minutes. ALL ideas are PLAY STRATEGY changes, NOT code changes.**
+**PHILOSOPHY (2026-03-29, post exp 073): VERY CLOSE to modifier! Player at (24,35), modifier at (20,32) — 4 cols apart but wall at cols 29-33 blocks. Need to find the corridor connecting cols 34+ to cols 14-28. Three approaches: (1) probe the wall from different rows to find a gap, (2) approach modifier from BELOW by going DOWN first from start, (3) stategraph DFS with 10000 actions as fallback. ALL ideas are PLAY STRATEGY changes, NOT code changes.**
 
 ---
 
-### 1. [Navigation] LS20: run stategraph agent with 10000 actions (not arc CLI)
-- **Hypothesis**: Exp 071 concluded "requires actual DFS with state tracking, not blind navigation." The stategraph agent IS actual DFS with state tracking. Exp 063 proved center hashing keeps the agent alive on LS20 (NOT_FINISHED, no death). 2000 actions wasn't enough — the maze is large. 10000 actions at 0.012s/action = 2 minutes. The DFS will systematically explore every reachable state. When the player steps on the modifier, the player sprite rotates → new frame hash → new state → DFS continues from post-modifier state → eventually reaches goal → level complete.
-- **Strategy change**: Update LS20 strategy: "For LS20, do NOT play via arc CLI. Instead, run the stategraph agent with a large budget: `uv run python -m arcagi3.runner --agent stategraph --game_id ls20 --max_actions 10000 --offline`. The DFS with center hashing will systematically explore the maze. This takes ~2 minutes. If 10000 isn't enough, try 50000 (~10 min)."
+### 1. [Navigation] LS20: probe the wall at cols 29-33 from different rows
+- **Hypothesis**: The wall at cols 29-33 (blocking modifier access) likely has a GAP at certain rows. Exp 073 hit the wall at row 32. Try rows 25, 28, 30, 34, 37, 40 — the gap might be above OR below. Mazes always have connecting corridors; the gap just needs to be found.
+- **Strategy change**: Add to LS20 strategy: "From position near (24,35): go DOWN or UP along the wall (moving parallel to cols 29-33) and try LEFT at each row. The wall has a gap somewhere — keep probing. Try at least 5 different rows above and below row 32. Each probe: move to new row, try LEFT. If LEFT works (52+ cells change), you're through the wall."
 - **Target game**: ls20
-- **Expected impact**: DFS should eventually find modifier→goal path. Even with 10000 actions, local score improves (levels solved 2→3 = score 0.6667→1.0).
+- **Expected impact**: Finding the gap puts the player on the modifier's side of the wall. Then ~2-3 more moves reach the modifier.
 
-### 2. [Navigation] LS20: if 10000 fails, try 50000 actions
-- **Hypothesis**: If 10000 actions isn't enough, the state space is very large. 50000 actions at 0.012s/action = 10 minutes. This should exhaustively cover any reachable maze.
-- **Strategy change**: "If 10000 fails: `--max_actions 50000`. At 0.012s/action this takes ~10 minutes."
+### 2. [Navigation] LS20: approach modifier from BELOW (start with DOWN, not UP)
+- **Hypothesis**: Exps 069-073 all went UP first and hit dead ends or the wall from above. What if the connecting corridor is BELOW the starting position? From start (39,45), go DOWN first, then LEFT past the wall's bottom edge, then UP to modifier (19,30). U-shaped path around the wall.
+- **Strategy change**: Add to LS20 strategy: "If probing the wall from above fails: try approaching from below. From start, go DOWN×3-5 (to rows 55-60+), then LEFT past cols 29-33, then UP toward modifier at row 30. The wall might not extend all the way down."
 - **Target game**: ls20
-- **Expected impact**: Near-exhaustive exploration of the state space.
+- **Expected impact**: Different approach angle may bypass the wall entirely.
 
-### 3. [Navigation] LS20: verify center hashing quality for maze navigation
-- **Hypothesis**: If huge budgets still don't solve LS20, the issue might be center hashing collapsing distinct positions. The 20×20 center region might look the same in different maze corridors, causing the DFS to think it's visited a state when it hasn't. Test: run with different hash sizes (10×10, 30×30, full grid minus status bar).
-- **Strategy change**: "If 50000 actions fails: the center hash might be collapsing states. Try changing the hash region size."
+### 3. [Navigation] LS20: systematic wall-edge tracing
+- **Hypothesis**: Once at the wall, trace along it (UP or DOWN) until finding the gap. This is guaranteed to find the corridor — just follow the wall edge.
+- **Strategy change**: Add to LS20 strategy: "When you hit the wall at cols 29-33: don't backtrack. Instead, move ALONG the wall (UP or DOWN) while periodically trying LEFT. You're tracing the wall's edge. Eventually you'll find the corridor that passes through. This is a wall-following strategy applied to a specific wall."
 - **Target game**: ls20
-- **Expected impact**: Identifies whether hashing quality is the blocker.
+- **Expected impact**: Systematic wall tracing guarantees finding the gap.
 
-### 4. [Navigation] LS20: after solving L1, optimize path for RHAE
-- **Hypothesis**: The stategraph's DFS solution path will be much longer than the human baseline (29 actions). But once the path is known (from the state graph), the executor can analyze it and find a shorter replay. The stategraph agent checkpoints, so the solution can be studied.
-- **Strategy change**: "After L1 is solved (even with 10000 actions), study the solution path. Identify the minimum-length sub-path that visits the modifier then goal. Replay just that sub-path for RHAE optimization."
+### 4. [Navigation] LS20: stategraph DFS with 10000 actions (parallel approach)
+- **Hypothesis**: While manual play has made great progress (within 4 cols of modifier), the stategraph DFS can explore systematically. Run `--max_actions 10000` as a parallel test. If it finds the path, the manual approach can be informed by the solution.
+- **Strategy change**: "As a parallel test: `uv run python -m arcagi3.runner --agent stategraph --game_id ls20 --max_actions 10000 --offline`. The DFS will systematically try every corridor including the gap around the wall."
 - **Target game**: ls20
-- **Expected impact**: Once the correct path is known, RHAE can be optimized by replaying it efficiently.
+- **Expected impact**: DFS should find the connecting corridor within 10000 actions.
 
-### 5. [Level Progression] LS20: multi-level data for L2-7
-- **Hypothesis**: After L1, apply the same stategraph DFS to L2-7. Known data per level:
-  - L2: start (29,40) → mod (49,45) → goal (14,40)
-  - L3: start (9,45) → mod (49,10) → goal (54,50)
-  - L4: start (54,5) → NO modifier → goal (9,5)
-  - L5-7: similar patterns
-- **Strategy change**: "If stategraph solves L1, it should automatically continue to L2+. The DFS approach works for any maze level."
+### 5. [Navigation] LS20: use exp 073 path as verified prefix for next attempt
+- **Hypothesis**: Exp 073's path L×3,U×3 reaches the general area. From there, the systematic wall probing begins. This prefix is VERIFIED to work and saves ~6 actions on subsequent attempts.
+- **Strategy change**: "Start with verified prefix: L,L,L,U,U,U (from exp 073). This reaches the area near (24,35). Then begin wall probing (idea #1)."
+- **Target game**: ls20
+- **Expected impact**: Saves 6 actions of exploration.
+
+### 6. [Navigation] LS20: after modifier, switch direction to goal at (34,10)
+- **Hypothesis**: After collecting modifier (player sprite ROTATES), goal is at (34,10) — to the RIGHT and UP from modifier (19,30). That's ~3 RIGHT + ~4 UP. The wall at cols 29-33 might need to be crossed AGAIN going RIGHT.
+- **Strategy change**: "After modifier collection (player rotates): switch priority to RIGHT > UP. Goal at (34,10) is RIGHT+UP from modifier. You'll need to cross back through the wall gap in the opposite direction."
+- **Target game**: ls20
+- **Expected impact**: Correct direction after modifier collection.
+
+### 7. [Level Progression] LS20: multi-level data for L2-7
+- **Hypothesis**: After L1, known data for subsequent levels.
+- **Strategy change**: "L2: start (29,40) → mod RIGHT+DOWN at (49,45) → goal LEFT at (14,40). L4: NO modifier → goal LEFT at (9,5)."
 - **Target game**: ls20 L2+
-- **Expected impact**: Each additional level adds weighted score.
+- **Expected impact**: Faster subsequent levels.
 
-### 6. [Level Progression] VC33 L3: don't click, conserve lives
-- **Hypothesis**: L3 is confirmed unsolvable (87 clicks = 0 PPS movement). Don't waste lives on L3.
-- **Strategy change**: "On VC33 L3, stop clicking immediately. Let session end as NOT_FINISHED."
+### 8. [Level Progression] VC33 L3: stop clicking, conserve lives
+- **Hypothesis**: L3 unsolvable. Don't click on L3.
+- **Strategy change**: "On L3, stop clicking immediately."
 - **Target game**: vc33 L3
-- **Expected impact**: Prevents GAME_OVER from random L3 clicks.
-
-### 7. [Action Efficiency] General: RHAE-aware budgeting
-- **Hypothesis**: For competition scoring, action efficiency matters. LS20 L1 baseline=29.
-- **Strategy change**: "After solving a level with DFS, study the path. Minimum path = best RHAE."
-- **Target game**: all
-- **Expected impact**: Optimizes competition score after initial solve.
+- **Expected impact**: Prevents GAME_OVER.
 
 ---
 
@@ -58,20 +60,24 @@
 
 - **Stategraph 019 (BREAKTHROUGH)**: Balance puzzle → score 0.3333.
 - **Stategraph 021 (IMPROVED)**: Trial-and-lock → score 0.6667.
-- **Stategraph 022-027**: vc33 L3 bar chart — 6 exps.
-- **Stategraph 028-045**: ls20 navigation — DFS solved (34-46 steps). Center hashing helps.
-- **Stategraph 048-062**: vc33 L3 — 14 experiments.
-- **Stategraph 063 (IMPROVED)**: Center hashing permanent. LS20 NOT_FINISHED with 2000 actions.
+- **Stategraph 022-070**: vc33 L3 — 20 experiments. CLOSED (unsolvable).
+- **Stategraph 063 (IMPROVED)**: Center hashing permanent.
 - **Executor 064-065**: VC33 L1=3, L2=14.
-- **Executor 066-069**: LS20 per-move protocol works but manual navigation too slow.
-- **Executor 070**: VC33 L3 CLOSED — unsolvable (30 positions, 0 PPS movement).
-- **Executor 071**: LS20 500-action smart nav fails. **"Requires actual DFS with state tracking."**
+- **Executor 066-071**: LS20 per-move protocol, batch, smart nav. All 0.
+- **Executor 072**: Verified prefix R,U×4,L×3,U×2 leads to DEAD END.
+- **Executor 073**: L×3,U×3 reaches (24,35). Modifier at (20,32) — 4 cols apart! **Wall at cols 29-33 blocks.** Need connecting corridor. Player also reached (14,25) by going DOWN-LEFT-UP. GAME_OVER from health.
 
 ## Dead Ends (Confirmed)
-- **VC33 L3 entirely**: 87 clicks across all positions = 0 PPS movement. UNSOLVABLE.
-- **LS20 via arc CLI manual play**: 3 experiments (066, 069, 071), all 0 score. Maze too complex for manual navigation. Use stategraph instead.
-- Batch moves on LS20 (invisible walls)
-- All local Qwen models for reasoning
-- ft09 game version broken
-- Position-based waypoints (tracking unreliable)
-- Hardcoded paths from source (collision model proprietary)
+- **VC33 L3**: UNSOLVABLE. 87 clicks = 0 PPS movement.
+- **LS20 verified prefix R,U×4,L×3,U×2**: Dead end (exp 072). Don't use this prefix.
+- **LS20 batch moves**: Invisible walls (exp 066)
+- ft09, Qwen models, position waypoints, hardcoded paths: all dead ends.
+
+## Key Maze Knowledge (accumulated from exps 069-073)
+- Start: (39,45). Modifier: (19,30). Goal: (34,10).
+- Wall at cols 29-33 around row 32 separates modifier from approach corridors
+- R,U×4,L×3,U×2 = dead end (small room at top)
+- L×3,U×3 reaches (24,35) near modifier but wall blocks
+- DOWN-LEFT-UP path reaches (14,25) — on modifier's side but too far from it
+- Health = 3 hearts, ~18 moves each. Deaths at 206-cell changes.
+- The connecting corridor around the wall has NOT been found yet
