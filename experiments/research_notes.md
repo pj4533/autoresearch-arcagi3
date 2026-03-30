@@ -268,6 +268,38 @@ Both su15 and sb26 solved L1 but failed L2. L2 mechanics changed (different patt
 ### Queue Trimmed to 15 Items
 Merged overlapping strategies, removed items superseded by breakthrough-derived ones. Queue is now tighter and more evidence-based.
 
+## 2026-03-30: Exp 014-015 + Gap Analysis
+
+### New Results
+- **Exp 014 (tn36)**: 11 actions, 0 score. Low-medium engagement.
+- **Exp 015 (wa30)**: 34 actions, 0 score. High engagement, no scoring — same pattern as bp35, ka59.
+
+### Running Totals: 15 games, 3 scored (20%)
+- Total actions: 297 (avg 19.8/game)
+- Wins: su15 (36 acts), sb26 (31 acts), re86 (22 acts)
+- All wins are click/puzzle/alignment games
+
+### Archetype Gap Analysis
+| Archetype | Wins | Total Games | Win Rate | Strategy Status |
+|-----------|------|-------------|----------|----------------|
+| Click/puzzle | 3 | ~5 | ~60% | Strong (grid parsing, zone detection) |
+| Navigation | 0 | ~3 (ls20, sp80, +?) | 0% | WEAK — added #16 |
+| Counter/logic | 0 | ~2 (vc33, ft09) | 0% | Moderate (#6 counter monitoring) |
+| Unknown detail | 0 | ~5 | 0% | Hard to analyze without descriptions |
+
+### Navigation Games = Biggest Strategic Gap
+Added #16 (Systematic Map Building) targeting ls20, sp80, and similar. Key techniques:
+- Wall-following heuristic
+- Position tracking (count steps from start)
+- Scroll awareness (world extends beyond visible frame)
+- Landmark detection
+
+### Retry Strategy
+Added #17 (Retry Failed Games). Early games were played with basic strategy before breakthroughs. Replaying them with current knowledge (grid analysis, zone detection, counter monitoring) should convert additional 0s.
+
+### Executor Activity
+Active session on m0r0 observed. Executor is working through games systematically but not adding detailed descriptions to recent log entries — makes research analysis harder.
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)

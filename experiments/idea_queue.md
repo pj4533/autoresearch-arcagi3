@@ -85,6 +85,16 @@
 - **Strategy change**: Add to play_strategy.md: "For click games: list all non-background objects by color and position. Click brightest/smallest/most isolated first (likely buttons). Map interactive vs decorative."
 - **Expected impact**: Combines old click-target and salience strategies. Validated by su15 approach.
 
+### 16. [Navigation] Systematic Map Building for Movement Games
+- **Hypothesis**: Navigation games (ls20, sp80) have 0 wins. The agent moves but has no spatial strategy. Systematic exploration (pick a direction, go until blocked, turn, repeat) builds a mental map that reveals goals, paths, and boundaries. Wall-following is a proven maze-solving heuristic.
+- **Strategy change**: Add to play_strategy.md: "NAVIGATION PROTOCOL for movement games: (1) ORIENT: Move one step in each direction to detect walls/boundaries and determine step size. (2) EXPLORE SYSTEMATICALLY: Pick a direction, move until blocked, then turn right (wall-following). This guarantees coverage of connected spaces. (3) TRACK POSITION: Note your position after each move (count steps from start). (4) WATCH FOR LANDMARKS: Different colored cells, special objects, or visual changes = potential goals or interactive points. (5) SCROLL AWARENESS: If the world scrolls (sp80), the map extends beyond your view — keep exploring in one direction to discover new areas. Don't assume the visible frame is the whole world."
+- **Expected impact**: Navigation games are 0/15 — the biggest gap. Wall-following alone solves many maze-type games. Position tracking prevents backtracking waste.
+
+### 17. [Strategy] Retry Failed Games With New Knowledge
+- **Hypothesis**: Early games (Exp 001-009) were played with the basic strategy BEFORE breakthroughs. The agent now has much better strategies (grid analysis, zone detection, counter monitoring). Replaying early failed games with current knowledge should convert some 0s to scores.
+- **Strategy change**: Add to play_strategy.md: "RETRY RULE: After playing all 25 games once, go back and retry the 0-score games — especially those where you gave up early (tr87=3 actions, ft09=5 actions, sc25=5 actions). Apply everything you've learned: grid analysis, zone detection, counter monitoring, action combinations. Early failures were with less knowledge."
+- **Expected impact**: Could convert 2-5 additional games from 0 to scored. The agent's skill has measurably improved since the early games.
+
 ---
 
 ## Completed
