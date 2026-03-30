@@ -30,6 +30,7 @@ env/
 .vscode/
 .idea/
 .cursor/
+.claude/
 *.swp
 *.swo
 *.sw?
