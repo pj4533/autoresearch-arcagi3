@@ -208,6 +208,9 @@ def cmd_end():
     # Auto-append to experiment log
     _auto_log_experiment(session)
 
+    # Auto-regenerate dashboard
+    _regenerate_dashboard()
+
     # Clean up
     Session.delete()
     print("\nSession ended.")
@@ -233,6 +236,19 @@ def cmd_info():
         print(f"Remaining: {remaining} actions")
     else:
         print("Remaining: unlimited")
+
+
+def _regenerate_dashboard():
+    """Auto-regenerate the static HTML dashboard."""
+    try:
+        import subprocess
+        subprocess.run(
+            [sys.executable, "generate_dashboard.py"],
+            capture_output=True, timeout=10,
+        )
+        print("Dashboard updated.")
+    except Exception:
+        pass  # Don't let dashboard failures break gameplay
 
 
 def _auto_log_experiment(session: Session):
