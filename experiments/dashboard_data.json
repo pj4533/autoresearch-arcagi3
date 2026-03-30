@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-30T00:36:26.970352+00:00",
+  "generated_at": "2026-03-30T00:39:57.133858+00:00",
   "summary": {
-    "total": 67,
-    "completed": 54,
+    "total": 68,
+    "completed": 55,
     "improved": 3,
-    "reverted": 50,
+    "reverted": 51,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -879,7 +879,20 @@
       "vc33": 2.0,
       "duration": "~60s",
       "status": "reverted",
-      "notes": "L1=3, L2=16. L3 y-scan: tried display coords (12, y) for y=50-58 \u2014 zero PPS movement. Tried x=6-14 at y=56 \u2014 zero. Then tried SCALED coordinates (24,112) = display*2. **PPS MOVED 2 rows after 30 clicks!** Confirms (24,112) hits btn[0] ~14% of time (matches exp 059). But 30 clicks = only ~4 successful hits, moving PPS 2-3 display pixels. Need ~8 more successful clicks but only 14 actions remained. **FINDING: use (24,112) as btn[0] coordinates, but need 60+ actions on btn[0] alone for full PPS movement (75 action budget insufficient after L1+L2+Phase1-2).**"
+      "notes": "L1=3, L2=16. L3 y-scan: tried display coords (12, y) for y=50-58 \u2014 zero PPS movement. Tried x=6-14 at y=56 \u2014 zero. Then tried SCALED coordinates (24,112) = display*2. PPS appeared to move 2 rows after 30 clicks. But see exp 068 \u2014 this was likely from a display-coord click, not scaled coords."
+    },
+    {
+      "id": "068",
+      "idea": "#6",
+      "description": "VC33 L3 full plan with 200 actions",
+      "avg_score": 0.6667,
+      "actions": 92,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~90s",
+      "status": "reverted",
+      "notes": "L1=3, L2=16, L3: P1 btn[6]\u00d712, P2 btn[4]\u00d74, P3 btn[0]\u00d757 at (24,112). **GAME OVER \u2014 0 PPS movement!** All 57 btn[0] clicks hit fCG bar (sprite overlap), consuming all 75 lives. CORRECTS exp 067: (24,112) does NOT move PPS. The apparent movement was from a display-coord click at (12,56) which changes fCG. **btn[0] is TRULY BROKEN at ALL coordinate systems.** L3 requires a fundamentally different approach (different button, different mechanic, or accept it as unsolvable)."
     }
   ],
   "running_best": [
@@ -903,6 +916,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
