@@ -2336,3 +2336,29 @@ The stategraph with center hashing (exp 063) survived 2000 actions WITHOUT DYING
 | **Total** | **0.6667** | **PLATEAU since exp 021 (56 exps)** | **Stategraph LS20** |
 
 Score plateau: 56 consecutive experiments (021-077) at 0.6667. 8 manual LS20 attempts, all 0 score, 3 proven blockers. The stategraph command remains the only path forward.
+
+### Exp 078: Stategraph Hash Includes Health Bar — DFS Broken (2026-03-29)
+
+**Exp 078 (stategraph 10000 actions)**: 10000 actions, 0 score. ALL actions were ACTION1 (move_up).
+
+**ROOT CAUSE: center 20×20 hash includes health bar pixels.** The health bar ticks 2 cells on EVERY action (from exp 069: 2 cells changed = blocked = health tick only). These 2 cells are within the center 20×20 hash region. Every action changes the hash → DFS sees "new state" → never backtracks to try other directions → 10000 × move_up.
+
+**Why exp 063 showed NOT_FINISHED but 0 score with 2000 actions:** Same root cause! The agent was doing 2000 × move_up. It survived because move_up from the start position is valid (moves the player up), but it only explored ONE direction. The "NOT_FINISHED" was misleading — the agent was alive but doing nothing useful.
+
+**Fix options (ranked by simplicity):**
+1. **Cell-change threshold**: Don't create new state if <10 cells changed. Health ticks (2 cells) and wall hits (2 cells) get filtered. Real moves (52+ cells) create new states. SIMPLEST — no need to identify health bar position. No pixel-level masking needed.
+2. **Mask health bar rows**: Identify which rows/cols within the center region contain the health bar. Exclude them from hash. Requires diagnosis via arc CLI grid diffing.
+3. **Smaller center region**: Hash 12×12 instead of 20×20. May avoid health bar but reduces state discrimination.
+4. **Full grid hash with status bar masking**: Hash entire 64×64 minus known status rows. Most robust but may reintroduce fog-of-war edge issues.
+
+**Recommended: Option 1 (cell-change threshold).** It's the simplest, requires no diagnosis of health bar position, and works for both the health tick (2 cells) and wall-hit (2 cells) cases. The threshold separates "noise" (<10 cells) from "real state changes" (52+ cells).
+
+**Updated project status (exp 078):**
+| Game | Score | Status | Next Step |
+|------|-------|--------|-----------|
+| vc33 | 2 levels (L1=3, L2=16) | CEILING — L3 unsolvable | None |
+| ls20 | 0 levels | Hash includes health bar → DFS broken | Fix hash, re-run 10000 actions |
+| ft09 | 0 levels | Game version broken | None |
+| **Total** | **0.6667** | **PLATEAU since exp 021 (57 exps)** | **Fix LS20 hash** |
+
+Score plateau: 57 consecutive experiments (021-078). The ONLY remaining blocker is the health bar in the stategraph's center hash. Once fixed, the DFS should explore properly and find the solution.
