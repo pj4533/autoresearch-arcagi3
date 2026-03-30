@@ -2,25 +2,27 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**Priority rationale (updated after Exp 019 — 3/19 scoring, 15.8%)**:
+**ALL 25 GAMES ATTEMPTED. Score: 3/25 unique (12%). Phase: RETRY.**
 
-> **RETRY UNSOLVED GAMES, NOT SCORED ONES**: sb26 and re86 have each been scored twice. The next score gain comes from converting 0s to 1s, not replaying known wins. Below is the priority retry list — these are all games where you used ≤7 actions and barely tried.
+> **STOP replaying su15/sb26/re86** — they've been scored 7 times total across 3 games. You know how to play them. The ONLY way to improve is converting NEW games from 0→1.
 >
-> **RETRY PRIORITY LIST (highest first):**
-> 1. **lp85** (0 actions) — wasn't even played
-> 2. **sk48** (0 actions) — wasn't even played
-> 3. **m0r0** (1 action) — barely started
-> 4. **tr87** (3 actions) — symbol tiles, apply grid parsing
-> 5. **ft09** (5 actions) — pattern grid, apply grid parsing + counter monitoring
-> 6. **sc25** (5 actions) — apply full protocol
-> 7. **g50t** (5 actions) — apply full protocol
-> 8. **cd82** (6 actions) — apply full protocol
-> 9. **dc22** (7 actions) — apply full protocol
-> 10. **vc33** (7 actions) — counter game, apply counter monitoring
+> **12 games had ≤7 actions — RETRY THESE WITH 15+ ACTIONS EACH:**
+> 1. **lp85** (0 actions!) — apply grid parsing, try ALL action types
+> 2. **sk48** (0 actions!) — apply grid parsing, try ALL action types
+> 3. **m0r0** (1 action) — apply full protocol
+> 4. **tr87** (3 actions) — symbol tiles with reference below = zone detection pattern
+> 5. **s5i5** (3 actions) — apply full protocol
+> 6. **ft09** (5 actions) — 4-quadrant pattern = grid parsing + counter monitoring
+> 7. **sc25** (5 actions) — apply full protocol
+> 8. **g50t** (5 actions) — apply full protocol
+> 9. **lf52** (5 actions) — apply full protocol
+> 10. **cd82** (6 actions) — apply full protocol
+> 11. **dc22** (7 actions) — apply full protocol
+> 12. **vc33** (7 actions) — counter game, apply counter monitoring
 >
-> **IRON RULE**: Take at least 15 actions on EVERY game. 0 actions = 0% chance of scoring.
+> **ON EVERY RETRY**: Take at least 15 actions. Use grid analysis. Test all action types. Try perform early. Look for zones (reference/workspace/toolbox). Check counters.
 >
-> **WHAT WORKS (3 unique wins)**: Mathematical grid parsing, zone detection, constraint satisfaction, multi-step action sequences.
+> **WHAT WORKS**: Grid parsing, zone detection, constraint satisfaction, select→apply sequences.
 
 ---
 

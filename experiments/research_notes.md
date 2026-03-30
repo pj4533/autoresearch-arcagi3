@@ -398,6 +398,49 @@ Moved the retry priority list to the TOP of the queue header for maximum visibil
 ### Premature Surrender: 10/22 unique games (45%)
 This is the single largest opportunity for improvement. If even 3 of these 10 games convert on retry with proper exploration, score jumps to 6/22 (27%).
 
+## 2026-03-30: First Pass Complete — All 25 Games Attempted
+
+### Final First-Pass Score: 3/25 unique games (12%)
+- **su15**: Click path following (scored 2x)
+- **sb26**: Color matching (scored 2x)
+- **re86**: Cross alignment (scored 3x)
+
+### Total Experiments: 29
+- 7 scored experiments across 3 unique games
+- 22 zero-score experiments across 22 unique games
+- 4 replay experiments on already-scored games (opportunity cost)
+
+### Game Outcome Distribution (25 unique games)
+
+| Category | Count | % | Games |
+|----------|-------|---|-------|
+| Scored | 3 | 12% | su15, sb26, re86 |
+| Premature surrender (≤7 actions) | 12 | 48% | lp85(0), sk48(0), m0r0(1), tr87(3), s5i5(3), ft09(5), sc25(5), g50t(5), lf52(5), cd82(6), dc22(7), vc33(7) |
+| High-engagement failure (16-40 actions) | 7 | 28% | cn04(16), ls20(16), ar25(16), sp80(22), ka59(28), wa30(34), tu93(34) |
+| Moderate-engagement failure (11-15 actions) | 3 | 12% | tn36(11), bp35(40), r11l(35) |
+
+Wait — bp35 (40) and r11l (35) belong in high-engagement. Let me correct:
+
+| Category | Count | % |
+|----------|-------|---|
+| Scored | 3 | 12% |
+| Premature surrender (≤7 acts) | 12 | 48% |
+| High-engagement failure (≥16 acts) | 9 | 36% |
+| Moderate (8-15 acts) | 1 | 4% |
+
+### Opportunity Analysis
+If the executor retries all 12 premature-surrender games with 15+ actions and current strategies:
+- **Conservative estimate**: 2-3 convert → 5-6/25 (20-24%)
+- **Optimistic estimate**: 4-5 convert → 7-8/25 (28-32%)
+
+Best candidates for conversion (have reference/pattern visual cues that grid parsing should crack):
+- **tr87**: Symbol tiles + reference pattern below = zone detection game. High potential.
+- **ft09**: 4-quadrant pattern grid = grid parsing target. High potential.
+- **vc33**: Counter game = counter monitoring target. Medium potential.
+
+### Replay Overhead
+The executor replayed scored games 4 times (Exp 021, 023, 025, 029), consuming ~136 actions. These could have been 3-4 retries of unsolved games instead.
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)
