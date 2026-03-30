@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-03-30T01:32:49.027363+00:00",
+  "generated_at": "2026-03-30T01:42:49.930522+00:00",
   "summary": {
-    "total": 75,
-    "completed": 62,
+    "total": 76,
+    "completed": 63,
     "improved": 3,
     "reverted": 58,
-    "baselines": 1,
+    "baselines": 2,
     "best_score": 0.6667,
     "best_experiment": "021"
   },
@@ -984,6 +984,19 @@
       "duration": "~90s",
       "status": "reverted",
       "notes": "**CRITICAL FINDING**: Player display-overlaps modifier (confirmed 3x: rows 30, cols 19-23 covers modifier at row 32, cols 20-22). Modifier disappears from grid when player is on it. But NO COLLECTION (sprite didn't rotate, 0 levels scored). Approached from all 4 directions, stepped through repeatedly. **ROOT CAUSE: display overlap \u2260 game position match.** Per exp 044: \"collection positions (16,28)/(31,8) are on 5px grid but differ from (19,30).\" The 5px movement grid lands on modifier's display area but NOT the game's actual collection trigger point. Manual CLI play fundamentally CANNOT solve the alignment problem."
+    },
+    {
+      "id": "076",
+      "idea": "#6",
+      "description": "VC33 L1+L2 optimized, L3 skipped",
+      "avg_score": 0.6667,
+      "actions": 19,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~20s",
+      "status": "baseline",
+      "notes": "VC33 L1=3 clicks, L2=16 clicks, L3 skipped (conserve lives per idea #6). Clean 19-action run. Score 0.6667 confirmed as CEILING for arc CLI play. **PLATEAU CONFIRMED**: VC33 L3 unsolvable (87 clicks=0), LS20 unsolvable via manual CLI (7 exps, alignment impossible). Only path forward: stategraph agent for LS20 (requires rule change to allow running Python agent). Waiting for researcher to update program rules or propose CLI-compatible ideas."
     }
   ],
   "running_best": [
@@ -1007,6 +1020,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
