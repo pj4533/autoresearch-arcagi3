@@ -81,27 +81,15 @@ uv run arc end
 
 **Always use `arc state --image` to SEE the game.** You have vision. Use it.
 
-## Replay Capture
+## Automatic Logging
 
-**After EVERY game, save replay data** so we can visualize what you did.
+**Everything is logged automatically.** When you run `arc end`, the CLI automatically:
+- Saves all frame PNGs for replay
+- Generates the replay JSONL file
+- Appends a row to experiments/log.md
+- Regenerates the dashboard
 
-For each step during gameplay:
-1. Run `uv run arc state --image` to capture the frame
-2. Save the replay frame:
-```bash
-uv run python save_replay_frame.py --exp NNN --game GAME_ID --step N \
-    --action "ACTION_DESCRIPTION" --reasoning "YOUR_REASONING" \
-    --score SCORE --state STATE
-```
-
-Do this BEFORE taking each action (capture the frame you're looking at, then act).
-
-After the game ends, regenerate the dashboard:
-```bash
-uv run python generate_dashboard.py
-git add experiments/
-git commit -m "Exp NNN: GAME_ID — [result]"
-```
+**You do NOT need to manually log, save replays, or update the dashboard.** Just play the game and run `arc end` when done.
 
 ## Experiment Loop
 
@@ -126,24 +114,14 @@ Follow the strategy in `play_strategy.md`. Use the generic approach:
 
 **Save replay frames as you play.**
 
-### 4. Log Results
-Append to `experiments/log.md`:
-```
-| NNN | game_id | [description] | [score] | [actions] | [duration] | [status] | [notes] |
-```
+### 4. End the Game
+Run `arc end`. Everything is logged automatically (experiment log, replay, dashboard).
 
 ### 5. Update Strategy (if you learned something)
 If you discovered a useful general heuristic, update `play_strategy.md`.
 Only update with GENERAL insights that apply across games, not game-specific tricks.
 
-### 6. Commit and Dashboard
-```bash
-uv run python generate_dashboard.py
-git add experiments/
-git commit -m "Exp NNN: GAME_ID — [result]"
-```
-
-### 7. Repeat
+### 6. Repeat
 Pick another game. **NEVER STOP.**
 
 ## Scoring
