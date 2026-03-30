@@ -2,94 +2,94 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**Priority rationale**: Top items (#1-5) form a "Systematic Discovery Protocol" — they address the core AI weakness of failing to learn from exploration. Items #6-10 add efficiency and failure recovery. Items #11-17 are advanced pattern recognition and specialist strategies.
+**Priority rationale (updated after Exp 001-006)**: All 6 games scored 0. Top failures: goal blindness (4/6), counter/indicator blindness (2/6), premature surrender (2/6). Reprioritized to address observed failures first. Top items now target the specific failure modes seen in actual gameplay.
 
 ---
 
-### 1. [Hypothesis Testing] Undo-Based Action Survey
+### 1. [Failure Recovery] Minimum Exploration Floor — Never Give Up Early
+- **Hypothesis**: Exp 006 (tr87) took only 3 actions, Exp 003 (ft09) only 5. This is far too few to learn anything about an unknown game. A minimum action floor prevents premature surrender.
+- **Strategy change**: Add to play_strategy.md: "MINIMUM EXPLORATION RULE: You MUST take at least 15 actions per game before concluding you can't solve it. Use the first 10-15 actions to systematically try every available action type and observe results. Games are solvable by humans — if you haven't figured it out, you haven't explored enough, not that it's unsolvable."
+- **Expected impact**: Directly fixes the worst failure mode — giving up after 3-5 actions. Exp 006 had 37 unused actions. Even random exploration with 37 more actions would have been more informative.
+
+### 2. [Visual Analysis] Counter and Header Monitoring
+- **Hypothesis**: Exp 002 (vc33) and Exp 003 (ft09) both noted "clicks decrement counter" but the agent didn't use this as a learning signal. Counters/headers ARE the game's feedback mechanism — they tell you whether your actions are productive.
+- **Strategy change**: Add to play_strategy.md: "COUNTER RULE: If the frame has any numerical indicators, counters, progress bars, or header text — these are your PRIMARY feedback signal. After each action, check: Did the counter go up, down, or stay the same? A counter going DOWN after a click might mean: (a) you have limited actions remaining, (b) you're solving the puzzle (countdown to win), or (c) you're making the wrong move. Test which by: clicking different objects and seeing which ones change the counter vs which don't."
+- **Expected impact**: Directly addresses failures in vc33 and ft09 where counters were noticed but not interpreted. Counter interpretation = understanding the game's feedback loop.
+
+### 3. [Pattern Recognition] Goal State Inference — "What Does Winning Look Like?"
+- **Hypothesis**: Exp 001 (ls20) "couldn't figure out goal," Exp 005 (sp80) "no scoring." The agent explores mechanics but never asks the fundamental question: what is the win condition? Forcing this question early focuses all subsequent actions.
+- **Strategy change**: Add to play_strategy.md: "GOAL QUESTION: Before your 5th action, explicitly answer: 'What do I think winning looks like in this game?' Look for: (a) A target location to reach. (b) A pattern to complete or match. (c) Objects to align, sort, or transform. (d) A counter to reach zero (or max). (e) A specific configuration to achieve. If you can't answer this after 10 actions, your exploration is unfocused — try performing/clicking on NEW objects to discover the win condition."
+- **Expected impact**: Goal identification is prerequisite for scoring. Without knowing what winning looks like, every action is random. This was the failure in 4/6 games.
+
+### 4. [Hypothesis Testing] Undo-Based Action Survey
 - **Hypothesis**: The biggest information bottleneck is not knowing what each action does. A systematic survey using undo to reset between tries gives maximum information per action cost.
 - **Strategy change**: Add to play_strategy.md: "Before doing anything else, try each available action exactly once, using undo after each. Record what changed. This costs 2 actions per action type (~14 actions total for 7 action types) but gives you a complete action-effect map."
-- **Expected impact**: Eliminates blind guessing across all game types. Every subsequent action is informed rather than exploratory.
+- **Expected impact**: Eliminates blind guessing across all game types. Would have helped on all 6 attempted games. Note: Exp 004 (ar25) found "undo costs actions" — if undo is expensive, do the survey WITHOUT undo and just accept the state changes.
 
-### 2. [Visual Analysis] Explicit Frame Differencing
-- **Hypothesis**: AI agents often gloss over visual changes. Forcing explicit before/after comparison after every action catches subtle changes humans notice instantly.
-- **Strategy change**: Add to play_strategy.md: "After EVERY action, compare the new frame to the previous one. Ask: What pixels/cells changed? What color did they become? Did anything appear/disappear? Did anything move? Describe the change in one sentence before choosing your next action."
-- **Expected impact**: Catches subtle feedback the agent currently misses — small score indicators, single-cell changes, border highlights. Helps across all 25 games.
+### 5. [Visual Analysis] Explicit Frame Differencing
+- **Hypothesis**: AI agents often gloss over visual changes. Exp 002 noted "no visible cell changes" but counter DID change — meaning something subtle changed that was missed.
+- **Strategy change**: Add to play_strategy.md: "After EVERY action, compare the new frame to the previous one. Ask: What pixels/cells changed? What color did they become? Did anything appear/disappear? Did anything move? Did any counter/number change? Describe the change in one sentence before choosing your next action."
+- **Expected impact**: Would have caught the counter changes in vc33/ft09. Also catches subtle cell changes the agent may have missed.
 
-### 3. [Efficiency] Two-Phase Budget System
+### 6. [Exploration] Action Combination Testing
+- **Hypothesis**: Exp 004 (ar25) had movement + perform + click. Many games require COMBINATIONS of actions (move to position, THEN perform; or click object, THEN move). Testing combinations reveals mechanics that individual actions don't.
+- **Strategy change**: Add to play_strategy.md: "After mapping individual actions, test COMBINATIONS: (a) Move to an object, then perform. (b) Click an object, then move. (c) Move to different positions and perform at each. (d) Click multiple objects in sequence. Many games require 2-3 action sequences to trigger effects. Single actions alone may do nothing."
+- **Expected impact**: Directly addresses ar25 and similar multi-mechanic games. Combinations are the hidden mechanic in complex games.
+
+### 7. [Efficiency] Two-Phase Budget System
 - **Hypothesis**: Agents waste actions by mixing exploration and execution. A clear budget forces the transition from learning to solving.
-- **Strategy change**: Add to play_strategy.md: "Split your actions into two explicit phases. Phase 1 (EXPLORE): Spend the first 25% of your action budget discovering what each action does and what the goal is. Phase 2 (EXECUTE): Spend the remaining 75% applying what you learned. When you enter Phase 2, STOP exploring and focus on efficient execution."
-- **Expected impact**: Prevents the common failure mode of endless exploration. Competition data shows efficiency is the scoring mechanism — action economy matters.
+- **Strategy change**: Add to play_strategy.md: "Split your actions into two explicit phases. Phase 1 (EXPLORE): Spend the first 30% of your action budget (e.g., 12 out of 40 actions) discovering what each action does and what the goal is. Phase 2 (EXECUTE): Spend the remaining 70% applying what you learned. When you enter Phase 2, STOP exploring and focus on efficient execution."
+- **Expected impact**: Prevents endless exploration without execution. Updated budget to 30/70 based on observed data — agents need slightly more exploration time than originally estimated.
 
-### 4. [Pattern Recognition] Goal State Inference from Visual Cues
-- **Hypothesis**: Many ARC games embed the goal visually — incomplete patterns, asymmetries, highlighted targets. Training the agent to look for these before acting reduces wasted exploration.
-- **Strategy change**: Add to play_strategy.md: "Before taking any action, analyze the frame for goal cues: (a) Is there an incomplete pattern that needs completing? (b) Are there two similar regions where one looks 'finished' and the other doesn't? (c) Is there a highlighted/colored target area? (d) Does the layout suggest a before/after comparison? Formulate a goal hypothesis BEFORE your first action."
-- **Expected impact**: Reduces exploration overhead on games where the goal is visually apparent. Humans do this instantly — they look before they leap.
-
-### 5. [Failure Recovery] Five-Action Stagnation Rule
-- **Hypothesis**: Agents get stuck repeating ineffective actions. A hard cutoff forces strategy switches and prevents action waste.
+### 8. [Failure Recovery] Five-Action Stagnation Rule
+- **Hypothesis**: Agents get stuck repeating ineffective actions. A hard cutoff forces strategy switches.
 - **Strategy change**: Add to play_strategy.md: "STAGNATION RULE: If 5 consecutive actions produce no visible frame change and no score change, you are doing the wrong thing. Immediately: (1) Stop current approach. (2) Try a completely different action type. (3) If you were moving, try clicking. If clicking, try movement. If both, try perform. (4) Target a different region of the grid."
-- **Expected impact**: Prevents the #1 failure mode observed in AI agents: repeating ineffective actions. Forces exploration of alternative mechanics.
-
-### 6. [Cross-Game Learning] Level Transition Knowledge Capture
-- **Hypothesis**: When advancing to a new level, agents forget what they learned. Explicitly carrying forward game mechanics saves re-exploration actions.
-- **Strategy change**: Add to play_strategy.md: "When you complete a level (GAME_OVER with score > 0), BEFORE starting the next level, write down: (1) What each action does in this game. (2) What the goal was. (3) What sequence solved it. Then apply this knowledge immediately to the next level — skip re-exploration and go straight to execution."
-- **Expected impact**: Levels in the same game share mechanics. Re-discovering them wastes 10-20 actions per level. This compounds across multi-level games.
-
-### 7. [Action Prioritization] Click-Target Identification for Click Games
-- **Hypothesis**: In click-based games, random clicking wastes many actions. Systematically identifying visually distinct objects and clicking them in order is far more efficient.
-- **Strategy change**: Add to play_strategy.md: "For games with click actions: (1) Identify all visually distinct objects (different colors, shapes, or patterns from background). (2) Click each one systematically, starting from top-left, moving right then down. (3) After each click, check if anything changed. (4) Build a map of which objects are interactive vs decorative."
-- **Expected impact**: Click games are common in ARC-AGI-3. Systematic targeting vs random clicking could reduce actions by 50%+ on these games.
-
-### 8. [Hypothesis Testing] Falsification Over Confirmation
-- **Hypothesis**: Agents tend to confirm their first hypothesis rather than testing alternatives. Deliberately falsifying hypotheses leads to faster convergence on correct understanding.
-- **Strategy change**: Add to play_strategy.md: "When you form a hypothesis about how the game works, your NEXT action should try to DISPROVE it, not confirm it. Example: If you think 'clicking blue things is the goal,' click a non-blue thing to see what happens. If your hypothesis survives falsification, it's more likely correct. If it fails, you've saved many wasted actions."
-- **Expected impact**: Faster convergence to correct game understanding. Prevents the costly failure mode of committing to a wrong hypothesis for many actions.
+- **Expected impact**: Prevents the #1 failure mode: repeating ineffective actions. Exp 005 (sp80) used 22 actions with 0 score — stagnation detection would have forced an earlier pivot.
 
 ### 9. [Visual Analysis] Structural Grid Analysis
-- **Hypothesis**: Many ARC games have structural elements (dividers, borders, zones) that define the playing field. Identifying these first narrows the search space.
+- **Hypothesis**: Many ARC games have structural elements (dividers, borders, zones). Exp 004 (ar25) "can't cross divider" — identifying structural elements tells you WHERE the game happens.
 - **Strategy change**: Add to play_strategy.md: "In your initial observation, identify STRUCTURAL elements: (a) Solid lines/borders that divide the grid into zones. (b) Uniform colored regions (likely background, not interactive). (c) Grid-within-grid patterns. (d) Repeating elements vs unique elements. Structural elements tell you WHERE the game happens. Focus your actions on the non-structural areas."
-- **Expected impact**: Reduces the clickable/movable search space significantly. Structural analysis is something humans do unconsciously but AI agents skip.
+- **Expected impact**: Would have helped on ar25 (divider identification) and ft09 (quadrant identification). Reduces search space.
 
-### 10. [Efficiency] Minimize Resets — Plan Before Resetting
-- **Hypothesis**: Resets cost an action and lose all progress. Agents reset too eagerly when stuck instead of trying alternative approaches.
-- **Strategy change**: Add to play_strategy.md: "RESET RULE: Never reset unless you have BOTH: (1) A clear reason the current state is unrecoverable, AND (2) A new strategy to try after resetting. Resetting without a new plan just repeats the same failure. Prefer undo (reverses one step) over reset (loses everything) when possible."
-- **Expected impact**: Saves 1+ actions per game on average. Resets are the most expensive "do nothing" action since they waste all prior progress.
+### 10. [Cross-Game Learning] Level Transition Knowledge Capture
+- **Hypothesis**: When advancing to a new level, agents forget what they learned. Carrying forward game mechanics saves re-exploration actions.
+- **Strategy change**: Add to play_strategy.md: "When you complete a level, BEFORE starting the next level, write down: (1) What each action does. (2) What the goal was. (3) What sequence solved it. Apply this immediately to the next level — skip re-exploration."
+- **Expected impact**: Compounds savings across multi-level games. Not yet relevant (no levels solved) but will be critical once scoring starts.
 
-### 11. [Exploration] Boundary and Corner Testing
-- **Hypothesis**: Game boundaries often reveal mechanics — walls, wrapping, teleportation, or boundary-triggered effects. Testing edges early reveals the game's spatial rules.
-- **Strategy change**: Add to play_strategy.md: "During exploration phase, test boundaries: (a) Move to each edge of the grid and see what happens. (b) Click on corner cells. (c) Try to move past boundaries — does it wrap, block, or trigger something? This reveals the game's spatial model efficiently."
-- **Expected impact**: Spatial rules are fundamental to many games. Understanding boundaries early prevents wasted actions bumping into walls or missing wrap-around mechanics.
+### 11. [Action Prioritization] Click-Target Identification for Click Games
+- **Hypothesis**: Exp 002 (vc33) and Exp 003 (ft09) are click-only games where random clicking wastes actions.
+- **Strategy change**: Add to play_strategy.md: "For click games: (1) Identify all visually distinct objects. (2) Click each systematically. (3) After each click, check counter/frame changes. (4) Map which objects are interactive vs decorative. (5) Focus subsequent clicks on interactive objects only."
+- **Expected impact**: Would reduce wasted actions in vc33, ft09, and other click-based games.
 
-### 12. [Pattern Recognition] Multi-Object Relationship Detection
-- **Hypothesis**: Many games involve relationships between objects (matching colors, mirroring positions, connecting dots). Detecting these relationships early reveals the game's logic.
-- **Strategy change**: Add to play_strategy.md: "After initial observation, ask: (a) Are there pairs of objects with the same color/shape? (b) Is there a spatial pattern (symmetry, alignment, grouping)? (c) Do objects seem to have a one-to-one correspondence? (d) Is there a source-target relationship? Relationship detection often reveals the goal faster than trial-and-error."
-- **Expected impact**: Many ARC puzzles are relationship-based. Detecting the relationship IS solving half the puzzle. Works across matching, sorting, connecting, and mirroring game types.
+### 12. [Hypothesis Testing] Falsification Over Confirmation
+- **Hypothesis**: Agents confirm their first hypothesis rather than testing alternatives. Deliberately falsifying leads to faster convergence.
+- **Strategy change**: Add to play_strategy.md: "When you form a hypothesis, your NEXT action should try to DISPROVE it. If your hypothesis survives falsification, it's more likely correct."
+- **Expected impact**: Faster convergence to correct game understanding. Prevents committing to wrong hypotheses.
 
 ### 13. [Action Prioritization] Perform-First Heuristic
-- **Hypothesis**: The "perform" action is often the key mechanic but agents try it last. Testing perform early on different objects could reveal the core game loop faster.
-- **Strategy change**: Add to play_strategy.md: "If 'perform' is available, try it EARLY — before extensive movement or clicking. Perform often triggers the main game mechanic (placing, activating, transforming). Try perform in your initial state, then after moving to different positions. Perform + position combinations are often the core of the game."
-- **Expected impact**: Perform is underexplored by most agents who default to movement. Many games require perform as the primary action.
+- **Hypothesis**: "Perform" is often the key mechanic but agents try it last. Exp 004 (ar25) has perform available but notes suggest movement was tried first.
+- **Strategy change**: Add to play_strategy.md: "If 'perform' is available, try it EARLY — before extensive movement or clicking. Perform often triggers the main game mechanic. Try perform at your starting position, then after moving to different spots."
+- **Expected impact**: Many games require perform as the primary action. Testing it early reveals the core game loop.
 
-### 14. [Failure Recovery] Game Type Reclassification
-- **Hypothesis**: When an agent's initial game type classification is wrong, all subsequent actions are wasted. Forcing periodic reclassification catches these errors.
-- **Strategy change**: Add to play_strategy.md: "Every 10 actions, reassess: Is your game type hypothesis still correct? If you've taken 10 actions with no progress, your classification is probably wrong. Re-examine the frame with fresh eyes: What if it's NOT a navigation game? What if clicking IS the mechanic? What if the goal is different from what you assumed?"
-- **Expected impact**: Prevents sustained commitment to wrong approaches. The periodic check costs nothing (it's just thinking) but can save dozens of wasted actions.
+### 14. [Exploration] State Novelty Seeking — Prioritize New Frames
+- **Hypothesis**: Track visited states to avoid cycles. Prioritize actions producing novel frames.
+- **Strategy change**: Add to play_strategy.md: "NOVELTY RULE: After each action, ask: Have I seen this frame before? Prioritize actions that produce NOVEL frames. Novelty = information. Repetition = waste."
+- **Expected impact**: Avoids cycling through visited states — the #1 failure in competition data.
 
-### 15. [Exploration] State Novelty Seeking — Prioritize New Frames
-- **Hypothesis**: The 3rd-place competition solution (graph-based explorer) succeeded by tracking visited states and prioritizing actions that lead to NEW states. An LLM agent can do the same by comparing frames: if an action produces a frame you've seen before, deprioritize that action path.
-- **Strategy change**: Add to play_strategy.md: "NOVELTY RULE: After each action, ask: Have I seen this frame before? If the frame looks identical to a previous state, you're going in circles. Prioritize actions that produce NOVEL frames — new arrangements, new colors, new object positions. Novelty = information. Repetition = waste."
-- **Expected impact**: Directly addresses the #1 failure mode from competition data: agents cycling through visited states. The winning approaches all had state-tracking to avoid this.
+### 15. [Visual Analysis] Visual Salience Prioritization
+- **Hypothesis**: Not all objects are equally interactive. Small, bright, isolated objects are most likely to be buttons/toggles.
+- **Strategy change**: Add to play_strategy.md: "SALIENCE RULE: Rank clickable objects by visual salience. Highest priority: small, brightly colored, isolated objects (likely buttons). Lowest: large uniform regions (likely background)."
+- **Expected impact**: Competition winner's core heuristic (17/25 levels solved).
 
-### 16. [Visual Analysis] Visual Salience Prioritization
-- **Hypothesis**: Competition winner's key insight: not all objects are equally likely to be interactive. Small, brightly-colored, isolated objects are far more likely to be buttons/toggles than large uniform regions. Prioritizing by visual salience dramatically reduces wasted clicks.
-- **Strategy change**: Add to play_strategy.md: "SALIENCE RULE for click games: Rank clickable objects by visual salience. Highest priority: small, brightly colored, isolated objects (likely buttons). Medium: objects that differ from their neighbors. Lowest: large uniform regions (likely background). Click in salience order, not spatial order."
-- **Expected impact**: The 3rd-place solution used this as its core heuristic and solved 17/25 levels. Visual salience is a strong prior for interactivity in puzzle games.
+### 16. [Failure Recovery] Game Type Reclassification
+- **Hypothesis**: Wrong initial classification wastes all subsequent actions. Exp 003 (ft09) "Analogy puzzle? XOR pattern?" — uncertainty in classification led to inaction.
+- **Strategy change**: Add to play_strategy.md: "Every 10 actions, reassess your game type hypothesis. If no progress, your classification is probably wrong. Re-examine with fresh eyes."
+- **Expected impact**: Catches wrong assumptions early, especially for ambiguous games like ft09.
 
 ### 17. [Exploration] Action-Effect Transition Mapping
-- **Hypothesis**: Building an explicit mental map of "in state A, action X leads to state B" allows planning multi-step solutions instead of one-step guessing. This is what the graph-based approaches do programmatically.
-- **Strategy change**: Add to play_strategy.md: "BUILD A TRANSITION MAP: As you explore, explicitly track: 'From [state description], action [X] caused [effect] and led to [new state].' After 5-10 actions, you should have a partial map of the game's state space. Use this map to PLAN sequences of actions to reach unexplored or desirable states, rather than trying actions one at a time."
-- **Expected impact**: Transforms exploration from memoryless trial-and-error into informed search. The top 3 competition solutions all used explicit state-transition tracking.
+- **Hypothesis**: Explicit state-transition maps enable multi-step planning instead of one-step guessing.
+- **Strategy change**: Add to play_strategy.md: "BUILD A TRANSITION MAP: Track 'From [state], action [X] → [new state].' Use this map to PLAN sequences rather than guessing."
+- **Expected impact**: Top 3 competition solutions all used explicit state-transition tracking.
 
 ---
 

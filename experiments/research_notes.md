@@ -110,6 +110,51 @@ These four should be tested early alongside #1 (action survey). Together they fo
 
 Orchestration games (multi-object coordination) are least covered. May need targeted strategies if these prove to be failure points.
 
+## 2026-03-30: First Results Analysis (Exp 001-006)
+
+### Results Summary
+ALL 6 games scored 0. Total actions used: 69 out of ~240 possible (40 per game). Agent is drastically underusing its action budget.
+
+### Failure Pattern Analysis
+
+| Pattern | Games | Frequency | Impact |
+|---------|-------|-----------|--------|
+| Goal blindness | ls20, sp80, ar25, tr87 | 4/6 (67%) | Can't score without knowing what winning is |
+| Counter/indicator blindness | vc33, ft09 | 2/6 (33%) | Feedback signal exists but is ignored |
+| Premature surrender | tr87 (3 acts), ft09 (5 acts) | 2/6 (33%) | Wastes most of action budget |
+| Movement-only focus | sp80 (22 acts, 0 score) | 1/6 (17%) | Keeps moving but never pivots strategy |
+| Multi-mechanic overwhelm | ar25 | 1/6 (17%) | Too many action types to figure out |
+
+### Key Insight: Agent Underexplores
+Average actions per game: 11.5. With 40 actions available, the agent is using only **29%** of its budget. The agent is TOO CONSERVATIVE with exploration — it gives up rather than continuing to try things.
+
+This is the OPPOSITE of the failure mode I predicted (endless exploration). The real problem is:
+1. Agent doesn't explore ENOUGH
+2. Agent doesn't know what WINNING looks like
+3. Agent ignores feedback signals (counters)
+4. Agent doesn't test action combinations
+
+### Queue Reprioritization
+Promoted to top 3:
+- **#1**: Minimum exploration floor (15 actions) — fixes premature surrender
+- **#2**: Counter/header monitoring — fixes feedback blindness
+- **#3**: Goal state inference — fixes goal blindness
+
+Demoted (still important but not the primary bottleneck):
+- Undo-based survey → #4
+- Frame differencing → #5
+
+Added new:
+- **#6**: Action combination testing — addresses multi-mechanic games like ar25
+
+### Game-Specific Observations (for pattern matching, NOT game-specific strategies)
+- **ls20**: Sliding block → navigation archetype. Movement works but goal unknown.
+- **vc33**: Click-only with counter → orchestration archetype. Counter IS the puzzle.
+- **ft09**: 4-quadrant pattern → logic archetype. Analogy/pattern completion likely.
+- **ar25**: Movement + perform + click → complex archetype. Dividers = structural boundaries.
+- **sp80**: Platformer with scrolling → navigation archetype. Large world beyond visible frame.
+- **tr87**: Symbol tiles → logic archetype. Agent gave up after 3 actions (too complex visually).
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)
