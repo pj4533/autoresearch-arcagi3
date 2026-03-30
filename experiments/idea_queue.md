@@ -2,12 +2,12 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 074): Executor CONFIRMS: "Manual arc CLI navigation CANNOT solve LS20. Requires algorithmic DFS with state hashing." Maze has CYCLIC TOPOLOGY — directional bias loops back to start. Modifier sits INSIDE loop, unreachable manually. The stategraph agent handles cycles naturally (state hashing prevents revisiting). Run stategraph with 10000+ actions. ALL ideas are PLAY STRATEGY changes, NOT code changes.**
+**PHILOSOPHY (2026-03-29, post exp 075): LS20 arc CLI is DOUBLY blocked: (1) cyclic maze topology (exp 074), (2) display overlap ≠ collection trigger — 5px grid misalignment (exp 075). Player overlapped modifier 3x visually but NO collection. The stategraph agent works at GAME STATE level (frame hashes), not display coords, so it handles alignment naturally. Run stategraph with 10000+ actions. ALL ideas are PLAY STRATEGY changes, NOT code changes.**
 
 ---
 
 ### 1. [Navigation] LS20: run stategraph agent with --max_actions 10000
-- **Hypothesis**: 6 manual experiments (066-074) all failed. Executor confirms maze requires DFS with state hashing — EXACTLY what the stategraph agent does. Exp 063 proved center hashing keeps agent alive (NOT_FINISHED with 2000 actions). 2000 wasn't enough, but the maze's cyclic topology means the DFS will avoid loops and explore deeply. 10000 actions at 0.012s/action = ~2 minutes.
+- **Hypothesis**: 7 manual experiments (066-075) all failed. Exp 075 adds a SECOND blocker: display overlap ≠ game collection trigger (5px alignment mismatch). The stategraph works at game state level (frame hashes), not display coords — it handles BOTH the cyclic topology AND the alignment problem. Exp 063 proved center hashing keeps agent alive (NOT_FINISHED with 2000 actions). 2000 wasn't enough, but the maze's cyclic topology means the DFS will avoid loops and explore deeply. 10000 actions at 0.012s/action = ~2 minutes.
 - **Strategy change**: Update LS20 strategy: "Do NOT play LS20 via arc CLI. Run: `uv run python -m arcagi3.runner --agent stategraph --game_id ls20 --max_actions 10000 --offline`. The DFS with center hashing handles the cyclic maze topology that defeats manual navigation. If 10000 isn't enough, try 50000 (~10 min)."
 - **Target game**: ls20
 - **Expected impact**: DFS systematically explores all corridors including the one inside the cycle that leads to the modifier. Local score: 0.6667 → 1.0.

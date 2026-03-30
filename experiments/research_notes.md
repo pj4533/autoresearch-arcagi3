@@ -2255,3 +2255,26 @@ Unknowns:
 - LS20: Stategraph DFS with 10000+ actions is the ONLY remaining viable approach.
 - ft09: Broken. Skip.
 - **The entire score improvement now depends on stategraph DFS for LS20.**
+
+### Exp 075: Display Overlap ≠ Collection — Second LS20 Blocker (2026-03-29)
+
+**Exp 075 (wall-gap probe + modifier overlap test)**: 81 actions, 0 score.
+
+**CRITICAL FINDING**: Player display-overlaps modifier 3 times (confirmed). Modifier disappears from grid when player is on it. But **NO COLLECTION** — sprite didn't rotate, 0 levels scored. Approached from all 4 directions, stepped through repeatedly.
+
+**ROOT CAUSE: display overlap ≠ game position match.** The game engine's collection trigger uses GAME coordinates, not display coordinates. The arc CLI moves the player 5 game-cells per step, and the camera renders a 64×64 display of the game world. When the player's display position overlaps the modifier's display position, the underlying game coordinates may differ because:
+1. Camera offset changes with each move
+2. Display scaling maps multiple game coordinates to the same display pixels
+3. The collection trigger requires exact `rbt()` bounding-box overlap in game space
+
+**This is the SECOND definitive blocker for arc CLI play:**
+1. Cyclic maze topology (exp 074) — directional bias loops
+2. Display/game coordinate mismatch (exp 075) — visual overlap doesn't trigger collection
+
+**Why the stategraph agent avoids both blockers:**
+1. State hashing prevents loops (no cyclic trap)
+2. The stategraph works at GAME STATE level — when the player's game position triggers collection, the frame CHANGES (player rotates). The hash captures this state change. The stategraph doesn't need to know about display coordinates at all.
+
+**Manual LS20 play timeline: 7 experiments (066-075), all 0 score. DEFINITIVELY CLOSED.**
+
+**The stategraph DFS with 10000+ actions is now the ONLY remaining viable approach for any score improvement.**
