@@ -2,6 +2,8 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
+**Priority rationale**: Top items (#1-5) form a "Systematic Discovery Protocol" — they address the core AI weakness of failing to learn from exploration. Items #6-10 add efficiency and failure recovery. Items #11-17 are advanced pattern recognition and specialist strategies.
+
 ---
 
 ### 1. [Hypothesis Testing] Undo-Based Action Survey

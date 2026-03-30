@@ -72,6 +72,44 @@ The top approaches all share three traits:
 
 These map directly to queue items #15 (novelty seeking), #16 (salience prioritization), and #17 (transition mapping). These should be high-priority additions to the play strategy.
 
+## 2026-03-30: Game Archetypes & Learning Gap Analysis
+
+### Three Game Archetypes (from ARC Prize 30-day report)
+1. **Agentic / Map-based** (e.g., ls20): Navigate a map, move objects, transform things at locations. Movement-heavy, spatial reasoning required.
+2. **Non-agentic / Logic** (e.g., ft09): Pattern matching, no avatar to control. Click or perform to manipulate the grid directly. Visual reasoning dominates.
+3. **Orchestration** (e.g., vc33): Multiple objects to manipulate simultaneously. Requires understanding relationships between objects and coordinating actions.
+
+### The Real Gap: Learning From Exploration
+ARC Prize data shows AI exhibits "persistent inefficiency even after environmental interaction." This means:
+- AI explores but **doesn't convert observations into usable strategy**
+- Humans show clear learning curves; AI doesn't
+- The problem isn't WHAT to explore, but HOW TO LEARN from exploration
+
+### Strategy Implications
+This shifts priority toward **learning-from-exploration** strategies:
+- **#2 (Frame differencing)** — forces explicit observation recording
+- **#6 (Level transition capture)** — forces knowledge carry-forward
+- **#17 (Transition mapping)** — forces structured learning
+- **#15 (State novelty)** — avoids repeating what you already know
+
+These four should be tested early alongside #1 (action survey). Together they form a "systematic discovery protocol" — explore systematically AND record what you learn.
+
+### 2nd Place: "Blind Squirrel" (State Graph + Pruning)
+- Built state graphs (like 3rd place)
+- Additionally **pruned non-productive actions** — actions that never cause change get dropped
+- Retrained value models during exploration
+- Score: 6.71%
+- Key lesson: pruning dead-end actions is as important as finding productive ones
+
+### Coverage Assessment of Current Queue
+| Archetype | Well-covered? | Key queue items |
+|-----------|--------------|----------------|
+| Agentic/Navigation | Yes | #1, #11, #13, #15, #17 |
+| Pattern/Logic | Moderate | #2, #4, #9, #12 |
+| Orchestration | Weakest | #12, #16 |
+
+Orchestration games (multi-object coordination) are least covered. May need targeted strategies if these prove to be failure points.
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)
