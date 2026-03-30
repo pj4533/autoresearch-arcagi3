@@ -54,10 +54,10 @@
 - **Strategy change**: Add to play_strategy.md: "TEST COMBINATIONS: (a) Click object, then perform. (b) Move to position, then perform. (c) Click object A, then click object B. (d) Click selector, then click target. Most games require 2-3 action sequences, not single actions."
 - **Expected impact**: Validated by 2/3 breakthroughs. Combinations are the core mechanic in most games.
 
-### 9. [Efficiency] Two-Phase Budget System
-- **Hypothesis**: Clear explore/execute split prevents endless exploration. Data shows 30% explore / 70% execute is about right.
-- **Strategy change**: Add to play_strategy.md: "Phase 1 (EXPLORE, ~30%): Map actions, identify goal, test combinations. Phase 2 (EXECUTE, ~70%): Apply what you learned efficiently."
-- **Expected impact**: Structure for action budgeting. Breakthroughs all switched cleanly from explore to execute.
+### 9. [Efficiency] Midpoint Reassessment for High-Engagement Failures
+- **Hypothesis**: 5 games used 28-40 actions and scored 0 (bp35, r11l, tu93, wa30, ka59). The agent persists but doesn't convert. At the midpoint of your budget, a forced reassessment could catch wrong hypotheses and redirect remaining actions.
+- **Strategy change**: Add to play_strategy.md: "MIDPOINT CHECK (at action 20 of 40): Stop and assess: (1) Do I understand what the goal is? If no — the next 20 actions should focus on goal discovery, not mechanics. (2) Am I closer to solving than at action 1? If no — I'm probably pursuing a wrong model. RESET my understanding and re-examine the frame. (3) Have I tried ALL available action types and combinations? If no — try the ones I haven't. (4) Can I state what perform does in this game? If no — test perform NOW. Don't spend the second half repeating the first half's failures."
+- **Expected impact**: Directly targets the 5 high-engagement failures. Forces strategic pivots at the midpoint instead of grinding through 40 actions with a wrong model.
 
 ### 10. [Failure Recovery] Stagnation Rule + Reclassification
 - **Hypothesis**: 5+ actions with no change = wrong approach. Also, every 10 actions, reassess game type hypothesis.

@@ -336,6 +336,47 @@ tu93 used 34 actions (85% of budget) and still scored 0. Same pattern as bp35 (4
 - Navigation/spatial puzzles requiring systematic exploration
 - The agent explores randomly rather than systematically
 
+## 2026-03-30: Exp 020-021 — Retry Validation + Two Failure Modes
+
+### New Results
+- **Exp 020 (r11l)**: 35 actions, 0 score. Another high-engagement failure.
+- **Exp 021 (sb26)**: 33 actions, **score 1**. RETRY SUCCESS — sb26 scored again!
+
+### Retry Strategy Validated
+sb26 was retried and scored again. This proves that:
+1. Retrying with accumulated knowledge works
+2. The executor IS entering retry mode organically
+3. Queue item #17 (replay plan) is the right approach
+
+### Play Strategy Evolving Organically
+Executor added game-type-specific heuristics:
+- sb26 replay efficiency (9 actions for level 1)
+- Perform meaning varies (submit vs switch)
+- Multi-object control switching
+- Cross-alignment constraint solving
+
+These are incremental learnings, not the systematic protocols from the queue — but they're evidence of skill accumulation.
+
+### Two Distinct Failure Modes Now Clear
+
+**Mode A: Premature Surrender (42% of games)**
+- ≤7 actions, agent gives up
+- Fix: Minimum exploration floor (#5)
+- Prediction: 3-4 would convert to scores with 15+ actions
+
+**Mode B: Grinding Without Progress (26% of games)**
+- 28-40 actions, agent persists but can't solve
+- Fix: Midpoint reassessment (#9, new)
+- Prediction: 1-2 might convert with better midpoint pivoting
+
+**Mode C: Successful (16% of games)**
+- Agent identifies mechanics, executes efficiently, scores
+- Pattern: grid analysis + multi-step sequences + clear goal identification
+
+### Remaining Games
+5 untried: cn04, lf52, s5i5, sk48, cd82
+3 unique games scored: su15, sb26, re86
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)
