@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-03-30T00:39:57.133858+00:00",
+  "generated_at": "2026-03-30T00:42:52.538061+00:00",
   "summary": {
-    "total": 68,
-    "completed": 55,
+    "total": 69,
+    "completed": 56,
     "improved": 3,
-    "reverted": 51,
+    "reverted": 52,
     "baselines": 1,
     "best_score": 0.6667,
     "best_experiment": "021"
@@ -893,6 +893,19 @@
       "duration": "~90s",
       "status": "reverted",
       "notes": "L1=3, L2=16, L3: P1 btn[6]\u00d712, P2 btn[4]\u00d74, P3 btn[0]\u00d757 at (24,112). **GAME OVER \u2014 0 PPS movement!** All 57 btn[0] clicks hit fCG bar (sprite overlap), consuming all 75 lives. CORRECTS exp 067: (24,112) does NOT move PPS. The apparent movement was from a display-coord click at (12,56) which changes fCG. **btn[0] is TRULY BROKEN at ALL coordinate systems.** L3 requires a fundamentally different approach (different button, different mechanic, or accept it as unsolvable)."
+    },
+    {
+      "id": "069",
+      "idea": "#1",
+      "description": "LS20 per-move wall detection protocol",
+      "avg_score": 0.6667,
+      "actions": 45,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "~90s",
+      "status": "reverted",
+      "notes": "**Wall detection WORKS**: 2 cells changed = blocked (health tick only), 52+ cells = real move. Protocol verified. But navigation still too slow: 45 actions yielded only ~20 real moves, rest blocked by walls. Maze has many dead ends. Player navigated L\u00d75, U\u00d76 from start but modifier still not visible. Need either: (a) much larger action budget (500+), (b) pre-computed path from maze analysis, or (c) death-replay strategy across multiple lives."
     }
   ],
   "running_best": [
@@ -916,6 +929,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
