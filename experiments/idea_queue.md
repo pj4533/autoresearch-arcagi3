@@ -4,13 +4,23 @@
 
 **Priority rationale (updated after Exp 019 — 3/19 scoring, 15.8%)**:
 
-> **URGENT — PREMATURE SURRENDER IS CRITICAL**: lp85=0 actions, m0r0=1 action, g50t=5 actions. 42% of games have ≤7 actions. The minimum exploration floor (#5) MUST be adopted immediately — it's the single highest-impact change. You cannot score a game you don't play.
+> **RETRY UNSOLVED GAMES, NOT SCORED ONES**: sb26 and re86 have each been scored twice. The next score gain comes from converting 0s to 1s, not replaying known wins. Below is the priority retry list — these are all games where you used ≤7 actions and barely tried.
 >
-> **PHASE SHIFT NEEDED**: Only 6 games remain untried. After finishing the first pass, RETRY failed games with improved strategies. Early games (Exp 001-009) were played before breakthroughs — replaying them should yield new scores.
+> **RETRY PRIORITY LIST (highest first):**
+> 1. **lp85** (0 actions) — wasn't even played
+> 2. **sk48** (0 actions) — wasn't even played
+> 3. **m0r0** (1 action) — barely started
+> 4. **tr87** (3 actions) — symbol tiles, apply grid parsing
+> 5. **ft09** (5 actions) — pattern grid, apply grid parsing + counter monitoring
+> 6. **sc25** (5 actions) — apply full protocol
+> 7. **g50t** (5 actions) — apply full protocol
+> 8. **cd82** (6 actions) — apply full protocol
+> 9. **dc22** (7 actions) — apply full protocol
+> 10. **vc33** (7 actions) — counter game, apply counter monitoring
 >
-> **WHAT WORKS (3 wins)**: Mathematical grid parsing, zone detection, constraint satisfaction, multi-step action sequences. All wins use numerical coordinate analysis.
+> **IRON RULE**: Take at least 15 actions on EVERY game. 0 actions = 0% chance of scoring.
 >
-> **BIGGEST GAPS**: (1) Premature surrender — 42% of games get <8 actions. (2) Navigation games — 0 wins. (3) Counter/logic games — 0 wins.
+> **WHAT WORKS (3 unique wins)**: Mathematical grid parsing, zone detection, constraint satisfaction, multi-step action sequences.
 
 ---
 

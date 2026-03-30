@@ -377,6 +377,27 @@ These are incremental learnings, not the systematic protocols from the queue —
 5 untried: cn04, lf52, s5i5, sk48, cd82
 3 unique games scored: su15, sb26, re86
 
+## 2026-03-30: Exp 022-024 — Replay vs Retry Mismatch
+
+### New Results
+- Exp 022 (sk48): 0 actions, score 0. Third zero-action non-attempt.
+- Exp 023 (re86): 31 actions, **score 1**. re86 scored on retry (second time).
+- Exp 024 (cd82): 6 actions, score 0. Premature surrender.
+
+### Key Issue: Executor Replaying Wins Instead of Retrying Failures
+The executor has replayed sb26 and re86 (both already scored) instead of retrying the 10 premature-surrender games. This is safe but doesn't expand coverage. The next score gain requires converting NEW games from 0→1.
+
+Moved the retry priority list to the TOP of the queue header for maximum visibility.
+
+### Score Summary: 24 Experiments, 3 Unique Wins (13.6%)
+- su15: scored 1x
+- sb26: scored 2x (original + retry)
+- re86: scored 2x (original + retry)
+- Everything else: 0
+
+### Premature Surrender: 10/22 unique games (45%)
+This is the single largest opportunity for improvement. If even 3 of these 10 games convert on retry with proper exploration, score jumps to 6/22 (27%).
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)
