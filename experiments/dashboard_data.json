@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-30T02:54:12.340621+00:00",
+  "generated_at": "2026-03-30T03:03:22.009330+00:00",
   "summary": {
     "total": 78,
     "completed": 65,
@@ -1022,7 +1022,7 @@
       "vc33": 2.0,
       "duration": "~180s",
       "status": "reverted",
-      "notes": "Ran stategraph via `arcagi3.runner` (fixed: must open scorecard first). All 10000 actions = ACTION1. **CORRECTED ROOT CAUSE (verified empirically):** center 20\u00d720 hash is CONSTANT \u2014 fog-of-war (gray 5s) dominates, hash identical for ALL positions. DFS records all 4 actions \u2192 same hash H, then fallback always picks ACTION1. Lower region hash changes every action (health bar), also unusable. **Fix: hash rows 25-55 cols 14-54 (game content area, excluding fog + health bar). Requires code change to `_hash_frame()` in stategraph agent.**"
+      "notes": "Ran stategraph via `arcagi3.runner` (fixed: must open scorecard first). All 10000 actions = ACTION1. **ROOT CAUSE (grid diff verified):** center 20\u00d720 = rows 22-41 = pure fog-of-war (all gray 5s). Player moves in rows 45-55 (BELOW hash region). Health bar ticks at row 61 col 13 (also outside). Hash is IDENTICAL for all states \u2192 DFS sees one state \u2192 after trying all 4 actions, fallback always picks ACTION1. **Fix: `_hash_frame()` must use rows 35-60 instead of center 20\u00d720 to capture player+maze area. Or hash full grid minus rows 0-7 and 61-63.**"
     }
   ],
   "running_best": [
