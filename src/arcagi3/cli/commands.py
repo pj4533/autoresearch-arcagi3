@@ -1,10 +1,16 @@
 """Command implementations for the ARC CLI."""
+import json
+import os
 import sys
+from pathlib import Path
 from typing import Optional
 
 from arcagi3.cli.backends.base import ACTION_MAP, GameBackend
 from arcagi3.cli.frame_renderer import render_frame_text, save_frame_image
 from arcagi3.cli.session import Session, SESSION_DIR
+
+REPLAY_DIR = Path("experiments/replays")
+REPLAY_FRAMES_DIR = REPLAY_DIR / "frames"
 
 
 def _create_backend(backend_mode: str) -> GameBackend:
@@ -91,6 +97,9 @@ def cmd_start(game_id: str, backend_mode: str, max_actions: int):
     )
     print(output)
 
+    # Auto-save initial frame for replay
+    _save_replay_frame(session, frame, is_initial=True)
+
 
 def cmd_action(action_name: str, x: int = 0, y: int = 0, image: bool = False):
     """Execute a game action."""
@@ -137,6 +146,9 @@ def cmd_action(action_name: str, x: int = 0, y: int = 0, image: bool = False):
         img_path = f"{SESSION_DIR}/frame.png"
         save_frame_image(frame, img_path)
         print(f"\nFrame saved to {img_path}")
+
+    # Auto-save replay frame
+    _save_replay_frame(session, frame)
 
 
 def cmd_state(image: bool = False):
@@ -190,6 +202,12 @@ def cmd_end():
             else:
                 print(f"  {i}. {name}")
 
+    # Auto-generate replay JSONL
+    _finalize_replay(session)
+
+    # Auto-append to experiment log
+    _auto_log_experiment(session)
+
     # Clean up
     Session.delete()
     print("\nSession ended.")
@@ -215,3 +233,117 @@ def cmd_info():
         print(f"Remaining: {remaining} actions")
     else:
         print("Remaining: unlimited")
+
+
+def _auto_log_experiment(session: Session):
+    """Auto-append a row to experiments/log.md."""
+    try:
+        log_path = Path("experiments/log.md")
+        if not log_path.exists():
+            return
+
+        # Determine next experiment number
+        text = log_path.read_text()
+        lines = text.strip().split("\n")
+        exp_num = 1
+        for line in lines:
+            if line.startswith("|") and not line.startswith("| Exp") and "---" not in line:
+                parts = [p.strip() for p in line.split("|") if p.strip()]
+                if parts:
+                    try:
+                        exp_num = max(exp_num, int(parts[0]) + 1)
+                    except ValueError:
+                        pass
+
+        game_base = session.game_id.split("-")[0] if "-" in session.game_id else session.game_id
+        status = "scored" if session.current_score > 0 else "attempted"
+        state = session.current_state
+
+        row = (
+            f"| {exp_num:03d} | {game_base} | "
+            f"arc CLI play | {session.current_score} | {session.action_count} | "
+            f"— | {status} | {state} |"
+        )
+
+        with open(log_path, "a") as f:
+            f.write(row + "\n")
+
+        print(f"\nLogged as exp {exp_num:03d} in experiments/log.md")
+
+    except Exception as e:
+        print(f"\nWarning: Could not auto-log: {e}", file=sys.stderr)
+
+
+def _get_replay_session_id(session: Session) -> str:
+    """Generate a replay session ID from game_id and card_id."""
+    game_base = session.game_id.split("-")[0] if "-" in session.game_id else session.game_id
+    card_short = (session.card_id or "local")[:8]
+    return f"{game_base}_{card_short}"
+
+
+def _save_replay_frame(session: Session, frame, is_initial: bool = False):
+    """Auto-save a frame PNG to the replay directory."""
+    try:
+        REPLAY_FRAMES_DIR.mkdir(parents=True, exist_ok=True)
+        session_id = _get_replay_session_id(session)
+        step = 0 if is_initial else session.action_count
+        frame_filename = f"{session_id}_step{step:03d}.png"
+        frame_path = REPLAY_FRAMES_DIR / frame_filename
+        save_frame_image(frame, str(frame_path))
+    except Exception:
+        pass  # Don't let replay failures break gameplay
+
+
+def _finalize_replay(session: Session):
+    """Generate replay JSONL from session action history + saved frames."""
+    try:
+        REPLAY_DIR.mkdir(parents=True, exist_ok=True)
+        session_id = _get_replay_session_id(session)
+        replay_file = REPLAY_DIR / f"{session_id}.jsonl"
+
+        entries = []
+
+        # Initial frame (step 0)
+        frame_filename = f"{session_id}_step000.png"
+        frame_path = REPLAY_FRAMES_DIR / frame_filename
+        entries.append({
+            "step": 0,
+            "action": "(initial state)",
+            "reasoning": "",
+            "score": 0,
+            "state": "NOT_FINISHED",
+            "frame_path": f"frames/{frame_filename}" if frame_path.exists() else None,
+        })
+
+        # Each action
+        score_so_far = 0
+        for i, action_entry in enumerate(session.action_history, 1):
+            action_name = action_entry.get("action_name", "unknown")
+            x = action_entry.get("x", 0)
+            y = action_entry.get("y", 0)
+
+            if action_name == "click":
+                action_desc = f"click --x {x} --y {y}"
+            else:
+                action_desc = action_name
+
+            frame_filename = f"{session_id}_step{i:03d}.png"
+            frame_path = REPLAY_FRAMES_DIR / frame_filename
+
+            entries.append({
+                "step": i,
+                "action": action_desc,
+                "reasoning": "",  # Claude Code's reasoning isn't captured in CLI
+                "score": session.current_score if i == len(session.action_history) else score_so_far,
+                "state": session.current_state if i == len(session.action_history) else "NOT_FINISHED",
+                "frame_path": f"frames/{frame_filename}" if frame_path.exists() else None,
+            })
+
+        with open(replay_file, "w") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+
+        print(f"\nReplay saved: {replay_file} ({len(entries)} frames)")
+
+    except Exception as e:
+        print(f"\nWarning: Could not save replay: {e}", file=sys.stderr)
