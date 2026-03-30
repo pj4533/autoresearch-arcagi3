@@ -84,11 +84,22 @@ class StateGraphAgent(MultimodalAgent):
                 context.datastore[key] = default
 
     def _hash_frame(self, grid: List[List[int]]) -> str:
-        """Hash frame grid, masking status bar rows."""
+        """Hash frame grid using center region for fog-of-war games.
+
+        LS20 has fog-of-war (pixels >20 from center = constant color 5).
+        Hash center 20x20 to capture actual position while ignoring static edges.
+        Also avoids status bar interference.
+        """
         if not grid:
             return "empty"
-        inner = grid[STATUS_BAR_ROWS:-STATUS_BAR_ROWS] if len(grid) > 2 * STATUS_BAR_ROWS else grid
-        return hashlib.md5(str(inner).encode()).hexdigest()[:16]
+        rows = len(grid)
+        cols = len(grid[0]) if rows else 0
+        r_start = max(0, rows // 2 - 10)
+        r_end = min(rows, rows // 2 + 10)
+        c_start = max(0, cols // 2 - 10)
+        c_end = min(cols, cols // 2 + 10)
+        center = [row[c_start:c_end] for row in grid[r_start:r_end]]
+        return hashlib.md5(str(center).encode()).hexdigest()[:16]
 
     def _get_available_actions(self, context: SessionContext) -> List[str]:
         """Get list of available ACTION names."""

@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-03-29T23:52:35.085007+00:00",
+  "generated_at": "2026-03-30T00:04:00.019492+00:00",
   "summary": {
-    "total": 62,
-    "completed": 49,
-    "improved": 2,
+    "total": 63,
+    "completed": 50,
+    "improved": 3,
     "reverted": 46,
     "baselines": 1,
     "best_score": 0.6667,
@@ -815,6 +815,19 @@
       "duration": "4s",
       "status": "reverted",
       "notes": "Researcher identified sprite overlap: fCG bar overlaps btn[0] xQZ. Tried offset clicks at (26,114) and (24,114) to avoid overlap. Neither worked. fCG is independent (no chain path), so btn[0] is the ONLY way to move PPS. 16 experiments on VC33 L3 total. btn[0] remains completely unreliable regardless of coordinates."
+    },
+    {
+      "id": "063",
+      "idea": "#2",
+      "description": "LS20 center hashing + 2000 actions DFS",
+      "avg_score": 0.6667,
+      "actions": 4000,
+      "ls20": 0.0,
+      "ft09": 0.0,
+      "vc33": 2.0,
+      "duration": "103s",
+      "status": "improved",
+      "notes": "Applied center 20\u00d720 hashing permanently. ls20 2000 actions: NOT_FINISHED (no death, better exploration) but still score 0 \u2014 maze too large for undirected DFS. vc33 no regression (still 2). Center hashing ACCEPTED as permanent improvement."
     }
   ],
   "running_best": [
@@ -838,6 +851,7 @@
     0.0,
     0.3333,
     0.3333,
+    0.6667,
     0.6667,
     0.6667,
     0.6667,
