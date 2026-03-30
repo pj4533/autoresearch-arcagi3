@@ -6,11 +6,12 @@
 
 ---
 
-### 1. [Navigation] LS20: fix stategraph hash region to rows 25-55, cols 14-54, then re-run 10000 actions
-- **DIAGNOSIS (exp 078, corrected)**: Center 20×20 hash is CONSTANT for LS20 — fog-of-war fills the center with gray (color 5), making every position hash identically. DFS records all 4 directions → same hash H → fallback always picks ACTION1. Result: 10000 × move_up.
-- **THE FIX**: Hash rows 25-55, cols 14-54 instead of the center 20×20. This region captures the game content (visible maze within the fog-of-war circle) while excluding:
-  - Fog-of-war edges (rows 0-24, 56-63 and cols 0-13, 55-63 are mostly gray 5s)
-  - Health bar (in the status area, outside this region)
+### 1. [Navigation] LS20: fix stategraph hash region to rows 35-60, then re-run 10000 actions
+- **DIAGNOSIS (exp 078, grid-diff verified)**: Center 20×20 hash = rows 22-41 = pure fog-of-war (all gray 5s). Player moves in rows 45-55 (BELOW the hash region). Health bar at row 61 col 13 (also outside). Hash is IDENTICAL for all states → DFS always picks ACTION1. 10000 × move_up.
+- **THE FIX**: Hash rows 35-60 instead of center 20×20. This captures the player+maze area. Alternatively: hash full grid minus rows 0-7 and 61-63 (status bars). Key data from grid diff:
+  - Rows 22-41: fog-of-war (gray 5s) — CONSTANT, useless for hashing
+  - Rows 45-55: player + maze content — CHANGES with movement
+  - Row 61, col 13: health bar tick — exclude
 - **AFTER FIX**: Re-run `uv run python -m arcagi3.runner --agent stategraph --game_id ls20 --max_actions 10000 --offline`. With proper state distinction, the DFS will explore all 4 directions at each state.
 - **Target game**: ls20
 - **Expected impact**: Proper DFS → finds modifier→goal path → score 0.6667→1.0.
