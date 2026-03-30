@@ -1318,12 +1318,16 @@ function switchView(view) {{
   }}
 }}
 
-// --- Countdown timer ---
+// --- Countdown timer (only auto-refresh on Progress tab) ---
 setInterval(() => {{
   countdown--;
   if (countdown <= 0) {{
     countdown = 30;
-    location.reload();
+    // Only reload if on the Progress tab — don't interrupt Details or Replays
+    const activeView = document.querySelector('.view.active');
+    if (activeView && activeView.id === 'progress-view') {{
+      location.reload();
+    }}
   }}
   document.getElementById('countdown').textContent = countdown;
 }}, 1000);
