@@ -4,6 +4,14 @@
 
 **Humans solve every single one of these games. All 25 of them. They are designed as a test for AI — not as impossible challenges. If you can't solve a game, the problem is your approach, not the game. Try a different strategy. Never give up. Never declare a game unsolvable.**
 
+## THE REAL COMPETITION HAS UNSEEN GAMES
+
+**The 25 games you have are the PUBLIC set. The actual competition will include additional PRIVATE games you have never seen.** This means:
+- **DO NOT memorize game-specific solutions.** If your strategy only works because you've seen this game before, it will fail on new games.
+- **DO NOT build game-specific knowledge.** "vc33 is a balance puzzle" is useless for a new game.
+- **DO focus on LEARNING strategies.** How do you figure out an unknown game? How do you efficiently discover rules? How do you go from zero understanding to solving levels?
+- **Treat every game as if you're seeing it for the first time** — because in the competition, you will be.
+
 ## Your Role
 
 You play ARC-AGI-3 games **directly** using the `arc` CLI. You use your vision and reasoning (Claude Opus 4.6) to figure out the rules of each game and solve puzzles — approaching each game COLD with no prior knowledge.
