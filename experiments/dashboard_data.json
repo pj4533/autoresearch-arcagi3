@@ -1,14 +1,77 @@
 {
-  "generated_at": "2026-03-30T12:34:07.655813+00:00",
+  "generated_at": "2026-03-30T13:05:43.768234+00:00",
   "summary": {
-    "total": 0,
+    "total": 6,
     "completed": 0,
     "improved": 0,
     "reverted": 0,
     "baselines": 0,
+    "games_attempted": 6,
+    "games_scored": 0,
     "best_score": 0.0,
     "best_experiment": "none"
   },
-  "experiments": [],
-  "running_best": []
+  "experiments": [
+    {
+      "id": "001",
+      "game": "ls20",
+      "description": "Sliding block puzzle, moved block through corridors",
+      "score": 0.0,
+      "actions": 16,
+      "duration": "\u2014",
+      "status": "attempted",
+      "notes": "Block moves 1 cell per action. Couldn't figure out goal."
+    },
+    {
+      "id": "002",
+      "game": "vc33",
+      "description": "Click-only game, gray/white split with staircase",
+      "score": 0.0,
+      "actions": 7,
+      "duration": "\u2014",
+      "status": "attempted",
+      "notes": "Every click decrements header counter. No visible cell changes."
+    },
+    {
+      "id": "003",
+      "game": "ft09",
+      "description": "Pattern grid game, 4 quadrants with colored cells",
+      "score": 0.0,
+      "actions": 5,
+      "duration": "\u2014",
+      "status": "attempted",
+      "notes": "Analogy puzzle? XOR pattern? Clicks only decrease counter."
+    },
+    {
+      "id": "004",
+      "game": "ar25",
+      "description": "L-shaped pieces, movement + perform + click",
+      "score": 0.0,
+      "actions": 16,
+      "duration": "\u2014",
+      "status": "attempted",
+      "notes": "Piece moves but can't cross divider cleanly. Undo costs actions."
+    },
+    {
+      "id": "005",
+      "game": "sp80",
+      "description": "Platformer with character, platform, castle structures",
+      "score": 0.0,
+      "actions": 22,
+      "duration": "\u2014",
+      "status": "attempted",
+      "notes": "Character moves, world scrolls. Hit walls easily. No scoring."
+    },
+    {
+      "id": "006",
+      "game": "tr87",
+      "description": "Symbol tile grid with reference patterns below",
+      "score": 0.0,
+      "actions": 3,
+      "duration": "\u2014",
+      "status": "attempted",
+      "notes": "Tiles with symbols, cursor moves in reference area. Complex puzzle."
+    }
+  ],
+  "replay_count": 3
 }
