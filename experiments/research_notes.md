@@ -213,6 +213,33 @@ Average actions: 16. Average budget usage: 40%. Still 0 across the board.
 ### Strategy Not Yet Updated
 Play_strategy.md remains at its initial version. Added urgency note to queue recommending executor adopt top 5 items as a bundle.
 
+## 2026-03-30: FIRST BREAKTHROUGH — su15 (Exp 010)
+
+### What Happened
+su15 scored 1! Level 1 completed. Click-only puzzle: move a colored square along a dotted line to reach a target circle.
+
+### What Worked — The Winning Formula
+1. **Mathematical grid analysis** — parsed pixel positions numerically, found dots at +2 cols / -2 rows pattern
+2. **Path identification** — recognized the diagonal line connecting source (purple square) to target (blue circle)
+3. **Sequential execution** — clicked each waypoint in order along the discovered path
+4. **Coordinate calibration** — learned 0-127 click range maps 1:1 to 64x64 grid
+
+### What This Tells Us
+- **Numerical analysis > visual inspection** for precise patterns. The LLM can compute distances and spot mathematical relationships that are hard to see visually.
+- **The grid IS the data** — treating it as a 2D array to analyze, not just an image to look at, unlocked the solution.
+- **Sequential clicking along paths** is a core mechanic in click-based games.
+- **New heuristics added to play_strategy.md by executor**: coordinate mapping, massive-change detection, invalid-click detection, non-background pixel mapping.
+
+### Generalization Potential
+This approach should generalize to other click-based games (vc33, ft09, tr87) where the solution is embedded in pixel patterns. Added as new #1 queue item: "Mathematical Grid Parsing."
+
+### Level 2 Failure
+su15 Level 2 had a different mechanic (scattered paired dots, clicking one changes color and removes pair). The agent didn't solve it in remaining actions — need paired-object detection strategy (#12 in queue).
+
+### Still Failing (10/11 games at 0)
+- sc25: 5 actions, premature surrender. Minimum floor (#2) still needed.
+- Play strategy heuristics are improving but core systematic approach is still missing.
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)
