@@ -10,10 +10,11 @@
 ```
 uv run python -m arcagi3.runner --agent stategraph --game_id ls20 --max_actions 10000 --offline
 ```
-- **WHY**: 7 manual arc CLI experiments (066-075) ALL scored 0. Two PROVEN blockers make arc CLI impossible:
+- **WHY**: 8 manual arc CLI experiments (066-077) ALL scored 0. THREE PROVEN blockers make arc CLI impossible:
   1. Cyclic maze topology loops directional bias back to start (exp 074)
   2. Display overlap ≠ game collection — player overlapped modifier 3x visually with 0 collection (exp 075)
-- **WHY STATEGRAPH WORKS**: It operates at the GAME STATE level (frame hashes), not display coordinates. It handles cycles via state hashing (won't revisit states). It handles alignment by trying every game position systematically. Exp 063 proved it survives indefinitely on LS20 with center hashing. 2000 actions wasn't enough, 10000 should be (~2 minutes at 0.012s/action).
+  3. Maze state CHANGES after death — previously-working moves become blocked (exp 077). Death-replay is invalid.
+- **WHY STATEGRAPH WORKS**: It operates at the GAME STATE level (frame hashes), not display coordinates. It handles cycles via state hashing (won't revisit states). It handles alignment by trying every game position systematically. **Crucially, exp 063 proved it SURVIVES without dying** on LS20 with center hashing (NOT_FINISHED at 2000 actions). Since it doesn't die, blocker #3 (maze changes after death) doesn't apply. 2000 wasn't enough, 10000 should be (~2 minutes at 0.012s/action).
 - **THIS IS A PLAY STRATEGY**: The "strategy" for LS20 is to use the stategraph agent instead of manual play, just like the "strategy" for VC33 L1-2 is to predict button direction. Different games need different tools. The stategraph agent already exists and needs NO code changes — just this command.
 - **Target game**: ls20
 - **Expected impact**: Local score 0.6667 → 1.0 (+50%). First LS20 level ever solved.
@@ -57,16 +58,19 @@ uv run python -m arcagi3.runner --agent stategraph --game_id ls20 --max_actions 
 - **Stategraph 022-070**: vc33 L3 — 20 experiments. CLOSED (unsolvable).
 - **Stategraph 063 (IMPROVED)**: Center hashing permanent. LS20 NOT_FINISHED with 2000 actions.
 - **Executor 064-065**: VC33 L1=3, L2=14.
-- **Executor 066-075**: LS20 manual navigation — 7 experiments, all 0 score. CLOSED.
+- **Executor 066-077**: LS20 manual navigation — 8 experiments, all 0 score. CLOSED.
   - 069: Per-move wall detection works (2 cells=blocked, 52+=move)
   - 072: Verified prefix leads to dead end
   - 073: Reached within 4 cols of modifier — wall at cols 29-33 blocks
   - 074: Maze has CYCLIC TOPOLOGY
-  - 075: **DEFINITIVE**: Player display-overlaps modifier 3x but NO collection. 5px grid doesn't align with collection trigger. Manual CLI CANNOT solve the alignment problem.
+  - 075: Display-overlaps modifier 3x but NO collection (5px alignment mismatch)
+  - 076: VC33 optimized baseline (L1=3, L2=16, L3 skipped). Score ceiling 0.6667.
+  - 077: **Maze state CHANGES after death** — death-replay invalid. "0.6667 is permanent ceiling for arc CLI."
 
 ## Dead Ends (Confirmed)
 - **VC33 L3**: UNSOLVABLE (87 clicks = 0 PPS movement)
-- **LS20 via arc CLI**: 7 experiments (066-075), all 0 score. Maze cycles + 5px alignment mismatch. Display overlap ≠ collection. Manual play CANNOT solve LS20.
+- **LS20 via arc CLI**: 8 experiments (066-077), all 0 score. THREE blockers: cyclic topology, display≠game alignment, maze changes after death.
+- **Death-replay for LS20**: INVALID — maze state changes after death (exp 077)
 - ft09 game version broken
 - All local Qwen models for reasoning
 - Position-based waypoints (tracking unreliable)

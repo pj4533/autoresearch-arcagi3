@@ -2308,3 +2308,31 @@ uv run python -m arcagi3.runner --agent stategraph --game_id ls20 --max_actions 
 | **Total** | **0.6667** | **PLATEAU since exp 021** | **Stategraph LS20** |
 
 Score has been at 0.6667 for 55 consecutive experiments (021-076). The ONLY change that can break the plateau is the stategraph agent solving LS20 L1.
+
+### Exp 077: Maze Changes After Death — Third LS20 Blocker (2026-03-29)
+
+**Exp 077 (inline DFS via arc CLI)**: 67 actions, 0 score.
+- New path discovered: L×3,U×3,R,D,L×2,U×2,L (12 real moves)
+- D×5 → DEATH (trap)
+- Post-death: UP moves BLOCKED where they worked before
+- **Maze state changes after death** — previously-working moves become blocked
+
+**This is the THIRD proven blocker for arc CLI play:**
+1. Cyclic maze topology (exp 074)
+2. Display/game coordinate mismatch (exp 075)
+3. **Maze changes after death** (exp 077) — death-replay is INVALID
+
+**Executor's conclusion: "Score 0.6667 is the permanent ceiling for arc CLI play."**
+
+**Why this REINFORCES the stategraph approach:**
+The stategraph with center hashing (exp 063) survived 2000 actions WITHOUT DYING (NOT_FINISHED). Since it doesn't die, blocker #3 doesn't apply. The maze remains stable for the entire DFS exploration. With 10000 actions and no death, the DFS explores the stable maze exhaustively.
+
+**Updated project status (exp 077):**
+| Game | Score | Status | Next Step |
+|------|-------|--------|-----------|
+| vc33 | 2 levels (L1=3, L2=16) | CEILING — L3 unsolvable | None |
+| ls20 | 0 levels | Arc CLI blocked (8 exps, 3 blockers) | Stategraph DFS 10000 actions |
+| ft09 | 0 levels | Game version broken | None |
+| **Total** | **0.6667** | **PLATEAU since exp 021 (56 exps)** | **Stategraph LS20** |
+
+Score plateau: 56 consecutive experiments (021-077) at 0.6667. 8 manual LS20 attempts, all 0 score, 3 proven blockers. The stategraph command remains the only path forward.
