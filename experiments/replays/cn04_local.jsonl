@@ -1,0 +1,17 @@
+{"step": 0, "action": "(initial state)", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step000.png"}
+{"step": 1, "action": "move_right", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step001.png"}
+{"step": 2, "action": "move_down", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step002.png"}
+{"step": 3, "action": "move_right", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step003.png"}
+{"step": 4, "action": "move_right", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step004.png"}
+{"step": 5, "action": "move_right", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step005.png"}
+{"step": 6, "action": "move_right", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step006.png"}
+{"step": 7, "action": "move_right", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step007.png"}
+{"step": 8, "action": "move_right", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step008.png"}
+{"step": 9, "action": "move_down", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step009.png"}
+{"step": 10, "action": "move_down", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step010.png"}
+{"step": 11, "action": "move_down", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step011.png"}
+{"step": 12, "action": "move_down", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step012.png"}
+{"step": 13, "action": "move_down", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step013.png"}
+{"step": 14, "action": "perform", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step014.png"}
+{"step": 15, "action": "move_up", "reasoning": "", "score": 0, "state": "NOT_FINISHED", "frame_path": "frames/cn04_local_step015.png"}
+{"step": 16, "action": "perform", "reasoning": "", "score": 0, "state": "IN_PROGRESS", "frame_path": "frames/cn04_local_step016.png"}
