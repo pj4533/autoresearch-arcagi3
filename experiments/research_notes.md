@@ -2064,3 +2064,36 @@ Level l gets weight l. For 7-level game: denominator = 28.
 - Priority order from modifier: RIGHT > UP > LEFT > DOWN
 
 **Queue reprioritized**: Idea #1 rewritten with explicit per-move protocol. Added idea #2 (text-based fast wall detection) and #3 (directional priority). These directly address exp 066's failure mode.
+
+### Exp 067-068: btn[0] DEFINITIVELY DEAD (2026-03-29)
+
+**Exp 067 (btn[0] y-scan + scaled coords)**: L1=3, L2=16. Y-scanned display coords (12, y=50-58) → zero PPS movement. X-scanned (x=6-14, y=56) → zero. Tried scaled coords (24,112) → PPS appeared to move 2 rows. BUT this was a false positive corrected by exp 068.
+
+**Exp 068 (full 200-action plan)**: L1=3, L2=16. Phase 1: btn[6]×12 (ChX/VAJ moved). Phase 2: btn[4]×4. Phase 3: btn[0]×57 at (24,112) → **ZERO PPS movement. GAME OVER.** All 57 clicks consumed lives hitting the fCG bar sprite.
+
+**DEFINITIVE CONCLUSION: btn[0] does NOT work at ANY coordinate:**
+- Display coords (12, y=50-58): tested, 0 movement
+- Display coords (x=6-14, y=56): tested, 0 movement
+- Scaled coords (24, 112): 57 clicks, 0 movement
+- Agent coords (from stategraph): 16+ experiments, ~0% reliable
+
+**My earlier analysis was WRONG.** Exp 059's "14% success rate" was likely a measurement error or coincidence. Exp 068 with 57 controlled clicks is the definitive test. btn[0] is completely, irreversibly blocked by the fCG bar sprite overlap.
+
+**Strategic implications:**
+1. ALL btn[0] ideas (y-scan, phase-dependent, alternating) are DEAD ENDS
+2. VC33 L3 has ONE remaining approach: btn[3] at display (28,56) — never tested with y-offsets
+3. If btn[3] also fails, L3 is confirmed unsolvable with current game mechanics
+4. **LS20 L1 is now the ONLY viable path to score improvement**
+5. Solving LS20 L1: local score goes from 0.6667 → 1.0 (50% improvement!)
+
+**VC33 L3 remaining options (ranked by probability of success):**
+1. **btn[3] at display x=28**: Controls TKb→sro transfer. Different position, might not overlap. UNTESTED.
+2. **Hidden clickable elements**: Systematic grid scan of entire screen (25 positions, 25 lives). May discover unknown mechanics.
+3. **Accept unsolvable**: Conserve lives, end as NOT_FINISHED.
+
+**Dead Ends Updated:**
+- btn[0] at ANY coordinate system: definitively 0% success rate (exp 068, n=57)
+- btn[0] y-scan: tested y=50-58, all zero (exp 067)
+- btn[0] x-scan: tested x=6-14, all zero (exp 067)
+- btn[0] phase-dependent: Phase 1 was executed first in exp 068, no effect
+- btn[0] alternating with btn[6]: useless since btn[0] never works
