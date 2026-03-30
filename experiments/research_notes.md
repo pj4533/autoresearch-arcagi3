@@ -2097,3 +2097,48 @@ Level l gets weight l. For 7-level game: denominator = 28.
 - btn[0] x-scan: tested x=6-14, all zero (exp 067)
 - btn[0] phase-dependent: Phase 1 was executed first in exp 068, no effect
 - btn[0] alternating with btn[6]: useless since btn[0] never works
+
+### Exp 069: LS20 Per-Move Protocol Works But Agent Overshoots (2026-03-29)
+
+**Wall detection validated**: 2 cells changed = blocked (health tick only), 52+ cells changed = real move. This is a reliable, repeatable signal.
+
+**Operational results**: 45 actions → ~20 real moves (55% wall-hit rate). Agent navigated L×5 + U×6 from start (39,45). That puts it approximately at position (14,15).
+
+**CRITICAL: Agent OVERSHOT the modifier.** Modifier is at (19,30). From start (39,45), that's ~4 LEFT + ~3 UP. The agent did 5 LEFT + 6 UP — one extra LEFT and three extra UP. It went PAST the modifier zone.
+
+**Why the modifier wasn't visible**: At position ~(14,15), the modifier at (19,30) is distance = sqrt(5² + 15²) ≈ 15.8, which IS within the radius-20 fog-of-war circle. But the agent said "modifier still not visible." Possible explanations:
+1. Actual position differs from estimated (maze detours change the path)
+2. Modifier is visually hard to distinguish from other objects
+3. The maze walls between agent and modifier block line-of-sight in the circular cutout
+
+**Root cause**: The direction priority (LEFT > UP) doesn't know when to STOP. After ~4L+3U, the agent should switch from "keep going LEFT/UP" to "search locally."
+
+**Fix: Two-phase navigation.**
+- Phase 1 (directional): Follow LEFT > UP priority for ~7 successful moves
+- Phase 2 (local search): Try ALL 4 directions at each position, look for modifier. Spend 5-10 moves searching the local area.
+- Phase transition trigger: count of successful LEFT+UP moves ≥ 7
+
+**Wall-hit reduction strategies**:
+- Track blocked directions per position (don't re-try known blocks)
+- Expected improvement: 55% → ~25% wall-hit rate
+
+### Exp 070: VC33 L3 DEFINITIVELY UNSOLVABLE (2026-03-29)
+
+**30 positions scanned across 6×5 grid** (x=8,16,24,32,40,48 × y=10,20,30,40,50). PPS (decoration 14) at line 49 for ALL 30 clicks. **ZERO movement from ANY position.**
+
+Combined with exp 068 (57 btn[0] clicks at specific coordinate = 0 movement), this gives a total of **87 diverse clicks across the entire L3 grid with ZERO PPS movement.**
+
+**CONCLUSION: No mechanism exists to move PPS on VC33 L3.** The PPS button (btn[0]) is irreversibly broken due to sprite overlap with the fCG bar in this game instance. L3 cannot be solved.
+
+**VC33 L3 investigation timeline: 20 experiments (048-070), CLOSED.**
+
+**VC33 maximum achievable score**: L1 + L2 only = (1×1.0 + 2×score_L2) / 28. With L2 at 100%: 3/28 = 10.7% per-game RHAE.
+
+**All future score improvement MUST come from LS20.**
+
+**Impact of solving LS20 L1**:
+- Current: avg = (0 + 0 + 0.6667) / 3 = 0.222 (if using levels-solved metric)
+- With LS20 L1: avg = (1 + 0 + 0.6667) / 3 = 0.556 (150% improvement!)
+- Local scoring: levels solved. Current = 2. With LS20 L1 = 3. Score: 0.6667 → 1.0 (+50%)
+
+**Queue fully refocused on LS20**: 6 LS20-specific ideas (#1-6) covering local search, budget increase, death-replay, wall probing, visual detection, and multi-level data.

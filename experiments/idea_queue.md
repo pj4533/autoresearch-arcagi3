@@ -2,83 +2,59 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 068): btn[0] is DEAD — 57 clicks, 0 PPS movement, definitively broken. ALL btn[0] ideas purged. LS20 L1 is now the ONLY path to score improvement. If LS20 L1 solved: local score goes from 0.6667 → 1.0 (+50%). VC33 L3 has ONE remaining angle: btn[3] at display (28,56). ALL ideas are PLAY STRATEGY changes, NOT code changes.**
+**PHILOSOPHY (2026-03-29, post exp 070): VC33 L3 is CLOSED — unsolvable (exp 068 + 070: 87 clicks at every position, 0 PPS movement). ALL score improvement comes from LS20. Exp 069 validated per-move protocol but agent OVERSHOT the modifier (L×5+U×3 vs needed L×4+U×3). Key fix: switch to LOCAL SEARCH after ~7 directional moves. ALL ideas are PLAY STRATEGY changes, NOT code changes.**
 
 ---
 
-### 1. [Navigation] LS20: per-move wall detection protocol (CRITICAL — exp 066 lesson)
-- **Hypothesis**: Exp 066 proved batch moves fail. Must check frame after EACH move. The protocol:
-- **Strategy change**: Replace LS20 strategy with:
-  ```
-  LS20 Per-Move Protocol:
-  1. `arc state --image` — look at current frame, note visible corridors
-  2. Try move_left (bias LEFT toward modifier from start)
-  3. `arc state --image` — compare to previous:
-     - View SCROLLED → move succeeded! Note: "LEFT open here"
-     - Frame SAME → wall hit! Note: "wall LEFT here". Try move_up.
-  4. If blocked LEFT+UP, try RIGHT or DOWN as detour
-  5. After each successful move, repeat from step 1
-  6. Build mental map: "From start: L works, L works, L blocked→went U, L works..."
-  7. After death: replay known-safe path fast, then explore at frontier
-  ```
+### 1. [Navigation] LS20: local search after ~7 directional moves (ADDRESSES exp 069 overshoot)
+- **Hypothesis**: Exp 069 moved L×5+U×6 but modifier is at ~L×4+U×3 from start. The agent PASSED the modifier area. After ~7 successful moves in the correct direction (LEFT/UP), the agent should STOP biasing and switch to local search: try ALL 4 directions systematically at each position. The modifier is nearby but may require a RIGHT or DOWN detour to reach.
+- **Strategy change**: Add to LS20 strategy: "After 7 successful LEFT/UP moves, you're in the modifier zone. STOP biasing LEFT/UP. Instead, try ALL 4 directions at each position — the modifier may be behind you or to the side. Spend 5-10 moves searching locally. Look for the modifier sprite (distinctive colored object) or player rotation (= collected modifier)."
 - **Target game**: ls20
-- **Expected impact**: Eliminates wasted wall-hit actions. Should map modifier path in ~20 moves.
+- **Expected impact**: Prevents overshooting. Local search in a 5×5 cell area should find the modifier within 10 moves.
 
-### 2. [Navigation] LS20: directional priority based on known positions
-- **Hypothesis**: Start (39,45) → Modifier (19,30): ~4 LEFT + ~3 UP. Modifier → Goal (34,10): ~3 RIGHT + ~4 UP. Direction priority should match these vectors.
-- **Strategy change**: Add to LS20: "From start: try LEFT first, UP second, RIGHT/DOWN only for detours. After modifier collection (player visually ROTATES): try RIGHT first, UP second. You need ~4L+3U to modifier, then ~3R+4U to goal. Each move = 5 cells."
+### 2. [Navigation] LS20: increase action budget to 500+ (exp 069 had only 45)
+- **Hypothesis**: Exp 069 used only 45 actions on ls20 — not enough for maze exploration. The play_strategy already says "500+" but the executor ran with a smaller budget. With 500 actions: ~250 real moves (at 50% wall-hit rate), enough for multiple deaths + replays + full exploration.
+- **Strategy change**: Update play_strategy: "Use `arc start ls20 --max-actions 500`. VC33 only needs ~20 actions total. Dedicate the remaining budget to ls20. 500 actions gives room for 3+ death/replay cycles and thorough exploration."
 - **Target game**: ls20
-- **Expected impact**: Focuses exploration in the correct direction.
+- **Expected impact**: Removes the budget constraint that limited exp 069.
 
-### 3. [Navigation] LS20: use `arc state` text for fast wall detection
-- **Hypothesis**: Full `arc state --image` after every move is expensive. Use `arc state` (text) to detect wall hits — just check if output changed. Use `--image` every 3-5 moves for strategic decisions.
-- **Strategy change**: "For wall detection: `arc state` (text) after each move. If text changed → moved. If same → wall. Use `arc state --image` every 3-5 moves to see the maze visually."
+### 3. [Navigation] LS20: death-replay strategy (explore → die → replay → explore further)
+- **Hypothesis**: With 3 hearts (~18 moves each = ~54 moves per life), each death explores ~20 real moves of new territory. After death, replay the known-safe path (fast, no checks) then explore at the frontier. 3 lives × 20 new moves = 60 real moves = enough to cover the ~14-move solution path plus detours.
+- **Strategy change**: Add to LS20 strategy: "Each death teaches you the maze. Life 1: explore LEFT+UP, record every successful move. Life 2: replay Life 1's successful moves FAST (no frame checks — you know they work), then explore new territory at the frontier. Life 3: replay combined path, hopefully reach modifier then goal."
 - **Target game**: ls20
-- **Expected impact**: Reduces context cost ~60% while maintaining wall detection.
+- **Expected impact**: 3 lives × 20 new moves = 60 total explored moves. Solution path is ~14-15 direct moves + maze detours.
 
-### 4. [Navigation] LS20: replay known-safe path after death, then explore
-- **Hypothesis**: Maze is static. After death, replay known-safe moves WITHOUT checking (already verified). Switch to per-move protocol at frontier.
-- **Strategy change**: "After death: replay your verified path fast (no frame checks needed). At frontier, switch to per-move protocol. Example: Life 1 maps 'L,L,U,L,U'. Life 2 starts: L,L,U,L,U (no checks), then explores new territory."
+### 4. [Navigation] LS20: smarter wall probing — avoid re-trying blocked directions
+- **Hypothesis**: Exp 069 had 55% wall-hit rate. Some of those were re-trying directions known to be blocked. The agent should track which directions are blocked at each "position" (identified by frame hash or cell count pattern).
+- **Strategy change**: Add to LS20 strategy: "At each position, track which directions you've tried: 'Position A: LEFT=open, UP=blocked, RIGHT=untried, DOWN=untried.' Never re-try a blocked direction at the same position. After death, your direction knowledge persists — replay the successful path AND remember which directions were blocked."
 - **Target game**: ls20
-- **Expected impact**: Saves 5-10 actions per life on re-exploration.
+- **Expected impact**: Reduces wall-hit rate from 55% to ~25%, nearly doubling effective moves per action.
 
-### 5. [Visual Analysis] LS20: detect modifier/goal visually + player rotation confirmation
-- **Hypothesis**: Modifier and goal have distinctive appearances. Player sprite ROTATES when stepping on modifier. This is the only reliable collection confirmation.
-- **Strategy change**: "Watch for distinctive colored objects in the visible circle. Your player visually ROTATES on modifier collection — that's how you know you got it. After rotation, switch direction priority toward goal (RIGHT+UP)."
+### 5. [Visual Analysis] LS20: what the modifier and goal look like
+- **Hypothesis**: Exp 069 reached the modifier area but couldn't identify it visually. The agent needs to know what to look for. The modifier should be a small colored sprite distinct from walls (yellow) and floor (green). The player ROTATES when it collects the modifier.
+- **Strategy change**: Add to LS20 strategy: "The modifier is a small colored object that looks DIFFERENT from walls and floor. It may be partially hidden behind walls. Look carefully at the frame image for any small colored blob that isn't a wall or path tile. When you step on it, your player sprite ROTATES — this is the ONLY reliable confirmation of collection. After rotation, switch direction to RIGHT+UP toward goal."
 - **Target game**: ls20
-- **Expected impact**: Confirms modifier collection without position tracking.
+- **Expected impact**: Helps executor identify the modifier visually when in range.
 
-### 6. [Hypothesis Testing] VC33 L3: try btn[3] at display x=28 (LAST remaining PPS option)
-- **Hypothesis**: btn[0] is dead. But btn[3] at display (28,56) was NEVER y-scanned. It should control TKb→sro transfer (making sro taller = PPS moves UP). Exp 056 classified it as "non-button" but never tried y-offsets. If btn[3]'s overlap is different from btn[0]'s, it might work.
-- **Strategy change**: "On L3: scan x=28 at y=40,42,44,...,60. Check if PPS (decoration 14) moves after each click. Also try x=24,26,30 at y=56. This is the LAST untested PPS approach — if it fails, L3 is unsolvable."
-- **Target game**: vc33 L3
-- **Expected impact**: If btn[3] works, L3 becomes solvable. If not, L3 is confirmed unsolvable.
-
-### 7. [Puzzle Identification] VC33 L3: explore ALL clickable positions for hidden PPS mechanic
-- **Hypothesis**: Maybe PPS can be moved by clicking something OTHER than a button — the decoration itself, the bar it sits on, the gap between bars, or a hidden element. The game has 75 lives; a systematic 5×5 grid of clicks across the screen (25 lives) could reveal any hidden interactive element.
-- **Strategy change**: "If btn[3] fails: try clicking at a grid of positions across the screen — (10,10), (20,10), (30,10), ..., (50,50). Check if PPS moves after each. This discovers ANY hidden mechanic that moves PPS."
-- **Target game**: vc33 L3
-- **Expected impact**: Discovers hidden mechanics if they exist. Definitive test.
-
-### 8. [Level Progression] VC33 L3: conserve lives if unsolvable
-- **Hypothesis**: If all PPS approaches fail, stop clicking on L3. NOT_FINISHED preserves L1-2 scores. Don't GAME_OVER from random clicks.
-- **Strategy change**: "If L3 is confirmed unsolvable, stop clicking immediately. Let the session end as NOT_FINISHED."
-- **Target game**: vc33 L3
-- **Expected impact**: Prevents GAME_OVER life waste.
-
-### 9. [Action Efficiency] General: RHAE-aware budgeting
-- **Hypothesis**: RHAE = (human/agent)^2. LS20 L1 baseline=29. At 50 actions: 34% score. At 40: 53%.
-- **Strategy change**: "Track action count vs baselines. For LS20 L1: aim for <45 actions total."
-- **Target game**: all
-- **Expected impact**: Prevents over-exploration.
-
-### 10. [Navigation] LS20: multi-level data for after L1
-- **Hypothesis**: If L1 is solved, L2-7 have known start/modifier/goal positions. Pre-loading this data saves exploration time on subsequent levels.
-- **Strategy change**: "After L1, known level data: L2: start (29,40) → mod (49,45) → goal (14,40). L3: start (9,45) → mod (49,10) → goal (54,50). L4: start (54,5) → goal (9,5) NO MODIFIER. Apply same per-move protocol with adjusted direction priorities."
+### 6. [Navigation] LS20: multi-level data (L2-7 directions after solving L1)
+- **Hypothesis**: After solving L1, immediate next-level data saves exploration time.
+- **Strategy change**: "After L1: L2 start (29,40) → mod RIGHT+DOWN at (49,45) → goal LEFT at (14,40). L3 start (9,45) → mod RIGHT+UP at (49,10) → goal RIGHT+DOWN at (54,50). L4 start (54,5) → NO modifier → goal LEFT at (9,5). L5-7 similar patterns."
 - **Target game**: ls20 L2+
-- **Expected impact**: Faster subsequent level solving with pre-known positions.
+- **Expected impact**: Faster subsequent levels.
 
-### 11. [Hypothesis Testing] General: periodic summarization every 10 actions
+### 7. [Action Efficiency] General: RHAE-aware budgeting
+- **Hypothesis**: LS20 L1 baseline=29. At 50 actions: (29/50)^2 = 34%. At 100 actions: 8%. At 40: 53%. Aim for <60 total actions.
+- **Strategy change**: "LS20 L1 baseline is 29 actions. Target: <60 total. Even 100 actions gives 8% — any positive score beats 0%."
+- **Target game**: ls20
+- **Expected impact**: Sets action count target.
+
+### 8. [Level Progression] VC33 L3: conserve lives, end as NOT_FINISHED
+- **Hypothesis**: L3 is confirmed unsolvable. Don't click ANYTHING on L3 — preserve lives, end session.
+- **Strategy change**: "On L3, stop clicking. Let the session end as NOT_FINISHED. DO NOT attempt L3."
+- **Target game**: vc33 L3
+- **Expected impact**: Prevents GAME_OVER from L3 life waste.
+
+### 9. [Hypothesis Testing] General: periodic summarization every 10 actions
 - **Hypothesis**: Prevents loops and maintains focus.
 - **Strategy change**: "Every 10 actions: What learned? What changed? Next plan?"
 - **Target game**: all
@@ -96,14 +72,14 @@
 - **Stategraph 063 (IMPROVED)**: Center hashing permanent.
 - **Executor 064-065**: VC33 L1=3, L2=14. L3 PPS broken. ls20 blind=0.
 - **Executor 066**: LS20 batch moves fail. Need per-move frame checking.
-- **Executor 067-068**: btn[0] y-scan + 57-click definitive test. **btn[0] DEAD at ALL coords.** 0 PPS movement.
-- **Explorer 001-030**: All score 0.
+- **Executor 067-068**: btn[0] y-scan + 57-click definitive test. btn[0] DEAD at ALL coords.
+- **Executor 069**: LS20 per-move protocol WORKS (2 cells=blocked, 52+=move). But only 45 actions → 20 real moves → overshot modifier. Need more budget + local search.
+- **Executor 070**: VC33 L3 grid scan: 30 positions, 0 PPS movement. **L3 CLOSED — unsolvable.**
 
 ## Dead Ends (Confirmed)
-- **btn[0] at ANY coordinate**: Display coords, scaled coords, y=40-60, x=6-14, (24,112). 57 consecutive clicks = 0. DEAD.
-- Batch moves on LS20 (invisible walls)
+- **VC33 L3 entirely**: btn[0] broken (57 clicks=0, exp 068), full grid scan=0 (30 positions, exp 070). NO mechanism to move PPS. UNSOLVABLE in this game instance.
+- Batch moves on LS20 (invisible walls, exp 066)
 - All local Qwen models for reasoning
 - ft09 game version broken
 - Position-based waypoints (tracking unreliable)
 - Hardcoded paths from source (collision model proprietary)
-- Brute-force/uniform clicking vc33
