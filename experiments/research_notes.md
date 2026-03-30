@@ -1910,3 +1910,87 @@ Replaced code-change ideas with 12 play-strategy ideas covering:
 - All local Qwen models for puzzle reasoning (insufficient spatial reasoning)
 - ft09: game version broken
 - VC33 L3 btn[0] via programmatic agent: sprite overlap makes it unreliable
+
+### CRITICAL: RHAE Scoring Formula Deep Dive (2026-03-29)
+
+**Source**: ARC-AGI-3 Technical Report (March 24, 2026), Section 4.1 + `scorecard.py` source code.
+
+**Per-level score:**
+```
+S(l,e) = min(1.0, (human_actions / agent_actions)^2)
+```
+
+**Per-game score (LEVEL-WEIGHTED):**
+```
+E(e) = sum(l * S(l,e) for l in 1..n) / (n*(n+1)/2)
+```
+Level l gets weight l. For 7-level game: denominator = 28.
+
+**Final score:** Simple average across all games.
+
+**Critical implications for our strategy:**
+
+| Levels solved (vc33) | Weights used | Max game score |
+|----------------------|-------------|----------------|
+| L1 only | 1/28 | 3.6% |
+| L1-2 | (1+2)/28 | 10.7% |
+| L1-3 | (1+2+3)/28 | 21.4% |
+| L1-4 | (1+2+3+4)/28 | 35.7% |
+| L1-5 | (1+2+3+4+5)/28 | 53.6% |
+| All 7 | 28/28 | 100% |
+
+**This COMPLETELY changes priorities:**
+1. **Solving L3 is 2x more important than optimizing L1-2** (3/28 vs at most +10.7% improvement)
+2. **Each additional level solved adds INCREASING weight** (L4=4/28, L5=5/28, etc.)
+3. **LS20 getting ANY level solved = massive impact** (currently 0%, even 1 level = significant avg improvement)
+4. **L1-2 optimization has diminishing returns** — even perfect L1-2 scores only contribute 10.7%
+
+**The CLAUDE.md scoring formula is WRONG.** It says `max(0, 1 - (agent_actions / (3 * human_actions)))` which is linear, not quadratic. The actual formula is `(human/agent)^2`.
+
+**Unsolved levels count as 0 but their weight is STILL in the denominator.** So failing L3-7 permanently caps the game score at 10.7% no matter how perfectly L1-2 are solved.
+
+### Exp 064 Analysis (2026-03-29)
+
+**Executor played vc33 manually via arc CLI:**
+- L1: 6 actions (matches human baseline perfectly!)
+- L2: 17 actions (baseline 13, ratio 1.31x, score = (13/17)^2 = 58%)
+- L3: tried btn[6]×12 + btn[4]×4 + btn[0]×8 = 24 clicks, no score. **PPS button confirmed broken even with vision.**
+- ls20: 40 blind maze moves, 0 score
+
+**Per-level RHAE scores for exp 064:**
+- L1: (6/6)^2 = 100%
+- L2: (13/17)^2 = 58.5%
+- L3-7: 0%
+- vc33 game score: (1×1.0 + 2×0.585) / 28 = 2.17 / 28 = 7.8%
+
+**This is the ACTUAL competition score.** The "0.6667" in the log is a simplified metric (levels solved / games), NOT the RHAE score.
+
+**Confirmed findings:**
+1. Click coordinates for arc CLI = display grid coordinates (not scaled)
+2. PPS button broken regardless of input method (stategraph OR vision+CLI)
+3. ls20 blind exploration ≠ useful — needs structured approach
+4. L2 could be optimized: 17→13 actions would improve L2 score from 58% to 100%
+
+### Fog-of-War Maze Exploration Research (2026-03-29)
+
+**Best strategies for LS20's partial visibility + limited lives:**
+
+1. **Persistent map across deaths**: Record all observations (walkable cells, walls, items) in a map that survives death. The maze is static — every death adds information. Use lives 1-2 for mapping, life 3 for execution.
+
+2. **Frontier-based navigation**: Maintain the boundary between explored and unexplored. After respawn, BFS through known-safe cells to nearest frontier. This eliminates wasted moves on re-exploration.
+
+3. **Health-aware budgeting**: With ~18 moves per heart × 3 hearts = ~54 moves per attempt, reserve a safety margin. If exploring deep into unknown territory, plan a retreat path. Sometimes intentional death (after exploring max new territory) is better than wasting moves retreating.
+
+4. **Wall-following (left-hand rule)**: Guarantees complete coverage of simply-connected mazes. Implementation: always try to turn left, if blocked go straight, if blocked turn right. Prevents oscillation (exp 033-034's blocker).
+
+5. **Sector sweep**: Each life, bias toward a different quadrant relative to start. Guarantees coverage even if one direction is a dead end. Exp 041's randomized direction per death was a crude version that reached depth 46.
+
+**Recommended combined strategy for LS20:**
+- Life 1: Wall-follow LEFT from start (39,45) toward modifier (19,30). Record all observations.
+- Life 2: Follow known-safe path to frontier. Wall-follow toward goal direction (RIGHT+UP).
+- Life 3: Execute discovered path: start → modifier → goal.
+
+**Dead Ends Updated (post exp 064):**
+- VC33 L3 btn[0] via arc CLI with vision: CONFIRMED BROKEN (exp 064). No coordinate workaround works.
+- ls20 blind exploration via arc CLI: doesn't score (exp 064). Needs structured approach.
+- VC33 L1-2 optimization has very low RHAE impact (weight 3/28 = 10.7% of game score)
