@@ -2363,4 +2363,27 @@ The lower region hash changes every action (health bar), making it also unusable
 | ft09 | 0 levels | Game version broken | None |
 | **Total** | **0.6667** | **PLATEAU since exp 021 (57 exps)** | **Fix LS20 hash** |
 
-Score plateau: 57 consecutive experiments (021-078). The ONLY remaining blocker is the health bar in the stategraph's center hash. Once fixed, the DFS should explore properly and find the solution.
+Score plateau: 57 consecutive experiments (021-078). The ONLY remaining blocker is the stategraph's hash window capturing fog-of-war instead of game content.
+
+### IMPASSE: Awaiting Human Intervention (2026-03-29)
+
+The autoresearch loop has reached a hard stop. Both the researcher (me) and the executor agree on the diagnosis and fix, but neither can implement it:
+
+**The fix**: Change `_hash_frame()` hash window from rows 22-41 (fog-of-war, constant) to rows 35-60 (player+maze, varies). This is a 2-line change.
+
+**Why neither agent can do it**:
+- Researcher: proposes play strategies only, not code changes
+- Executor: program.md prohibits modifying .py files
+
+**What the human supervisor needs to do** (one of):
+- (A) Make the 2-line hash fix directly
+- (B) Update program.md to allow this specific change
+- (C) Provide an alternative approach we haven't considered
+
+**Complete exhaustion summary:**
+- 78 experiments total (30 explorer + 48 stategraph/executor)
+- VC33: L1-2 solved (L1=3, L2=16 actions), L3 unsolvable (20 experiments, 87 clicks = 0 PPS)
+- LS20: 0 levels. 8 manual CLI experiments (3 proven blockers). 1 stategraph experiment (hash broken).
+- ft09: Game version broken.
+- Score: 0.6667 for 57 consecutive experiments (021-078).
+- ALL play-strategy-only approaches are exhausted.

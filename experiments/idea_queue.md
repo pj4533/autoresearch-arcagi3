@@ -2,7 +2,7 @@
 
 **ORDER = PRIORITY. Executor tests #1 first, then #2, etc.**
 
-**PHILOSOPHY (2026-03-29, post exp 078 CORRECTED): Stategraph 10000 actions = all move_up. CORRECTED ROOT CAUSE: center 20×20 hash is CONSTANT because fog-of-war (gray 5s) dominates → ALL positions hash identically → DFS thinks all 4 directions lead to same state → fallback picks ACTION1. FIX: hash rows 25-55, cols 14-54 (game content area, excluding fog + health bar). This is a diagnostic finding — the executor implements the hash region change.**
+**PHILOSOPHY (2026-03-29, post exp 078 IMPASSE): BLOCKED ON CODE CHANGE. The stategraph hash window (rows 22-41) captures only fog-of-war; player is in rows 45-55. Fix = shift hash to rows 35-60. This is a 2-line change but program.md prohibits .py modifications. AWAITING HUMAN INTERVENTION to either make the fix or update program.md rules. All play-strategy-only approaches are EXHAUSTED (15 experiments, 0 improvement since exp 021).**
 
 ---
 
