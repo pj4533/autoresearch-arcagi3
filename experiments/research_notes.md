@@ -2224,3 +2224,34 @@ Unknowns:
 4. **Stategraph DFS with 10000 actions**: Systematic exploration as parallel approach.
 
 **CORRECTION to my earlier recommendation**: The executor continued with manual arc CLI play despite my recommendation to switch to stategraph. And they've made MORE PROGRESS than the stategraph did — reaching within 4 cols of the modifier. The manual approach is viable; it just needs the right wall-bypass strategy. Keeping stategraph as fallback (#4) but prioritizing wall probing (#1-3).
+
+### Exp 074: Maze Cycles Confirmed — Manual Play CANNOT Solve LS20 (2026-03-29)
+
+**Exp 074 (DOWN-first + wall bypass)**: 86 actions, 0 score.
+- D×3 from start, then L×6 → reached col 19 (same as modifier column!)
+- U×4 → reached row 25 (modifier at row 32 = 7 rows below)
+- D×5 → **BACK TO START (row 45)!** The maze CYCLES.
+
+**DEFINITIVE FINDING: Maze has CYCLIC TOPOLOGY.**
+- Corridors form a closed loop: start(right) → UP → upper-left → DOWN → start(right)
+- The modifier at (20,32) sits INSIDE the loop
+- Walls prevent reaching it from ANY adjacent corridor
+- Directional bias (LEFT/UP/DOWN) always loops back to start
+
+**Executor's conclusion: "Manual arc CLI navigation CANNOT solve LS20. The maze requires algorithmic DFS with state hashing."**
+
+**This validates my earlier recommendation (post exp 071) to switch to stategraph DFS.** The executor tried 3 more manual experiments (072-074) after my recommendation, discovering the cyclic topology. Manual play was useful for UNDERSTANDING the maze (identifying the wall, the cycle, the modifier's position inside the loop) but CANNOT solve it.
+
+**Why the stategraph DFS will succeed where manual play failed:**
+1. **No loops**: State hashing prevents revisiting known states. The DFS won't get caught in the cycle.
+2. **Exhaustive exploration**: The DFS tries ALL 4 directions at each state, systematically. It will find the hidden corridor into the modifier's enclosed area.
+3. **No directional bias trap**: Manual play biased LEFT/UP/DOWN and always looped. The DFS has no bias — it tries everything.
+4. **Speed**: 0.012s/action = 10000 actions in 2 minutes. Enough to explore the entire maze.
+
+**Manual play timeline: 6 experiments (066-074), all 0 score. CLOSED.**
+
+**Updated strategic status:**
+- VC33: L1-2 solved (3+14 actions). L3 unsolvable. MAX achievable.
+- LS20: Stategraph DFS with 10000+ actions is the ONLY remaining viable approach.
+- ft09: Broken. Skip.
+- **The entire score improvement now depends on stategraph DFS for LS20.**
