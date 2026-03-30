@@ -4,68 +4,115 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![ARC Prize](https://img.shields.io/badge/ARC--AGI--3-arcprize.org-orange.svg)](https://arcprize.org/)
 
-Autonomous research system for [ARC-AGI-3](https://docs.arcprize.org/) game-playing agents. Runs experiments overnight on Apple Silicon using local Qwen models via MLX — zero API cost, fully automated.
+Autonomous research system for [ARC-AGI-3](https://docs.arcprize.org/) games. Claude Code (Opus 4.6) plays all 25 games directly via CLI with vision, using a two-agent autoresearch loop to iteratively improve play strategy. Scores are tracked via scorecards directly comparable to the competition leaderboard.
 
-**ARC-AGI-3** is a benchmark where AI agents interact with 64x64 grid environments, discovering rules through exploration and solving levels with minimal actions. No instructions are given — the agent must figure it out.
+**ARC-AGI-3** is a benchmark where AI agents interact with 64x64 grid environments, discovering rules through exploration and solving levels with minimal actions. No instructions are given — the agent must figure it out. All games are solvable by humans.
 
 ## How It Works
 
-A two-agent autoresearch loop runs on local hardware:
-
-1. **Researcher** — Analyzes past experiment results and proposes the next agent improvement to try
-2. **Executor** — Implements the change, runs the benchmark, evaluates whether it helped
-
-The system iterates on agent *strategy* (prompts, exploration heuristics, state tracking, memory management) rather than model weights. Results are tracked in SQLite and visualized via a web dashboard.
-
 ```
-Researcher ──propose──> Executor ──run──> Results ──analyze──> Researcher ──> ...
+Researcher ──proposes generic strategies──> Executor ──plays all 25 games──> Scorecard Score ──analyze──> Researcher
 ```
+
+1. **Executor** (Claude Code) — Plays games directly via `arc` CLI with vision. Opens a scorecard, plays all 25 games, closes it. The aggregate score is directly comparable to the ARC-AGI-3 leaderboard.
+2. **Researcher** (Claude Code) — Analyzes scorecard results and proposes generic play strategies that work across all games.
+3. **Dashboard** — Static HTML with score history, per-game heatmaps, scorecard breakdowns, and visual game replays.
+
+Everything runs locally. No cloud API calls needed.
 
 ## Quick Start
 
 ```bash
 # Install
-uv sync --extra mlx --extra dashboard
+uv sync --extra mlx
 
-# Download primary model (~20GB, one-time)
-python -c "from mlx_lm import load; load('mlx-community/Qwen3.5-35B-A3B-4bit')"
+# Download all 25 games (one-time, hits remote API)
+uv run python download_all_games.py
 
-# Run baseline experiments
-uv run python -m arcagi3.autoresearch.runner --baselines
+# Start local game server
+uv run python start_local_server.py
 
-# Start the dashboard
-uv run python -m arcagi3.dashboard.app --port 8050 &
+# Play a game interactively
+uv run arc start vc33-9851e02b --max-actions 40
+uv run arc state --image
+uv run arc action click --x 32 --y 16
+uv run arc end
 
-# Start autoresearch (let it crank overnight)
-uv run python autoresearch.py --config qwen3.5-35b-local
+# Run a full scorecard (all 25 games)
+uv run arc scorecard open --max-actions 40
+# ... play each game ...
+uv run arc scorecard next    # advance to next game
+uv run arc scorecard close   # get final aggregate score
 ```
 
-## Target Hardware
+## Scoring
 
-Mac Studio M2 Ultra, 64GB unified memory. The primary model (Qwen3.5-35B-A3B MoE, 4-bit) runs at ~60-70 tok/s using ~20GB, leaving plenty of headroom. Each experiment takes ~10-30 minutes, giving **16-48 experiments per overnight run**.
+```
+Per-level:  min(100, (baseline_actions / your_actions)² × 100)
+Per-game:   Weighted average of level scores (later levels count more)
+Overall:    Simple average across all 25 games
+```
 
-## Local Models
+Match human baseline = 100%. 2x actions = 25%. 3x = 11%. Quadratic penalty — action efficiency is everything.
 
-| Model | Type | Speed | RAM | Use Case |
-|-------|------|-------|-----|----------|
-| Qwen3.5-35B-A3B | MoE | ~60-70 tok/s | ~20GB | Primary (fastest) |
-| Qwen3-32B | Dense | ~20-30 tok/s | ~18GB | Higher quality |
-| QwQ-32B | Reasoning | ~20-30 tok/s | ~18GB | Deep chain-of-thought |
-| Qwen3.5-27B | Dense | ~30+ tok/s | ~14GB | Lightweight |
+25 games, 181 total levels. Each game has 6-10 levels of increasing difficulty.
 
-All models run via [mlx-lm](https://github.com/ml-explore/mlx-lm) on Apple Silicon. Cloud API models (Claude, GPT, Gemini, etc.) are also supported for validation.
+## Running the Autoresearch System
+
+```bash
+# Terminal 1: Local game server (all 25 games)
+uv run python start_local_server.py
+
+# Terminal 2: Dashboard
+cd experiments && python3 -m http.server 8080 --bind 0.0.0.0
+
+# Terminal 3: Executor (plays games via arc CLI with vision)
+claude
+# /loop 10m Read program.md. Open scorecard, play all 25 games. NEVER modify Python code.
+
+# Terminal 4: Researcher (proposes generic play strategies)
+claude
+# /loop 10m Read research_program.md. Propose generic strategies, NOT code changes.
+```
+
+## Dashboard
+
+Static HTML dashboard at `http://localhost:8080/dashboard.html` with three tabs:
+
+- **Progress** — Score history across scorecards, 25-game heatmap, live scorecard progress
+- **Scorecard Detail** — Per-game breakdown with scores, levels, actions
+- **Replays** — Frame-by-frame visual replay of games with side-by-side layout
+
+Generated automatically on `arc end` / `arc scorecard close`, or manually:
+```bash
+uv run python generate_dashboard.py
+```
 
 ## Project Structure
 
 ```
-autoresearch.py              # Main autoresearch orchestrator
+program.md                   # Executor instructions (plays games via arc CLI)
+research_program.md          # Researcher instructions (proposes strategies)
+start_local_server.py        # Local game server (port 5050)
+download_all_games.py        # Download all 25 games for offline use
+generate_dashboard.py        # Static HTML dashboard generator
+run_benchmark.py             # Programmatic benchmark runner
+save_replay_frame.py         # Manual replay capture helper
+environment_files/           # 25 downloaded games
+experiments/
+  log.md                     # Scorecard experiment log
+  scorecards/                # Full scorecard JSON results
+  replays/                   # Game replay data + frame PNGs
+  play_strategy.md           # Current generic play strategy
+  idea_queue.md              # Researcher's idea queue
+  research_notes.md          # Researcher's journal
+  breakthroughs.md           # Games where agent scored
 src/arcagi3/
-  adapters/                  # LLM providers (MLX, Anthropic, OpenAI, Gemini, ...)
-  explorer_agent/            # Probe -> Explore -> Exploit agent
+  cli/                       # arc CLI with scorecard support
+  adapters/                  # LLM providers (MLX, Anthropic, OpenAI, ...)
+  explorer_agent/            # LLM-per-step agent (legacy)
+  stategraph_agent/          # Programmatic state-graph agent (legacy)
   adcr_agent/                # Reference ADCR agent
-  autoresearch/              # Experiment DB, batch runner, researcher, executor
-  dashboard/                 # Web dashboard (Dash/Plotly)
-  cli/                       # CLI for playing games directly
   agent.py                   # MultimodalAgent base class
   models.yml                 # Model configurations
 ```
@@ -75,7 +122,6 @@ src/arcagi3/
 - [ARC Prize](https://arcprize.org/) — The competition
 - [ARC-AGI-3 Docs](https://docs.arcprize.org/) — Official documentation
 - [ARC-AGI-3 Agents](https://github.com/arcprize/ARC-AGI-3-Agents) — Agent examples
-- [mlx-lm](https://github.com/ml-explore/mlx-lm) — Local inference on Apple Silicon
 
 ## License
 
