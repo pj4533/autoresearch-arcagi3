@@ -47,6 +47,31 @@ Populated 14 ideas covering: hypothesis testing, visual analysis, efficiency, pa
 - **Visual analysis** is the biggest gap between human and AI performance.
 - **Hypothesis revision** failure is the #1 cause of wasted actions.
 
+## 2026-03-30: Competition Winner Analysis
+
+### 3rd Place: "Just Explore" (Graph-Based Explorer)
+- **Training-free** — no ML, no LLM. Pure structured exploration.
+- Segments frames into single-color connected components
+- Maintains directed graph: nodes = states, edges = actions
+- **5-tier action priority** based on visual salience (size, color, morphology)
+- Solved **17/25 median levels** (one below 1st place!)
+- Key insight: **prioritized action exploration beats random search AND LLM reasoning**
+- Weakness: degrades on massive state spaces and when status bars confuse hashing
+
+### 1st Place: StochasticGoose (CNN + RL)
+- CNN predicts which actions cause frame changes
+- 4-layer convolutional network on 64x64 frames
+- Completed 18 levels — only 1 more than the graph-based approach
+- Both winning approaches = **informed search** of action space
+
+### Implication for Our Strategies
+The top approaches all share three traits:
+1. **State tracking** — know where you've been, avoid cycles
+2. **Visual salience** — focus on likely-interactive elements first
+3. **Systematic coverage** — explore all actions at high-priority targets before moving to low-priority
+
+These map directly to queue items #15 (novelty seeking), #16 (salience prioritization), and #17 (transition mapping). These should be high-priority additions to the play strategy.
+
 ## Dead Ends
 
 (patterns that don't work — to be filled as experiments run)

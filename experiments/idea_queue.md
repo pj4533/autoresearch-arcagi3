@@ -74,6 +74,21 @@
 - **Strategy change**: Add to play_strategy.md: "Every 10 actions, reassess: Is your game type hypothesis still correct? If you've taken 10 actions with no progress, your classification is probably wrong. Re-examine the frame with fresh eyes: What if it's NOT a navigation game? What if clicking IS the mechanic? What if the goal is different from what you assumed?"
 - **Expected impact**: Prevents sustained commitment to wrong approaches. The periodic check costs nothing (it's just thinking) but can save dozens of wasted actions.
 
+### 15. [Exploration] State Novelty Seeking — Prioritize New Frames
+- **Hypothesis**: The 3rd-place competition solution (graph-based explorer) succeeded by tracking visited states and prioritizing actions that lead to NEW states. An LLM agent can do the same by comparing frames: if an action produces a frame you've seen before, deprioritize that action path.
+- **Strategy change**: Add to play_strategy.md: "NOVELTY RULE: After each action, ask: Have I seen this frame before? If the frame looks identical to a previous state, you're going in circles. Prioritize actions that produce NOVEL frames — new arrangements, new colors, new object positions. Novelty = information. Repetition = waste."
+- **Expected impact**: Directly addresses the #1 failure mode from competition data: agents cycling through visited states. The winning approaches all had state-tracking to avoid this.
+
+### 16. [Visual Analysis] Visual Salience Prioritization
+- **Hypothesis**: Competition winner's key insight: not all objects are equally likely to be interactive. Small, brightly-colored, isolated objects are far more likely to be buttons/toggles than large uniform regions. Prioritizing by visual salience dramatically reduces wasted clicks.
+- **Strategy change**: Add to play_strategy.md: "SALIENCE RULE for click games: Rank clickable objects by visual salience. Highest priority: small, brightly colored, isolated objects (likely buttons). Medium: objects that differ from their neighbors. Lowest: large uniform regions (likely background). Click in salience order, not spatial order."
+- **Expected impact**: The 3rd-place solution used this as its core heuristic and solved 17/25 levels. Visual salience is a strong prior for interactivity in puzzle games.
+
+### 17. [Exploration] Action-Effect Transition Mapping
+- **Hypothesis**: Building an explicit mental map of "in state A, action X leads to state B" allows planning multi-step solutions instead of one-step guessing. This is what the graph-based approaches do programmatically.
+- **Strategy change**: Add to play_strategy.md: "BUILD A TRANSITION MAP: As you explore, explicitly track: 'From [state description], action [X] caused [effect] and led to [new state].' After 5-10 actions, you should have a partial map of the game's state space. Use this map to PLAN sequences of actions to reach unexplored or desirable states, rather than trying actions one at a time."
+- **Expected impact**: Transforms exploration from memoryless trial-and-error into informed search. The top 3 competition solutions all used explicit state-transition tracking.
+
 ---
 
 ## Completed
