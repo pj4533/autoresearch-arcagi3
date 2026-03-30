@@ -2142,3 +2142,41 @@ Combined with exp 068 (57 btn[0] clicks at specific coordinate = 0 movement), th
 - Local scoring: levels solved. Current = 2. With LS20 L1 = 3. Score: 0.6667 → 1.0 (+50%)
 
 **Queue fully refocused on LS20**: 6 LS20-specific ideas (#1-6) covering local search, budget increase, death-replay, wall probing, visual detection, and multi-level data.
+
+### Exp 071: Manual LS20 Navigation Fails — Pivot to Stategraph DFS (2026-03-29)
+
+**Exp 071 (LS20 smart nav, 500-action budget)**: 122 actions, 0 score. Combined per-move wall detection + directional priority + verified prefix. Player reached modifier area (display row 30) but modifier disappeared. Player sprite did NOT rotate (no collection). Deaths (206-cell changes) reset progress.
+
+**Executor's conclusion: "LS20 requires pre-computed path or actual DFS with state tracking, not blind navigation."**
+
+**This is the definitive answer for LS20 approach.** Three manual attempts (066, 069, 071) all failed. The maze is too complex for vision-guided manual navigation — too many dead ends, backtracking, and the fog-of-war makes it impossible to plan ahead.
+
+**The stategraph agent IS "actual DFS with state tracking."** It:
+1. Builds a directed graph of game states (each state = center hash of frame)
+2. Tries all 4 directions at each state, records which create new states
+3. DFS: follows untried actions, backtracks when all tried
+4. Runs at 0.012s/action without LLM calls
+5. With center hashing (exp 063): survives indefinitely on LS20 (NOT_FINISHED)
+
+**Why 2000 actions (exp 063) wasn't enough:**
+The maze has many unique states. At ~100 unique states per 100 actions (exp 008), 2000 actions ≈ 1000-2000 unique states explored. The solution requires:
+1. Find path from start to modifier (~7 direct moves, but with maze detours = 15-20 states)
+2. Step on modifier → player state changes → new hash for every state
+3. Find path from modifier to goal (~7 direct moves, 15-20 states post-modifier)
+4. State space is ~2× positions (pre/post modifier)
+
+If the reachable maze has 500+ positions, the total state space is 1000+ states. 2000 actions might cover ~half. 10000 actions should cover it all.
+
+**Action budget analysis:**
+| Budget | Time at 0.012s/action | Expected coverage | Likelihood of solving L1 |
+|--------|----------------------|-------------------|-------------------------|
+| 2000 | 24s | ~50% of states | Low (exp 063: 0 score) |
+| 5000 | 60s | ~80% | Medium |
+| 10000 | 120s | ~95% | High |
+| 50000 | 600s | ~100% | Very high |
+
+**Strategic pivot**: Stop trying arc CLI for LS20. Use `uv run python -m arcagi3.runner --agent stategraph --game_id ls20 --max_actions 10000 --offline`. If that doesn't work, try 50000.
+
+**Dead ends updated:**
+- LS20 via arc CLI manual play: 3 experiments, all 0 score. Too complex for manual navigation.
+- The per-move wall detection protocol WORKS (exp 069 validated) but the maze topology is too complex for a human/LLM to navigate efficiently.
